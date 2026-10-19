@@ -1,0 +1,55 @@
+name: Deploy to dev
+
+# self-hosted 러너를 dev 서버(WorkStation)에 직접 설치해서 쓴다 — gomissy.com의
+# 기존 배포 패턴과 동일(SSH 개인키를 Secrets에 안 두고, 서버 SSH 포트도 안 연다).
+# actions/checkout을 안 쓰는 이유: 이 저장소는 이미 dev 서버의
+# /home/server/repository/backend 에 체크아웃돼 있고 systemd가 그 경로에서
+# 직접 서비스를 서빙한다 — 그 경로에서 git fetch + reset으로 동기화한다.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-backend-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: /home/server/repository/backend
+    steps:
+      # 러너 서비스는 비대화형 셸이라 nvm 초기화가 안 실행돼 node/npm이 PATH에 없다.
+      - name: Put Node on PATH
+        run: echo "/home/server/.nvm/versions/node/v24.15.0/bin" >> "$GITHUB_PATH"
+
+      - name: Sync working tree to latest main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git clean -fd
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 마이그레이션은 전부 추가적(ADD COLUMN 등)이라 테스트보다 먼저 돌려도
+      # 안전하다 — 코드가 이미 새 컬럼을 전제하는데 DB엔 아직 없는 상황을 방지.
+      - name: Run DB migrations
+        run: npm run db:migrate
+
+      - name: Run tests
+        run: npx vitest run --no-file-parallelism
+
+      - name: Restart service
+        run: sudo systemctl restart ai-community-backend
+
+      - name: Verify service is active
+        run: sudo systemctl is-active --quiet ai-community-backend
+
+      - name: Verify health endpoint
+        run: |
+          sleep 2
+          curl -sf http://localhost:3010/api/health

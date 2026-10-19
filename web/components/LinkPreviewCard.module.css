@@ -1,0 +1,208 @@
+/* 🔒 사용자 지시(2026-08, ".card처럼 유튜브 임베드나 직접 이미지/영상도
+   똑같이 해줘") — 아래 .card와 같은 max-width:420px. 16:9 비율은 그대로라
+   폭이 줄면 높이도 같이 줄어든다(레터박스 없음). */
+.youtubeWrap {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--chip-bg);
+  margin-top: var(--space-sm);
+}
+
+.youtubeFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* 🔒 사용자 지시(2026-08, "유튜브또는 동영상의 경우 리스트에서는 썸네일또는
+   미리보기 이미지로") — compact 모드의 유튜브 썸네일. .youtubeWrap(16:9
+   박스)을 그대로 재사용해 iframe 자리에 정적 이미지가 대신 채워진다. */
+.thumbImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 🔒 사용자 지시(2026-08, "브라우저에서 자동으로 비디오에서 섬네일 추출") —
+   프레임 캡처 전용 <video>. 화면엔 안 보여야 하지만 display:none은 일부
+   브라우저에서 디코딩 자체를 멈출 수 있어(렌더링 트리에서 완전히 빠짐),
+   레이아웃엔 안 잡히되 여전히 "보이는" 상태(크기 1px+opacity:0)로 둔다. */
+.extractVideo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 🔒 사용자 지시(2026-08, "리스트에서 세로 섬네일이미지가 너무 큰것 같아.
+   가로 이미지를 pivot 했을때 사이즈로 재조정해줘") — .youtubeWrap/
+   .videoPlaceholder는 원래 width:100%(최대 420px)로 폭을 채우고
+   aspect-ratio가 높이를 계산한다(가로 16:9 기준 236px). 세로 콘텐츠에
+   그대로 적용하면 9:16에서 높이가 746px까지 치솟는다 — 가로 썸네일
+   박스(420폭×236높이)를 그대로 90도 돌린 크기(236폭×420높이)로 대신
+   맞춘다: width:100% 대신 height를 420px로 고정하고 width는 auto로
+   둬서 aspect-ratio(인라인 스타일, 이 클래스보다 항상 우선)가 폭을
+   계산하게 한다. */
+.compactPortrait {
+  width: auto;
+  max-width: 100%;
+  height: 420px;
+}
+
+.playIconOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* compact 모드의 직접 영상 URL 플레이스홀더 — 실제 프레임을 뽑을 방법이
+   없어(§17.3, 서버 영상 처리 파이프라인 미해결) "여기 영상이 있다"는
+   신호만 준다. .youtubeWrap과 같은 16:9 박스+max-width. */
+.videoPlaceholder {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--chip-bg);
+  margin-top: var(--space-sm);
+}
+
+.loading {
+  max-width: 420px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  background: var(--chip-bg);
+  margin-top: var(--space-sm);
+}
+
+/* 붙여넣은 콘텐츠의 직접 이미지 링크 — OG 카드(제목/설명)가 아니라 원본 그대로 보여준다. */
+/* 🔒 사용자 발견(2026-08) — "이미지가 카드타입의 하나의 박스에 하나씩
+   들어가는 형태야. 이럴 레이아웃을 제거해줘." BodyContent.module.css의
+   .image와 같은 원인(max-height+object-fit+배경색이 박스처럼 가둔다)이라
+   같은 방식으로 뺐다 — 이 컴포넌트가 렌더링하는 이미지도 결국 같은
+   BodyContent 안에 다른 이미지들과 나란히 놓일 수 있어 일관성이 중요하다. */
+.directImage {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+}
+
+/* 🔒 사용자 지시(2026-08) — 직접 영상 파일 URL(.mp4 등)도 <video> 태그로
+   바로 재생 가능하게. .directImage와 같은 값 — 박스·레터박스 없이 자연스러운
+   비율 그대로. */
+.directVideo {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+  background: #000;
+}
+
+/* 🔒 사용자 지시(2026-08, "글 보기 페이지에서는 영상/이미지등은 원사이즈또는
+   100%로 보여주게 해줘") — .youtubeWrap/.videoPlaceholder/.directImage/
+   .directVideo에 붙은 max-width:420px(후속 20·21)를 해제하는 모디파이어.
+   🔒 후속(2026-08, "모든 글 리스트에도 똑같이 적용해줘") — .directImage는
+   이제 포스트 상세(fullWidth)뿐 아니라 리스트(compact)에서도 이 클래스를
+   받는다(아래 JS의 `compact || fullWidth` 분기 참고) — .directVideo·
+   .youtubeWrap은 그대로 fullWidth 전용(영상/유튜브는 compact에서 이미
+   별도의 고정 비율 썸네일·플레이스홀더를 쓰고 있어 "원본 크기" 개념
+   자체가 없다). OG 카드(.card)는 대상 밖 — 그 420px 자체가 "카드가
+   넓어질수록 어색해진다"는 지적을 고친 값이라 리스트·상세 어디서도 유지한다.
+   🔒 후속(2026-08, "이미지사이즈의 원래 사이즈가 680px보다 작으면 원래
+   사이즈를 보여주고. 넓이가 클경우 100%로") — 처음엔 `max-width:none`만
+   해제했는데, `<img>`/`<video>`의 `width:100%`가 그대로 남아 있어서
+   작은 이미지도 컨테이너 폭까지 강제로 늘어나(업스케일) 화질이 흐려지는
+   문제가 있었다. `width:auto`로 바꾸면 **교체 요소**(img/video)는 원본
+   픽셀 크기를 그대로 쓰고 컨테이너보다 클 때만 `max-width:100%`가
+   줄여준다 — 반면 `.youtubeWrap`/`.videoPlaceholder`는 콘텐츠 없는
+   일반 `<div>`라 원래 CSS 박스 모델상 `width:auto`가 곧 "가용 폭 전체
+   채움"이라 기존처럼 항상 100%로 남는다. 두 성질이 달라서 하나의
+   모디파이어로 양쪽 다 의도대로 처리된다(교체 요소는 원본 크기 존중,
+   빈 박스는 그대로 꽉 채움). */
+.fullWidth {
+  width: auto;
+  max-width: 100%;
+}
+
+/* 🔒 사용자 발견(2026-08, "외부링크 넣을때 컨텐츠 넓이가 꽉차게 들어가지?
+   어색해져") — 지금까지 width 지정이 아예 없어서 flex 박스가 부모(컴포저
+   ~624px, 포스트 상세 본문 ~710px 등) 폭을 그대로 채웠다. 안의 텍스트는
+   .linkTitle/.description가 white-space:nowrap 한 줄 말줄임이라, 카드가
+   넓어질수록 오히려 빈 공간만 늘어나 불균형해 보였다 — 트위터/슬랙류
+   링크 카드가 보통 쓰는 폭(약 400~500px)을 참고해 max-width로 상한만
+   건다(좁은 화면에서는 그대로 줄어들어 반응형은 유지). */
+.card {
+  display: flex;
+  gap: var(--space-md);
+  max-width: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-top: var(--space-sm);
+  text-decoration: none;
+  background: var(--raised);
+}
+
+.image {
+  width: 120px;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--chip-bg);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+  min-width: 0;
+  justify-content: center;
+}
+
+.siteName {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.linkTitle {
+  font: var(--text-label-md);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  font: var(--text-body-sm);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,13 @@
+{
+  "grid": 24,
+  "strokeWidth": 1.5,
+  "note": "기본 상태: fill=none stroke=currentColor (모노크롬 라인). 선택 상태는 CSS로 전환한다 — .reaction-icon.is-selected path { fill: var(--accent); stroke: none; } 6종 전부 닫힌 path라 이 전환이 균일하게 동작한다.",
+  "reactions": [
+    { "id": "empathy", "label": "공감", "file": "empathy.svg", "primaryUse": ["고민상담", "일상/잡담", "육아"] },
+    { "id": "cheer", "label": "응원", "file": "cheer.svg", "primaryUse": ["고민상담", "직장/커리어", "창업"] },
+    { "id": "funny", "label": "웃김", "file": "funny.svg", "primaryUse": ["유머", "친목"] },
+    { "id": "surprise", "label": "놀람", "file": "surprise.svg", "primaryUse": ["이슈/시사", "IT/가젯", "AI"] },
+    { "id": "sad", "label": "슬픔", "file": "sad.svg", "primaryUse": ["고민상담", "반려동물"] },
+    { "id": "helpful", "label": "도움됨", "file": "helpful.svg", "primaryUse": ["질문답변", "요리/레시피", "재테크"], "replaces": "좋아요" }
+  ]
+}

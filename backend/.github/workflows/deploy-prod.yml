@@ -1,0 +1,46 @@
+name: Deploy to production
+
+# 수동 트리거 전용 — GitHub Free 플랜은 private repo environment에
+# required reviewers를 지원하지 않아서(2026-09-05 확인), 그 대신 "누군가
+# 명시적으로 이 워크플로를 실행 버튼으로 눌러야만 배포된다"는 사실 자체가
+# sign-off 역할을 한다. dev에서 충분히 검증한 뒤에만 이 버튼을 누를 것.
+#
+# 서드파티 액션 대신 openssh-client(ubuntu-latest 기본 설치)로 직접 SSH —
+# 이 프로젝트의 "새 의존성 안 늘린다" 원칙과 같은 이유로, 프로덕션 배포
+# 키를 다루는 경로를 서드파티 액션 코드에 맡기지 않는다.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-backend-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Deploy via SSH
+        env:
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15 "$SSH_USER@$SSH_HOST" '
+            set -e
+            cd /opt/backend
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
+            npm ci
+            npm run db:migrate
+            sudo systemctl restart ai-community-backend
+            sleep 2
+            curl -sf --max-time 10 http://localhost:3010/api/health
+          '

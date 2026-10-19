@@ -1,0 +1,461 @@
+/* 🔒 사용자 지시(2026-08) — "목업에는 gnb, 메가메뉴가 없어졌어. 모든 UI는
+   목업디자인을 절대적으로 따라가야해". 데스크톱 GNB 바(search·nav·right
+   관련 클래스 전부)를 통째로 삭제했다 — 이제 이 파일은 phone 폴백
+   (햄버거+드로어+하단 탭바, <768px)만 남는다. .logo/.wordmark는 phone
+   헤더가 계속 쓰므로 남겨둔다. */
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font: var(--text-display-md);
+  letter-spacing: -0.01em;
+  color: var(--logo);
+}
+
+/* 🔒 사용자 지시(2026-08) — GNB가 사라지고 좌 사이드바 안의 트리거로
+   옮겨왔다(CommunityPopup.tsx). artifact 실측: font-size 12px/weight 700,
+   color #8c7072(--text-tertiary), hover 시 액센트. */
+.sidebarCommunityBtn {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  padding: 0 5px;
+  margin-bottom: 5px;
+  border: none;
+  background: none;
+  text-align: left;
+  width: fit-content;
+  cursor: pointer;
+}
+.sidebarCommunityBtn:hover {
+  color: var(--accent);
+}
+
+/* 🔒 사용자 지시(2026-08 — "좌측메뉴의 community 클릭은 막아줘") — phone
+   드로어 안에서만 이 트리거를 비활성화한다(라벨은 그대로 보이되 클릭
+   무반응) — phone 헤더 격자 아이콘이 이제 같은 팝업을 직접 여는 진짜
+   진입점이라(위 `.gnbMobile` 근처, `Gnb.tsx` `communityOpen` state),
+   드로어 안 트리거는 중복 진입점이 된다. `.drawer-sidebar`는 Gnb.tsx가
+   붙이는 순수 글로벌 마커 — `primary-nav-group`과 같은 다리 패턴
+   (HomeSidebars.tsx 주석 참고). PC·pad(`.left` aside)는 대상 밖이라
+   그대로 클릭된다. */
+:global(.drawer-sidebar) .sidebarCommunityBtn {
+  pointer-events: none;
+}
+
+/* ---- 메가메뉴 — §11.8 "Communities" 클릭 시 전체 카테고리 발견 모달 ----
+   🔒 Claude Design 확정안(2026-08) — 아티팩트의 공용 모달 스펙(newPostOpen·
+   editOpen과 동일): 어두운 오버레이 + 중앙 카드(680px, radius 20px)
+   🔒 실전 발견(2026-08, 사용자 리포트 — "Community 팝업의 밝은 것들이
+   팝업보다 상단에 노출") — z-index가 `--z-dropdown`(100)이었는데, 사이드바
+   sticky 타이틀 줄(`.topRow`/`.pageTitle`, `--z-sticky`=200)이 그보다
+   높아 오버레이를 뚫고 안 어두워진 채로 보였다. 이 팝업은 이름만
+   "메가메뉴"일 뿐 실제로는 PostComposerModal·ProfileEditModal과 완전히
+   같은 "공용 모달 스펙"(오버레이+중앙 카드)이므로 그 둘과 같은
+   `--z-modal`(400)을 써야 한다 — 원래 등급 분류가 잘못됐던 것. */
+.megaMenuOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 28, 45, 0.45);
+  z-index: var(--z-modal);
+}
+
+.megaMenu {
+  position: fixed;
+  top: 98px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, calc(100vw - var(--space-xl) * 2));
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  z-index: var(--z-modal);
+  background: var(--raised);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* 🔒 사용자 지시(2026-08, "커뮤니티 팝업 폰 화면에서 글자가 밀리네...
+   글자가 두줄로 안밀리게") — phone(<768px)에서만 바깥 여백을 24px→16px로
+   줄인다. 680px 고정폭을 전제로 만든 2열 그리드가 이 좁은 폭까지 그대로
+   내려와서 생긴 문제라(아래 `.megaMenuInner` 참고), 폭 확보 차원에서
+   같이 줄였다 — pad(768px+)는 `min(680px, ...)`가 이미 680px 그대로
+   먹여서(뷰포트가 768px 이상이라 여백을 빼도 680px보다 크다) 대상 밖. */
+@media (max-width: 767px) {
+  .megaMenu {
+    width: calc(100vw - 32px);
+  }
+}
+
+/* 🔒 사용자 지시(2026-08, "모든 모달 팝업의 left위치를 중앙 컨텐츠 시작
+   위치와 일치시켜야 해") — `.megaMenuOverlay`(배경)와 `.megaMenu`(팝업)는
+   형제 요소(CommunityPopup.tsx)라 HomeFeed.module.css/ProfileEditModal.module.css
+   처럼 grid로 감싸는 방식을 그대로 못 쓴다(팝업을 오버레이 안에 중첩하려면
+   컴포넌트 구조 자체를 바꿔야 해서 "바깥 클릭으로 닫힘" 로직까지 건드리는
+   더 큰 변경이 된다) — 대신 값을 직접 계산해서 상수로 넣는다. `.layout`이
+   1280px+에서 `240px 680px 280px`(좌우 사이드바 폭이 다르다, 40px 차이)라
+   뷰포트 정중앙(50%)보다 중앙 컬럼이 20px(=40÷2) 왼쪽에서 시작한다 — 이
+   값은 `.layout`의 트랙 구성이 바뀌지 않는 한 뷰포트 폭과 무관하게 항상
+   정확히 20px다(두 레이아웃 모두 트랙 합이 정확히 1280px라 동일한
+   중앙정렬 공식을 공유해서다 — HomeFeed.module.css 주석의 grid 공유 방식과
+   수학적으로 동치, 손으로 어림잡은 값이 아니다). 1280px 미만은 대상 밖 —
+   `.center`가 그 구간에선 이미 뷰포트 정중앙에 있다(app/page.module.css
+   `.center{margin:0 auto}` 참고). 🔒 후속(2026-08, 새 pad 티어) — pad
+   (768~1279px)는 이제 좌 사이드바(208px)가 실제로 떠 있어 뷰포트 정중앙이
+   콘텐츠 중앙과 완전히 일치하진 않는다 — artifact의 pad 전용 `popupLeft`
+   (256px)까지 반영하려면 이 팝업 시스템 전체를 손봐야 해서 이번 라운드
+   범위 밖으로 남겨뒀다(사용자 요청은 좌측 메뉴 반응형이 핵심 — 별도 갭). */
+@media (min-width: 1280px) {
+  .megaMenu {
+    left: calc(50% - 20px);
+  }
+}
+
+/* 🔒 사용자 발견(2026-08, "구독하기 버튼이 누락되어있어... 전반적으로
+   스타일이 깨져있는것 같아") — artifact 실측(디코딩 원본)으로 재대조해
+   정정: 헤더 padding 16px 24px→20px 24px, 타이틀 20px→16px/700(artifact
+   문자열도 "Community" 영문), 닫기 버튼 32px→28px. */
+.megaMenuHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.megaMenuHead span {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.megaMenuClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.megaMenuClose:hover {
+  background: var(--chip-bg);
+}
+
+.megaMenuClose svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 🔒 artifact 실측: padding 28px 32px, gap 32px 40px(기존 24px/32px 48px는
+   근사치였다). */
+.megaMenuInner {
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px 40px;
+  /* §11.8 롤아웃 대응 — 그룹이 늘어나도 2열 그리드가 자연히 줄을 더 만든다. */
+}
+
+/* 🔒 사용자 지시(2026-08, "커뮤니티 팝업 폰 화면에서 글자가 밀리네. 메뉴들
+   패딩이나 마진을 확인하고 공간을 좀더 넓게해서 글자가 두줄로 안밀리게
+   만들어줘") — 원인은 패딩이 아니라 2열 그리드였다: 680px 데스크톱 폭
+   전제로 짠 `grid-template-columns:1fr 1fr; gap:32px 40px`가 phone
+   너비(`.megaMenu`가 100vw-32px로 줄어든 뒤에도)까지 그대로 내려와서,
+   375px 화면 기준 한 컬럼이 채 110px도 안 남았다 — 아이콘(18px)+구독
+   버튼("+ 구독" 등, ~45px)만으로 이미 꽉 차서 "반려동물"·"재테크·투자"
+   같은 카테고리명이 설 자리가 없어 줄바꿈되던 것(사용자가 본 "밀림").
+   1열로 바꿔 컬럼 폭을 통째로 넘겨주는 쪽이 패딩 몇 px 조정보다 근본적인
+   해법이라 이 방향으로 고쳤다 — padding도 옆 여백이 남는 만큼 좁혀
+   본문 폭을 추가로 확보했다. pad(768px+)는 `.megaMenu`가 그대로 680px라
+   컬럼당 여유가 충분해서 대상 밖(2열 유지). */
+@media (max-width: 767px) {
+  .megaMenuInner {
+    padding: 20px 16px;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.megaMenuGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 🔒 artifact 실측 — 그룹 라벨: 11px/700/uppercase/letter-spacing 0.06em,
+   그 아래 구분선(padding-bottom+margin-bottom 10px, --divider 톤).
+   기존엔 이 구분선 자체가 없었다("카테고리와 메뉴사이의 구분선도 없고"). */
+.megaMenuGroup h4 {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--divider);
+}
+
+/* 🔒 artifact 실측 — 카테고리 한 행: 아이콘+이름(왼쪽) / 구독 토글(오른쪽)을
+   양끝 정렬. 기존엔 아이콘·구독 토글 둘 다 없는 텍스트 링크뿐이었다. */
+.megaMenuRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 7px 10px;
+}
+
+.megaMenuRowLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  min-width: 0;
+}
+.megaMenuRowLink:hover {
+  color: var(--accent);
+}
+.megaMenuRowLink svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.megaMenuSubscribe,
+.megaMenuSubscribed {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+.megaMenuSubscribe {
+  color: var(--accent);
+}
+.megaMenuSubscribed {
+  color: var(--text-tertiary);
+}
+.megaMenuSubscribe:hover,
+.megaMenuSubscribed:hover {
+  color: var(--accent);
+}
+
+/* 🔒 사용자 지시(2026-08, "햄버거 아이콘과 우측 메뉴 아이콘도 키워줘") —
+   phone 헤더의 햄버거·격자(Community) 아이콘 두 개만 쓰는 클래스라
+   (PostComposerModal.tsx·ReactionBar.tsx도 같은 이름 `.iconBtn`을 쓰지만
+   각자 다른 CSS 모듈이라 이 파일과는 무관 — CSS Modules는 파일 스코프)
+   PC·pad에 영향 없이 바로 키울 수 있었다. 버튼 32→40px/아이콘 24→28px,
+   비율(패딩 4px→6px씩)을 유지해 키운 만큼 여백도 같이 넓어졌다. */
+.iconBtn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.iconBtn:hover {
+  color: var(--logo);
+}
+
+.iconBtn svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* ---- phone 상단 헤더 — artifact 실측: 햄버거·로고·Community 격자 아이콘 3개뿐
+   (디코딩 원본 line 41-49). sticky로도 fixed와 시각 결과가 같다 — 페이지
+   맨 위 첫 요소라 "자연 위치=스크롤 임계값"이 항상 일치해서(fixed처럼
+   본문에 padding-top 보정을 걸 필요가 없다), 기존 sticky 관련 로직을
+   건드리지 않고도 artifact의 "항상 떠 있는 헤더"와 동일한 결과를 낸다. */
+.gnbMobile {
+  height: var(--gnb-height);
+  background: var(--raised);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+/* ---- 드로어 — 각 페이지의 좌 사이드바를 그대로 받아 보여준다(사용자 지시, 2026-08) ----
+   🔒 사용자 지시(2026-08 — "왼쪽 화면 테두리에서 오른쪽으로 드래그 하면
+   메뉴가 나오게 해줘... 애니메이션 효과가 있으면 더 좋을것 같아") —
+   이제 항상 마운트라(Gnb.tsx) `display:none` 대신 `opacity`/`transform`
+   + `transition`으로 열고 닫는다. 드래그 중엔 Gnb.tsx가 인라인
+   `style.transition:'none'`으로 이 트랜지션을 잠깐 끄고 손가락을 그대로
+   따라가다가, 손을 떼는 순간 인라인 스타일이 사라지면서 이 트랜지션이
+   다시 살아나 마지막 위치→최종 위치(열림/닫힘)를 0.25s로 스냅한다 —
+   탭으로 여닫을 때(드래그 없음)도 처음부터 이 트랜지션 하나로 애니메이션
+   된다. artifact `sidebarTransform`의 "transition:transform 0.25s ease"
+   실측과 같은 타이밍. */
+.drawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: var(--z-drawer);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.drawerOverlay[data-open='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, 85vw);
+  background: var(--raised);
+  z-index: var(--z-drawer);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  /* 🔒 -100%가 아니라 -110% — 드로어 오른쪽 끝이 딱 뷰포트 왼쪽 끝(x:0)에
+     걸치면 box-shadow 없이도 서브픽셀 렌더링에 따라 1px 안쪽으로 살짝
+     보이는 경우가 있다(스와이프 드래그 인라인 style과 이 CSS 값을
+     매 프레임 정확히 맞추기 어려움) — 10% 여유를 더 밀어 완전히
+     화면 밖으로 보낸다. */
+  transform: translateX(-110%);
+  transition: transform 0.25s ease;
+}
+.drawer[data-open='true'] {
+  transform: translateX(0);
+}
+
+/* 🔒 사용자 지시(2026-08, 스크린샷 — "왼쪽메뉴에서 이부분은 제거 해줘") —
+   여기 있던 "메뉴"+X 닫기 헤더 바(`.drawerHead`)를 걷어냈다(Gnb.tsx 참고,
+   닫기는 배경 클릭으로 계속 가능). */
+/* 🔒 사용자 지시(2026-08) — 드로어 본문은 이제 각 페이지의 좌 사이드바
+   (`LeftSidebarLoggedIn`/`LeftSidebarLoggedOut`)를 그대로 받아 렌더링한다
+   (Gnb.tsx `sidebar` prop). 여기선 PC의 `.left` aside 패딩과 같은 여백만
+   준다 — 나머지 스타일은 전부 HomeSidebars.module.css 소관. */
+.drawerSidebar {
+  padding: var(--space-lg);
+}
+
+/* 🔒 사용자 지시(2026-08, 스크린샷 — "좌측메뉴에서 이부분도 빼줘",
+   New Post/Posts/Profile/Messages/Saved를 가리킴) — phone 드로어에서만
+   숨긴다(PC·pad는 그대로, 사용자 확인). `.drawerSidebar`가 받는 `sidebar`는
+   페이지가 미리 만든 ReactNode라 여기서 props를 못 바꾸고, PC·pad가 렌더링
+   하는 것과 완전히 같은 컴포넌트 인스턴스가 그대로 들어온다 — 그래서 이
+   CSS 모듈이 아니라 HomeSidebars.module.css가 만든 클래스를 직접 못
+   가리킨다(각자 다른 파일이라 해시가 다르다). `:global()`로 두 파일이
+   공유하는 순수 문자열 클래스(`drawer-sidebar`/`primary-nav-group`)를
+   만들어 다리를 놓는다 — HomeSidebars.tsx 쪽 마커 주석 참고. */
+:global(.drawer-sidebar) :global(.primary-nav-group) {
+  display: none;
+}
+
+/* ---- 하단 탭바 — artifact 실측(디코딩 원본 line 51-67): Home/Saved/글쓰기/
+   Messages/Profile 5개. CLAUDE.md/PRD.md §11.3.1 "모바일 하단 탭바 없음"
+   확정 결정을 이 라운드에서 뒤집었다(사용자 확인, AskUserQuestion — Gnb.tsx
+   헤더 주석 참고). fixed라 겹치는 만큼 각 page.module.css의 `.layout`
+   base(<768px) padding-bottom을 84px(탭바 64px + 여백 20px)로 늘려뒀다. */
+.tabBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--raised);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 var(--space-xs);
+  z-index: var(--z-sticky);
+}
+
+/* 🔒 사용자 지시(2026-08, "폰화면 아래 메뉴들 아이콘과 텍스트도 조금씩
+   크게해줘") — artifact 실측값(아이콘 22px/라벨 10px)에서 조금씩 키웠다.
+   `.tabBar` 높이(64px)는 그대로 둬도 다 들어간다: 아이콘 24 + gap 3 +
+   라벨 11px(줄높이 약 13px) + 상하 padding(space-xs×2, 8px) ≈ 48px <
+   64px, 바꿀 필요 없었다 — 바꿨으면 각 page.module.css의 하단 탭바
+   보정 padding-bottom(84px)까지 같이 손봐야 했다. */
+.tabItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 60px;
+  padding: var(--space-xs) 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+.tabItem:hover {
+  text-decoration: none;
+}
+.tabItem svg {
+  width: 24px;
+  height: 24px;
+}
+
+.tabItemActive {
+  color: var(--accent);
+}
+
+.tabPlus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  padding: 0;
+}
+.tabPlus svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* 🔒 사용자 지시(2026-08) — GNB가 데스크톱에서 완전히 사라지면서
+   (DesktopGnb 삭제) `.desktopOnly`/768px 전환 자체가 무의미해졌다.
+   🔒 후속(2026-08, 새 pad 티어) — pad(768~1279px)는 이제 좌 사이드바를
+   208px로 좁혀 그대로 보여준다(각 page.module.css) — 이 햄버거+드로어+
+   탭바 폴백은 phone(<768px)에서만 필요해 브레이크포인트를 1280px→768px로
+   낮췄다. `display:contents`를 쓰는 이유는 불변식 23(sticky는 부모 높이가
+   자기 자신과 같으면 안 붙는다)과 같다 — 이 래퍼 div 자체가 박스를
+   남기면 안쪽 `.gnbMobile`의 sticky가 무력화된다. */
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobileOnly {
+    display: contents;
+  }
+}

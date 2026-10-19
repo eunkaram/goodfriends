@@ -1,0 +1,31 @@
+/* 🔒 사용자 발견(2026-08) — "이미지가 카드타입의 하나의 박스에 하나씩
+   들어가는 형태야. 이럴 레이아웃을 제거해줘. 구분할 필요없이 넣으면돼."
+   max-height+object-fit+배경색 조합이 이미지 하나하나를 카드처럼
+   가둬 보이게 했다(비율이 안 맞으면 배경색이 레터박스처럼 비쳐 보임).
+   여러 장이 연달아 나올 때 이 박스감이 특히 도드라졌다 — 자연스러운
+   비율 그대로, 박스 없이 이어지도록 뺐다. */
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: var(--space-sm) 0;
+}
+
+/* 🔒 사용자 발견(2026-08, "글 내용보기 페이지에서 외부링크 이미지의 원본
+   넓이가 660px보다 작아 근데. 100%로 늘려져서 보이네?") — 붙여넣기로
+   들어온 이미지 마커(.image)는 LinkPreviewCard의 .directImage+.fullWidth
+   조합과 달리 이 처리가 아예 없어서, 포스트 상세 페이지에서도 원본보다
+   작은 이미지를 억지로 컨테이너 폭까지 늘리고 있었다(업스케일로 화질도
+   흐려짐) — LinkPreviewCard.module.css의 .fullWidth와 정확히 같은 원리:
+   width:auto로 바꾸면 교체 요소(img)는 원본 픽셀 크기를 그대로 쓰고,
+   컨테이너보다 클 때만 max-width:100%가 줄여준다.
+   🔒 후속(2026-08, "모든 글 리스트에도 똑같이 적용해줘") — PostCard·
+   ProfileTabs 답글 목록 같은 리스트(compact)도 이 모디파이어를 받는다
+   (아래 JS의 `fullWidth || compact` 분기 참고). 컴포저 실시간 미리보기
+   (둘 다 없음)만 기존처럼 width:100%를 유지한다 — "리스트"가 아니라서
+   대상 밖. */
+.imageFullWidth {
+  width: auto;
+  max-width: 100%;
+}

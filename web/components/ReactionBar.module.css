@@ -1,0 +1,93 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  text-decoration: none; /* 댓글수 링크(<a>)도 이 클래스를 공유해서 필요 — button엔 원래 해당 없음 */
+  transition: transform var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+.iconBtn:hover:not(:disabled) {
+  color: var(--text-secondary);
+  background: var(--chip-bg);
+}
+
+.iconBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* §11.10.2 — 선택 상태는 액센트 1색 채움 + 미세 스케일업. path가 닫혀 있어 fill 전환이 균일하다. */
+.selected {
+  color: var(--accent);
+}
+.selected svg path {
+  fill: var(--accent);
+  stroke: none;
+}
+.selected {
+  transform: scale(1.15);
+}
+
+.count {
+  font: var(--text-label-md);
+  color: var(--text-secondary);
+  margin-left: var(--space-xs);
+}
+
+/* 🔒 사용자 발견(2026-08, /design-review) — "아이콘 사이즈가 안맞아... 아이콘 +
+   숫자가 그룹이야. UI 적절히 잘 배치해". compact 모드(포스트 상세 하트+댓글수)
+   전용 — 두 그룹(공감/댓글) 사이만 넓게 띄운다. 그룹 내부 간격은
+   .compactGroup이 따로 갖는다.
+   🔒 후속(2026-08) — "하트 아이콘 그룹과 말풍선 그룹이 너무 멀어". --space-xl
+   (24px)에 .compactGroup 자체의 좌우 padding(각 8px)까지 더해져 체감 간격이
+   너무 컸다 — --space-xs(4px)로 줄임(패딩은 그대로라 pill 사이 최소 여백은
+   남는다). */
+.compactBar {
+  gap: var(--space-xs);
+}
+
+/* 아이콘+숫자를 하나의 pill 버튼으로 묶어 호버·클릭 영역이 같이 반응하게
+   한다 — 이전엔 아이콘·숫자가 .bar의 형제로 각자 떨어져 있어 4개 항목이
+   등간격으로 흩어져 보이고 "그룹"으로 안 읽혔다. */
+.compactGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.compactGroup:hover:not(:disabled) {
+  color: var(--text-secondary);
+  background: var(--chip-bg);
+}
+.compactGroup:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* 🔒 사용자 발견(2026-08, /design-review) — "더 줄이자 글삭제 버튼의 글자
+   크기에 맞춰줘". PostActionButton.module.css의 .btn과 같은 폰트(14px/600)로
+   맞춰 같은 줄의 링크복사·글수정·글삭제와 무게가 일치하게 했다. */
+.compactCount {
+  font: var(--text-label-md);
+  color: inherit; /* 아이콘과 같은 색을 따라가서 숫자도 하나의 그룹으로 보이게 한다 */
+}

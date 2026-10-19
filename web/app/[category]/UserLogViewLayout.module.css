@@ -1,0 +1,84 @@
+/**
+ * `/@{username}` 프로필 화면 전용 3단 그리드 — Home·카테고리 피드
+ * (app/page.module.css, app/[category]/page.module.css)와 값을 그대로
+ * 맞춰 이식했다. `UserLogView.module.css`(2단, 우 사이드바 없음)를 그대로
+ * 확장하지 않고 별도 파일로 뽑은 이유 — 그 파일은 `StaticPageLayout`·
+ * `friends/page.tsx`·`albums/page.tsx`가 아직 2단(우 사이드바 없음)
+ * 구조로 공유하고 있어서, 거기에 3번째 그리드 컬럼을 얹으면 `.right`를
+ * 안 그리는 그 페이지들에서 빈 트랙만큼 중앙 정렬이 어긋난다.
+ */
+
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업 — pc/pad/phone 3단 반응형) —
+   phone(<768px) 기본 padding-bottom을 84px로 늘렸다: Gnb.tsx 하단 탭바
+   (64px, fixed)가 화면 아래에 항상 떠 있어 그만큼 본문 마지막 줄을 가리지
+   않게 여백을 준다(64+20, artifact `shellPadding` phone 값) — app/page.module.css
+   의 같은 수정 참고(전체 설명). */
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.center {
+  min-width: 0;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.left,
+.right {
+  display: none;
+}
+
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업) — pad(768~1279px) 신설 —
+   app/page.module.css의 같은 수정 참고(전체 설명, artifact 실측 출처). */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 208px minmax(0, 1fr);
+    padding: 32px 24px 40px;
+    gap: 28px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 32px;
+    height: calc(100vh - 32px - 40px);
+    overflow-y: auto;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .layout {
+    grid-template-columns: 240px 680px 280px;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  .right {
+    display: block;
+    position: sticky;
+    top: 40px;
+    max-height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 40px;
+    height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+  }
+  .center {
+    margin: 0;
+  }
+}
+

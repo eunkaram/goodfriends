@@ -1,0 +1,197 @@
+/**
+ * §11.1 GNB + 3단 레이아웃. 사이드바는 1280px 미만에서 통째로 숨긴다 — CLAUDE.md
+ * 불변식 "사이드바 전용 진입점 금지"가 요구하는 전제(1024~1279px 사이에서
+ * 사이드바가 사라진다는 사실)를 그대로 반영한다. 그 전제 때문에 사이드바 위젯은
+ * 전부 대체 진입점이 있어야 한다(§11.7.0) — 왼쪽은 GNB 드로어, 오른쪽은 없음(허용됨).
+ */
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업 — pc/pad/phone 3단 반응형) —
+   phone(<768px) 기본 padding-bottom을 84px로 늘렸다: Gnb.tsx 하단 탭바
+   (64px, fixed)가 화면 아래에 항상 떠 있어 그만큼 본문 마지막 줄을 가리지
+   않게 여백을 준다(64+20, artifact `shellPadding` phone 값 그대로). 상단은
+   그대로 var(--space-xl) — phone 헤더는 fixed가 아니라 sticky라(Gnb.module.css
+   `.gnbMobile` 참고) 문서 흐름 안에서 스스로 공간을 차지해 top 보정이
+   필요 없다. 768px+(pad)·1280px+(pc)는 아래 media 블록이 이 padding을
+   통째로 override한다. */
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.center {
+  min-width: 0;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* 🔒 artifact 실측(showList/showSaved/showMyPosts 공통 타이포) — 리스트류
+   페이지 헤더는 전부 20px/600. 카테고리 피드의 `.listTitle`
+   (app/[category]/page.module.css)과 같은 값이다. sticky는 이전에 이
+   자리에 있던 Breadcrumb가 갖고 있던 동작을 그대로 옮겨온 것 —
+   Breadcrumb.module.css 헤더 주석 참고.
+   🔒 사용자 발견(2026-08) — "스크롤 할때 타이틀도 조금 올라가는데 이것은
+   안움직이게해줘". `top:0`이면 자연 위치(`.layout`의 padding=space-xl
+   만큼 아래)에서 sticky 임계값(0)까지 24px를 실제로 스크롤해야 붙어서,
+   그 구간에서 본문과 같이 위로 딸려 올라가는 게 보였다 — `top`을
+   `var(--space-xl)`로 맞춰 자연 위치=임계값으로 만드는 시도를 했었지만,
+   그러면 이번엔 뷰포트 맨 위 0~24px 구간을 아무것도 안 덮어서 그 틈으로
+   스크롤되는 본문이 그대로 비쳐 보이는 새 버그가 생겼다(사용자 재발견).
+   🔒 최종 수정 — `top:0`은 유지하되(항상 뷰포트 맨 위부터 확실히 덮어서
+   비침 자체를 원천 차단), 박스 자체를 음수 margin-top으로 `.layout`
+   padding만큼 위로 끌어올리고 그만큼을 padding-top으로 되돌려준다 —
+   박스의 "자연 위치"가 이제 y:0이라(margin-top이 parent padding을
+   상쇄) sticky 임계값(top:0)과 정확히 일치해서 캐치업 스크롤이 없고,
+   동시에 박스 자체(배경 포함)가 y:0부터 시작하니 비침도 없다. 텍스트가
+   보이는 실제 위치는 padding-top으로 원래와 동일하게 유지된다. */
+.pageTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: calc(-1 * var(--space-xl)) 0 var(--space-xl) 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding: calc(var(--space-xl) + var(--space-sm)) 0 var(--space-sm) 0;
+  z-index: var(--z-sticky);
+}
+
+.left,
+.right {
+  display: none;
+}
+
+/* 🔒 사용자 발견(2026-08, 스크린샷 — "스크롤하면 home부분이 올라오면서
+   gnb의 삼점메뉴 부분을 가려") — phone 전용 `.gnbMobile`(Gnb.module.css)도
+   이 `.pageTitle`도 둘 다 top:0 sticky라, 스크롤로 고정되는 순간 정확히
+   같은 y:0에서 겹친다 — DOM 순서상 `.pageTitle`이 `.gnbMobile` 뒤에 오고
+   z-index도 같아(`--z-sticky`) 타이틀 박스가 GNB 위를 덮어버렸다. GNB
+   높이(`--gnb-height`)만큼 내려서 GNB 바로 아래에 붙게 한다 — pad·pc는
+   `.gnbMobile` 자체가 안 그려지므로 대상 밖(위 media 블록들의 top:40px 등
+   기존 값 그대로). */
+@media (max-width: 767px) {
+  .pageTitle {
+    top: var(--gnb-height);
+    /* 🔒 사용자 지시(2026-08, "phone화면 Home 타이틀 상단 여백을 줄여줘") —
+       기본 padding-top(`space-xl + space-sm`=32px)은 GNB가 없는 pad·pc용
+       값이라, phone에서 GNB(56px) 아래에 또 32px가 더해져 "Home" 텍스트가
+       필요 이상으로 아래에서 시작했다. GNB가 이미 상단 여백 역할을 하므로
+       phone만 space-sm(8px)로 줄인다. */
+    padding-top: var(--space-sm);
+  }
+}
+
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업) — pad(768~1279px) 신설.
+   artifact `device==='pad'` 실측(디코딩 원본 line 1320-1552): 좌 사이드바를
+   숨기지 않고 208px로 좁혀 그대로 보여준다(우 사이드바는 여전히 없음) —
+   이전엔 이 구간도 데스크톱 사이드바가 통째로 숨고 Gnb.tsx 햄버거 폴백이
+   대신했다(불변식 17). `LeftSidebarLoggedIn`/`LeftSidebarLoggedOut`은
+   수정 없이 그대로 재사용 — 그리드 컬럼 폭만 좁아질 뿐, 컴포넌트 자체는
+   PC와 동일하다(사용자 지시, 2026-08 — "PC용 레프트 메뉴를 수정없이 그대로
+   사용해"). padding/gap 값(32px 24px 40px / 28px)도 artifact `shellPadding`/
+   `shellGap` pad 실측 그대로. */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 208px minmax(0, 1fr);
+    padding: 32px 24px 40px;
+    gap: 28px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 32px;
+    height: calc(100vh - 32px - 40px);
+    overflow-y: auto;
+    /* 🔒 실측 발견(2026-09, "리눅스 크롬은 스크롤바가 생기는데 맥은 괜찮다") —
+       리눅스 Chrome은 macOS의 오버레이 스크롤바와 달리 항상 자리를 차지하는
+       스크롤바를 그린다. 컨텐츠 높이가 이 컨테이너 높이와 거의 같을 때
+       폰트 렌더링 차이로 1~2px만 넘어도 리눅스에서만 스크롤바가 보였다 —
+       artifact 목업엔 애초에 스크롤바가 없다. 스크롤 자체(팔로잉 많은 경우
+       대비, HomeSidebars.module.css .sidebarStack 주석 참고)는 유지하되
+       바만 숨긴다. */
+    scrollbar-width: none;
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  /* 🔒 사용자 발견(2026-08, "스타일 시트가 하나도 안맞잖아. 메뉴 간격이라던가")
+     — artifact 최상위 그리드 컨테이너 실측(디코딩 원본 line 240):
+     `padding:40px 0px; gap:40px`. 기존엔 이 값 대신 `var(--space-xl)`
+     (24px)를 그대로 썼다 — 사이드바-본문 사이 큰 여백이 artifact보다
+     16px씩 좁았던 원인. 모바일(1280px 미만)은 사이드바 자체가 숨어서
+     이 그리드 gap이 안 보이고, 좌우 여백은 여전히 `var(--space-xl)`
+     기본값이 필요해(콘텐츠가 화면 끝에 붙지 않게) 이 override를
+     1280px 이상에서만 40px로 올린다 — artifact는 애초에 1280px 고정
+     캔버스라 반응형 개념이 없다는 걸 감안한 절충. */
+  .layout {
+    grid-template-columns: 240px 680px 280px;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  /* 🔒 사용자 지시(2026-08) — "스크롤은 모든 페이지에 동일하게 적용해야해".
+     포스트 상세에서 먼저 적용한 좌/우 사이드바 고정을 그대로 가져왔다 —
+     app/[category]/[postId]/page.module.css 헤더 주석 참고. 🔒 GNB 제거
+     후속(2026-08) — gnb-height를 뺐다. app/[category]/page.module.css의
+     같은 수정 참고. 🔒 위 40px 그리드 패딩 정정에 맞춰 top/max-height도
+     40px 기준으로 재계산. */
+  .right {
+    display: block;
+    position: sticky;
+    top: 40px;
+    max-height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+  }
+  /* 🔒 사용자 지시(2026-08, "좌측 하단 사이트맵 메뉴들 목업처럼 아래로
+     이동시켜줘") — artifact 좌 사이드바는 하단 링크 블록(서비스소개 등)에
+     `margin-top:auto`를 걸어 컬럼 맨 아래로 밀어낸다
+     (components/HomeSidebars.module.css `.footerBlock` 참고). 이게 실제로
+     동작하려면 `.left` 자신이 "고정 높이"를 가져야 한다 — auto margin은
+     안에 남는 공간이 있어야 밀어낼 수 있는데, `max-height`(콘텐츠가
+     짧으면 그 크기로 줄어드는 상한선일 뿐)로는 그 여유 공간이 생기지
+     않는다. `display:block`→`display:flex; flex-direction:column`,
+     `max-height`→`height`(항상 이 값)로 바꿔 `.left`가 늘 이 높이를
+     그대로 갖게 하고, 안의 `.sidebarStack`이 `flex:1`로 그 높이를 채운
+     뒤(HomeSidebars.module.css 참고) 내부 footerBlock의 margin-top:auto가
+     바닥까지 밀어낸다. `.right`는 이 변경 대상이 아니다(요청 범위가
+     좌측 한정) — 기존 block+max-height 그대로 둔다. 다른 페이지
+     (app/[category]/page.module.css 등)도 같은 패턴으로 통일. */
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 40px;
+    height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+    scrollbar-width: none; /* 🔒 리눅스 Chrome 스크롤바 숨김 — 위 768px 블록 주석 참고 */
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    margin: 0;
+  }
+  /* 🔒 `.layout` padding이 24px→40px로 바뀌면서 `.pageTitle`의 sticky
+     캐치업/비침 방지 트릭(margin/padding 상쇄 계산)도 같이 재조정해야
+     한다 — 그대로 두면 이 폭에서만 다시 16px 캐치업이 생긴다.
+     🔒 사용자 발견(2026-08, "구독중 버튼 시작 위치가 오른쪽 검색창의
+     시작위치가 같아야해... 약 5~10px정도 올려야") — `+ var(--space-sm)`
+     (8px)는 24px 그리드 시절 Breadcrumb의 옛 padding을 그대로 물려받은
+     값이라, 40px 그리드로 바뀐 지금은 `.left`/`.right`의 y:40과 안 맞고
+     센터 컨텐츠만 8px 낮게 시작했다 — 제거해서 `.left`/`.right`와 정확히
+     같은 y:40에서 시작하게 정정. */
+  .pageTitle {
+    margin-top: -40px;
+    padding-top: 40px;
+  }
+}

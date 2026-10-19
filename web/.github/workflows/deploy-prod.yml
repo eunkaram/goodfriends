@@ -1,0 +1,42 @@
+name: Deploy to production
+
+# 수동 트리거 전용 — reafy_backend와 같은 이유(GitHub Free 플랜은 private repo
+# environment에 required reviewers를 지원하지 않음, 2026-09-05 확인). 명시적으로
+# 이 워크플로를 실행 버튼으로 눌러야만 배포된다는 사실 자체가 sign-off 역할 —
+# dev(dev.reafy.com)에서 충분히 검증한 뒤에만 실행할 것.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-frontend-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Deploy via SSH
+        env:
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15 "$SSH_USER@$SSH_HOST" '
+            set -e
+            cd /opt/reafy_frontend
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
+            npm ci
+            npm run build
+            sudo systemctl restart reafy-frontend
+            sleep 2
+            curl -sf --max-time 10 http://localhost:3011/ -o /dev/null
+          '

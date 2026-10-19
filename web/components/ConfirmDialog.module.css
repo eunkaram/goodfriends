@@ -1,0 +1,103 @@
+/* 🔒 공용컴포넌트(2026-08, "모든 버튼에서 두번 누르기 기능을 팝업으로
+   대체하고 싶어" → "공용컴포넌트로 뽑아내줘") — PostCardMenu.tsx가 먼저
+   만들었던 PostCard.module.css의 .deleteConfirm*(오버레이+카드) 값을 그대로
+   이식한 공용 패턴. destructive(기본값 true)면 확인 버튼은 danger 외곽선만
+   (§11.2.4, 절대 채우지 않는다)·취소 버튼이 accent로 채워지고 autoFocus를
+   받는다(안전한 선택 강조, §11.2.3). destructive=false(친구 신청·팔로우처럼
+   파괴적이 아니라 상대에게 알림이 가서 확인만 받는 경우, PRD §11.9.2)면
+   반대로 확인 버튼이 accent+autoFocus를 받는다 — 이미 한 번 누른 의도를
+   존중해 진행이 기본 경로가 된다. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 28, 45, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  z-index: var(--z-toast);
+}
+
+.card {
+  width: 100%;
+  max-width: 360px;
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.text {
+  font: var(--text-body-sm);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-lg);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+/* 파괴적 액션(삭제 등) 확인 버튼 — 절대 채우지 않는다(§11.2.4). */
+.dangerBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--danger);
+  background: none;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+.dangerBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 중립 취소/보류 버튼 — destructive=false일 때 취소 쪽에 쓴다. */
+.outlineBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+.outlineBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 안전한 선택/기본 경로 — accent로 채워 강조한다(§11.2.3 CTA 허용). */
+.accentBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+.accentBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.accentBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

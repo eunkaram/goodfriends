@@ -1,0 +1,402 @@
+/* 내부 운영 도구 — 공개 화면과 같은 디자인 시스템 토큰을 쓰되, 픽셀 단위
+   목업 대조 대상은 아니다(외부 사용자가 안 보는 화면). */
+
+/* 🔒 2단(사이드바+본문) 레이아웃(사용자 지시, 2026-08-19) — 처음엔
+   app/page.module.css `.layout`의 pc 사이드바 폭(240px)을 그대로 가져왔는데,
+   이 사이드바는 로고+짧은 nav 라벨 5개뿐이라 그만큼 안 필요하다는 후속
+   지시("좌측 메뉴 넓이 좀 줄여도 될것 같아")로 180px로 좁혔다. gap(40px)은
+   그대로(공개 화면과 같은 값 유지, 폭만 조정 대상이었다). 좁은 화면(관리자가
+   작은 창/랩탑에서 열 때)엔 사이드바를 세로로 접어 위에 두는 간단한 폴백만
+   둔다 — 공개 화면의 pc/pad/phone 3단 반응형(불변식 17 등)까지 이 화면에
+   그대로 맞출 필요는 없다(내부 도구, 상단 주석 참고). */
+.layout {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 40px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  position: sticky;
+  top: var(--space-xl);
+  height: fit-content;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.logoSub {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* 🔒 HomeSidebars.module.css의 .iconItem/.iconItemActive와 같은 원칙 —
+   액센트는 텍스트 색으로만 쓴다(배경 채움 금지, §11.2.3). */
+.navItem {
+  font: var(--text-label-md);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.navItem:hover {
+  color: var(--accent);
+}
+
+.navItemActive {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+@media (max-width: 640px) {
+  .layout {
+    grid-template-columns: 1fr;
+    padding: var(--space-lg);
+    gap: var(--space-lg);
+  }
+
+  .sidebar {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    border-bottom: 1px solid var(--divider);
+    padding-bottom: var(--space-md);
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .navItem {
+    padding: var(--space-xs) 0;
+  }
+}
+
+.pageTitle {
+  font: var(--text-title-lg);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* 🔒 사용자 지시(2026-09-08, "유저 상세에서 작성 글/댓글 트래킹") — 유저
+   상세 카드 안에 붙는 하위 섹션 제목(작성한 글/작성한 댓글). pageTitle보다
+   한 단계 작은 위계. */
+.sectionTitle {
+  font: var(--text-title-md);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* 🔒 사용자 지시(2026-09-06, "유저 리스트를 모더레이터, 에이전트, 일반으로
+   나눠서... 탭 메뉴") — .navItem/.navItemActive와 같은 원칙(액센트는
+   텍스트 색으로만, 배경 채움 금지, §11.2.3). 아래 밑줄만 활성 탭 표시. */
+.roleTabs {
+  display: flex;
+  gap: var(--space-lg);
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: var(--space-lg);
+}
+
+.roleTab {
+  font: var(--text-label-md);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-sm) 0;
+  cursor: pointer;
+}
+
+.roleTab:hover {
+  color: var(--text-secondary);
+}
+
+.roleTabActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.roleTabCount {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.searchRow {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.searchRow input {
+  flex: 1;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 0 var(--space-md);
+  font: var(--text-body-sm);
+  background: var(--raised);
+  color: var(--text-primary);
+}
+
+.searchRow button {
+  height: 40px;
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.username {
+  font: var(--text-label-md);
+  color: var(--text-primary);
+  text-decoration: none;
+  width: fit-content;
+}
+
+a.username:hover {
+  color: var(--accent);
+}
+
+.meta {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+}
+
+.badge {
+  font: var(--text-label-sm);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.badgeDanger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.banBtn {
+  height: 32px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--danger);
+  background: none;
+  color: var(--danger);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.unbanBtn {
+  height: 32px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-primary);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.empty {
+  font: var(--text-body-sm);
+  color: var(--text-tertiary);
+  padding: var(--space-xl) 0;
+  text-align: center;
+}
+
+.error {
+  font: var(--text-label-sm);
+  color: var(--danger);
+}
+
+.banForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+}
+
+.banForm input {
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 0 var(--space-sm);
+  font: var(--text-body-sm);
+  background: var(--raised);
+  color: var(--text-primary);
+}
+
+.banForm textarea {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: var(--space-sm);
+  font: var(--text-body-sm);
+  background: var(--raised);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 60px;
+}
+
+.banFormActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.cancelBtn {
+  height: 32px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-secondary);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.backLink {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  text-decoration: none;
+  width: fit-content;
+}
+
+.backLink:hover {
+  color: var(--accent);
+}
+
+.detailCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+}
+
+.detailHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.detailUsername {
+  font: var(--text-title-md);
+  color: var(--text-primary);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fieldLabel {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+}
+
+.fieldValue {
+  font: var(--text-body-sm);
+  color: var(--text-primary);
+}
+
+.inlineForm {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.inlineForm input {
+  flex: 1;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 0 var(--space-md);
+  font: var(--text-body-sm);
+  background: var(--raised);
+  color: var(--text-primary);
+}
+
+.toggleBtn {
+  height: 32px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent);
+  background: none;
+  color: var(--accent);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.toggleBtnActive {
+  background: var(--accent);
+  color: var(--on-accent);
+}

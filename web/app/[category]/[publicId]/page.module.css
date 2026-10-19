@@ -1,0 +1,402 @@
+/**
+ * 🔒 사용자 지시(2026-08) — "글 내용페이지도 리스트와 같은 레이아웃으로
+ * 변경해줘. left, 중앙(글내용), right 레이아웃이야". §11.7.4 원안(단일 칼럼
+ * 720px, 우 사이드바 없음)을 뒤집고 카테고리 피드와 같은 3단 그리드로
+ * 통일했다 — 값도 그대로 공유한다(240px 좌 / 680px 중앙 / 300px 우,
+ * 1280px 미만은 사이드바 숨김).
+ */
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업 — pc/pad/phone 3단 반응형) —
+   phone(<768px) 기본 padding-bottom을 84px로 늘렸다: Gnb.tsx 하단 탭바
+   (64px, fixed)가 화면 아래에 항상 떠 있어 그만큼 본문 마지막 줄을 가리지
+   않게 여백을 준다(64+20, artifact `shellPadding` phone 값) — app/page.module.css
+   의 같은 수정 참고(전체 설명). */
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.center {
+  min-width: 0;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.left,
+.right {
+  display: none;
+}
+
+/* 🔒 사용자 발견(2026-08, 스크린샷 — 홈에서 "스크롤하면 gnb의 삼점메뉴
+   부분을 가려") — app/page.module.css `.pageTitle`과 같은 원인·같은 수정
+   (`.topRow`도 phone `.gnbMobile`과 top:0으로 겹친다). */
+@media (max-width: 767px) {
+  .topRow {
+    top: var(--gnb-height);
+    /* 🔒 사용자 지시(2026-08, "phone화면 Home 타이틀 상단 여백을 줄여줘") —
+       app/page.module.css `.pageTitle`과 같은 이유·같은 수정. */
+    padding-top: var(--space-sm);
+  }
+}
+
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업) — pad(768~1279px) 신설 —
+   app/page.module.css의 같은 수정 참고(전체 설명, artifact 실측 출처). */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 208px minmax(0, 1fr);
+    padding: 32px 24px 40px;
+    gap: 28px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 32px;
+    height: calc(100vh - 32px - 40px);
+    overflow-y: auto;
+    /* 🔒 실측 발견(2026-09, "리눅스 크롬은 스크롤바가 생기는데 맥은 괜찮다") —
+       app/page.module.css의 같은 수정 참고(전체 설명). */
+    scrollbar-width: none;
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  /* 🔒 사용자 발견(2026-08, "스타일 시트가 하나도 안맞잖아. 메뉴 간격이라던가")
+     — artifact 최상위 그리드 컨테이너 실측(디코딩 원본 line 240):
+     `padding:40px 0px; gap:40px`(기존 var(--space-xl)=24px에서 정정) —
+     app/page.module.css의 같은 수정 참고. */
+  .layout {
+    grid-template-columns: 240px 680px 280px;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  /* 🔒 사용자 지시(2026-08) — "스크롤하면 좌우, 중앙의 네비게이션 아래쪽
+     (컨텐츠 영역)만 스크롤 되면 좋겠어" → 좌/우 사이드바를 GNB 아래에
+     고정하는 쪽으로 확인(AskUserQuestion). 그리드 아이템은 기본
+     align-items: stretch라 `.left`/`.right`가 이미 행(=가장 긴 컬럼인
+     `.center`) 높이만큼 늘어나 있다 — 그 늘어난 박스 안에서 sticky가
+     걸리므로 center가 다 스크롤될 때까지 자연스럽게 뷰포트에 붙어있는다
+     (align-self로 줄이면 늘어난 높이가 없어져 sticky가 무의미해진다).
+     사이드바 자체 콘텐츠가 뷰포트보다 길어지는 경우를 대비해 자체
+     스크롤(overflow-y: auto)도 걸어둔다. 🔒 GNB 제거 후속(2026-08) —
+     gnb-height를 뺐다. app/[category]/page.module.css의 같은 수정 참고.
+     🔒 위 40px 그리드 패딩 정정에 맞춰 top/max-height도 40px 기준으로
+     재계산. */
+  .right {
+    display: block;
+    position: sticky;
+    top: 40px;
+    max-height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+  }
+  /* 🔒 사용자 지시(2026-08, "좌측 하단 사이트맵 메뉴들 목업처럼 아래로
+     이동시켜줘") — `.left`만 `max-height`(콘텐츠 크기로 줄어듦)에서
+     `height`(항상 이 값)로, `display:block`에서
+     `display:flex; flex-direction:column`으로 바꿔 안의 `.sidebarStack`이
+     `flex:1`로 이 높이를 채우고 footerBlock의 margin-top:auto가 바닥까지
+     밀어낼 수 있게 한다 — app/page.module.css의 같은 수정 참고(전체 설명).
+     `.right`는 대상 아님. */
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 40px;
+    height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+    scrollbar-width: none; /* 🔒 리눅스 Chrome 스크롤바 숨김 — app/page.module.css 주석 참고 */
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+/* 🔒 사용자 지시(2026-08) — "유저 아이콘이 커지고 아이콘 우측 상단에 아이디,
+   글쓴시간만 표시. 아래쪽에는 제목을 표시. 아이콘의 높이에 맞춰서 오른쪽의
+   글자들도 적절히 재배치". 이전 라운드에서 아바타·제목을 액센트(크림슨)
+   톤으로 바꿨었는데, 그건 사용자가 레이아웃을 표시하려고 그린 빨간 주석
+   선이었다 — 색은 원래대로 되돌렸다. PostCard.module.css의 .header와
+   같은 패턴, 값만 상세 페이지 제목 크기(더 큼)에 맞춰 키웠다. */
+/* 🔒 사용자 지시(2026-08, "절대로 목업디자인으로 따라가") — artifact 실측
+   (디코딩 원본 line 396-407)으로 PostCard.module.css의 .header/.avatar/
+   .meta와 통일 — 상세 페이지만 아바타를 키워서 쓰던 걸 그만두고 목록과
+   같은 42px로 맞췄다. */
+/* 🔒 사용자 지시(2026-08, "목업의 CSS와 페이지의 CSS를 비교해서 모두 목업
+   CSS 를 따라가도록... 기존내용은 모두 무시해") — artifact `showDetail`
+   실측(디코딩 원본 line 390-392): 다단계 Breadcrumb가 아니라 "Home › 카테고리"
+   한 줄 텍스트 + 오른쪽 "← 목록으로" 버튼이다. 카테고리 피드의 `.topRow`/
+   `.listTitle`/`.listTitleSep`(app/[category]/page.module.css)과 정확히
+   같은 패턴 — sticky 캐치업/비침 방지 트릭까지 그대로 공유한다. */
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: calc(-1 * var(--space-xl)) 0 var(--space-xl) 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding-top: calc(var(--space-xl) + var(--space-sm));
+  z-index: var(--z-sticky);
+}
+/* 🔒 사용자 발견(2026-08, "구독중 버튼 시작 위치가 오른쪽 검색창의
+   시작위치가 같아야해... 약 5~10px정도 올려야") — `+ var(--space-sm)`
+   (8px)는 24px 그리드 시절 물려받은 값이라 40px 그리드에선 `.left`/
+   `.right`의 y:40과 8px 어긋났다 — 제거해서 정확히 y:40에 맞춘다. */
+@media (min-width: 1280px) {
+  .topRow {
+    margin-top: -40px;
+    padding-top: 40px;
+  }
+}
+
+.listTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.listTitle a {
+  color: inherit;
+  text-decoration: none;
+}
+.listTitle a:hover {
+  color: var(--accent);
+}
+
+.listTitleSep {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* 🔒 artifact 실측: background:none; border:none; font-size:14px/600;
+   color:#8c7072(--text-tertiary); height:34px. */
+.backButton {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.backButton:hover {
+  color: var(--accent);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: var(--space-md) 0 18px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 🔒 사용자 지시(2026-08) — "글 내용보기의 3점 메뉴가 리스트처럼 제목있는
+   곳의 오른쪽으로 옮겨줘". PostCard.module.css .headerRight와 같은 패턴 —
+   .header가 이미 justify-content:space-between이라 이 형제가 자동으로
+   오른쪽 끝에 붙는다. */
+.headerRight {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  background: #dee0e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5c5f60;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 🔒 사용자 지시(2026-08, "아이디 부분을 붉은색으로 변경") — 지금까지는
+   그냥 `<span>`이라 클릭할 수도 없었다. PostCard.module.css의
+   `.authorLink`(이미 링크+액센트 색)와 똑같은 패턴으로 맞췄다 — §11.2.3
+   "액센트는 링크에만" 규칙에 맞추려면 색만 바꾸는 게 아니라 실제 링크로도
+   만들어야 한다(목록 카드는 이미 그렇다). */
+/* 🔒 사용자 지시(2026-08, "유저네임의 font-weight도 통일 시켜줘. 500으로") —
+   CommentSection·PostCard의 유저네임과 같은 weight로 맞춘다. */
+.authorLink {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.authorLink:hover {
+  color: var(--accent-hover);
+}
+
+/* 🔒 사용자 지시(2026-08, "유저네임 옆의 글쓴시간도 font-weight: 500으로") */
+.metaTime {
+  font-weight: 500;
+}
+
+/* 🔒 사용자 발견(2026-08, /design-review) — "내용보기 페이지의 제목글자가
+   너무 커. 리스트의 제목크기로 맞춰주고". PostCard.module.css의 .title과
+   같은 --text-title-md로 통일(기존 --text-display-md 24px→18px).
+   🔒 후속(2026-08, "글 제목을 위로 -2px 위치 이동") — PostCard.module.css의
+   같은 수정과 짝. */
+.title {
+  font: var(--text-title-md);
+  color: var(--text-primary);
+  margin: -2px 0 0;
+}
+
+/* M2 — 시리즈 소속 배지(제목 위 한 줄) */
+.seriesBadge {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  margin-top: 6px;
+}
+
+/* 🔒 사용자 지시(2026-09-06, "삭제된 글이면 모더레이터가 볼 때 삭제된
+   글이라고 표시가 되어야") — admin.module.css의 .badge/.badgeDanger와
+   같은 값(토큰 재사용). 이 배지가 보인다는 것 자체가 "이 글을 보는 사람이
+   모더레이터"라는 뜻이다(일반 유저는 삭제된 글을 응답조차 못 받는다). */
+.deletedBadge {
+  display: inline-block;
+  font: var(--text-label-sm);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+/* 🔒 사용자 발견(2026-08) — "url처럼 띄워쓰기 없고 길이가 길경우 글자가
+   오른쪽 레이아웃으로 침범해". overflow-wrap으로 공백 없는 긴 문자열도
+   박스 폭 안에서 강제 줄바꿈한다(PostCard.module.css의 .preview와 같은 이유). */
+/* 🔒 사용자 지시(2026-08) — "글내용 기본 폰트 사이즈를 14px로 변경해줘".
+   §11.2.5 "읽기 텍스트 16px 미만 금지" 규칙에 본문(글의 핵심 읽기 콘텐츠)이
+   직접 걸린다는 걸 먼저 알렸고, 사용자가 그걸 알고도 "15px로 하자"로
+   확정했다 — 16px보다는 작지만 14px보다는 완화한 의도적 절충. --text-body-lg/sm
+   어느 토큰에도 없는 값이라 리터럴로 직접 썼다(이 지점 하나만의 의도적
+   예외라 새 전역 토큰을 만들진 않음). */
+.body {
+  font: 400 15px/1.65 var(--font-sans);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  /* 🔒 사용자 발견(2026-08, /design-review) — "아이콘 열과 위의 내용이 너무
+     붙어 있어. 간격을 좀 줘". --space-xl(24px)에서 --space-3xl(48px)로 확대.
+     🔒 이 48px는 원래 "본문 전체의 마지막" 전용이었다(§.actions와 마진
+     겹침으로 일관된 하단 여백을 만드는 장치, "본문이 이미지로 끝날 때
+     여백 누락" 라운드 참고) — 아래 :not(:last-child) 규칙이 그 예외를
+     넣는다. */
+  margin: 0 0 var(--space-3xl);
+  /* 🔒 사용자 지시(2026-08, "글 내용부분을 좌우 5px씩 padding을 줘") —
+     PostCard.module.css의 `.preview`와 짝. 왼쪽은 이후 `.bodyContent`
+     래퍼의 20px로 대체됐다(아래 참고) — 여기 5px 왼쪽분은 뺐다. */
+  padding-right: 5px;
+}
+/* 🔒 사용자 발견(2026-08, "글수정과 글쓰기에서 줄바꿈만 했을뿐인데 글과
+   아래 영상과 간격이 너무 많아") — 다중 미디어 인터리브 라운드(글-영상-
+   글-이미지-영상) 이후, 본문에 텍스트 세그먼트가 여러 개면(예: 텍스트
+   →영상→텍스트) 전부 이 .body 클래스를 공유해서 "본문 끝→액션 줄"
+   전용으로 설계된 48px 마진이 세그먼트 사이사이에도 그대로 적용됐다 —
+   Enter 한 번으로 만든 문단 간격이 마치 글이 통째로 끝난 것처럼 크게
+   벌어져 보였다. 마지막 세그먼트가 아닌 .body만 일반 문단 간격(16px)
+   으로 낮춘다 — 마지막 세그먼트는 여전히 48px 그대로라 .actions와의
+   하단 여백은 회귀 없다. */
+.bodyContent > .body:not(:last-child) {
+  margin-bottom: var(--space-lg);
+}
+
+/* 🔒 사용자 지시(2026-08, "본문 내용에 대해 padding-left를 20px로") —
+   PostCard.module.css의 `.bodyContent`와 짝. 텍스트·이미지·링크
+   미리보기 카드를 전부 감싸는 래퍼에 건다. */
+.bodyContent {
+  padding-left: 20px;
+}
+
+/* 🔒 사용자 발견(2026-08, /design-review) — "글내용보기에도... 아이콘,
+   댓글창, 관련글등이 난잡하게 구성이 되어있어 메인컨텐츠인 글내용에 집중이
+   안되고 있어". 위아래로 선을 두 개(top+bottom) 둘러싸고 있던 게 정작 위쪽은
+   `.body`가 이미 여백(margin-bottom)으로 끝나는 지점이라 불필요한 선이었다
+   — 아래쪽 구분선 하나만 남기고(톤도 --divider로 낮춤), 위는 여백만으로
+   분리한다. 댓글/관련글 앞에 선이 하나 줄면 그만큼 본문 다음의 "쉬는 지점"이
+   명확해진다. */
+/* 🔒 사용자 발견(2026-08, /design-review) — "글 내용에 마지막이 이미지인데.
+   아이콘있는 부분과 너무 붙어 있어". `.body`의 margin-bottom(48px)은 텍스트
+   문단(<p class={styles.body}>)에만 붙는데, 본문이 이미지로 끝나면 마지막
+   요소가 <img>(BodyContent.module.css `.image`, margin 8px)라 이 여백을
+   못 받는다 — 본문 마지막이 텍스트든 이미지든(직접 이미지 URL·유튜브
+   임베드 등 LinkPreviewCard 경로 포함) 일관된 간격을 보장하려면 "무엇으로
+   끝나는지"를 감지하는 대신 .actions 쪽에 margin-top을 둬야 한다. 일반
+   블록 형제 간 마진은 겹치므로(collapse), 본문이 텍스트로 끝나 이미 48px
+   여백이 있는 경우엔 이 margin-top과 겹쳐져서 48px 그대로 유지되고, 이미지로
+   끝나 8px만 있던 경우엔 48px로 보정된다 — 두 경우 다 동일한 결과. */
+/* 🔒 사용자 지시(2026-08, "본문글과 댓글사이의 구분선을 없애줘") — 위
+   두 라운드가 이미 위쪽 선을 없애고 아래쪽 하나만(--divider로 톤 낮춰)
+   남겨뒀었는데, 이번엔 그 남은 아래쪽 선마저 뺐다 — padding-bottom/
+   margin-bottom(여백)은 그대로 둬서 간격은 유지되고 선만 사라진다. */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-3xl);
+  padding-bottom: var(--space-lg);
+  margin-bottom: var(--space-2xl);
+  /* 🔒 사용자 지시(2026-08, "글 내용부분을 좌우 5px씩 padding을 줘") —
+     `.body`와 같은 5px, PostCard.module.css `.footer`와도 짝. */
+  padding-left: 5px;
+  padding-right: 5px;
+  /* 🔒 사용자 지시(2026-08, "아래쪽 아이콘들(좋아요, 댓글) 오른쪽으로
+     4px옮겨줘" → 후속 "1px더 오른쪽으로 옮겨줘" → 후속 "-1px 해줘") —
+     PostCard.module.css `.footer`와 짝. */
+  margin-left: 4px;
+}
+

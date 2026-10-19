@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+*.log
+.gstack/
+
+# Local tool caches (Serena MCP, graphify skill)
+.serena/
+graphify-out/
+
+# Next.js
+.next/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

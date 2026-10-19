@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Env (시크릿은 서브디렉토리 각자 .gitignore가 맡는다 — 여기는 전역 보조선)
+.env
+.env.*
+!.env.example
+
+# Node / 빌드
+node_modules/
+*.log
+*.tsbuildinfo
+
+# 로컬 도구 캐시
+.serena/
+graphify-out/
+.gstack/
+
+# Next.js
+.next/
+
+# Docker
+backend/docker-compose.override.yml
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

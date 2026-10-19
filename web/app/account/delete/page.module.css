@@ -1,0 +1,97 @@
+/* 🔒 AuthForm.module.css의 .page/.card/.title/.subtitle/.field/.error/
+   .destructiveBtn/.secondaryBtn을 그대로 재사용한다(StaticPageLayout.tsx가
+   UserLogView.module.css를 재사용하는 것과 같은 관례) — 이 파일은 그
+   화면들엔 없는 "계정 요약 정보"·"동의" 두 조각만 담당한다. */
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--search-bg);
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  font-size: 14px;
+}
+
+.summaryLabel {
+  color: var(--text-tertiary);
+}
+
+.summaryValue {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.consent input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--danger);
+}
+
+/* 🔒 사용자 지시(2026-08-24, "버튼은 로그인창 처럼. 동그랗게 취소는 왼쪽,
+   계정삭제버튼은 오른쪽으로") — AuthForm.module.css의 `.submit`(48px,
+   radius-full)과 같은 크기·둥근 모양으로. 채움/외곽선 배분은
+   ConfirmDialog.module.css의 destructive 쌍(안전한 선택=accent 채움,
+   파괴적 확인=danger 외곽선만, §11.2.4 "채움 = 진행, 외곽선 = 주의")과
+   같은 관례를 그대로 따른다. */
+.actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.cancelBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cancelBtn:hover {
+  background: var(--accent-hover);
+}
+
+.deleteBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--danger);
+  background: none;
+  color: var(--danger);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

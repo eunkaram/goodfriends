@@ -1,0 +1,22 @@
+{
+  "grid": 24,
+  "strokeWidth": 1.5,
+  "concept": "말풍선(커뮤니티·메시징) + 내부 두 줄(개인 로그의 글) + 하단 꼬리 — §1.1 3축 구조를 한 형태로 압축",
+  "symbol": {
+    "file": "symbol.svg",
+    "color": "accent 또는 --text-primary. 그라데이션·다색 금지 (§11.11)",
+    "minSize": "16px (파비콘 기준)",
+    "usage": {
+      "desktopGnb": "심볼 + 워드마크",
+      "mobileGnb": "심볼 단독 (<768px, §11.3.1)",
+      "favicon": "심볼 단독",
+      "emptyState": "사용하지 않음 (§11.5.1 일러스트 금지)"
+    }
+  },
+  "wordmark": {
+    "font": "Pretendard 700",
+    "letterSpacing": "-0.03em",
+    "color": "--text-primary",
+    "note": "별도 디스플레이 서체 없음 (§11.2.5 서체 1종 원칙)"
+  }
+}

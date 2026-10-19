@@ -1,0 +1,54 @@
+name: Deploy to dev
+
+# self-hosted 러너를 dev 서버(WorkStation)에 직접 설치해서 쓴다 — reafy_backend와
+# 같은 패턴. actions/checkout을 안 쓰는 이유: 이 저장소는 이미 dev 서버의
+# /home/server/repository/reafy_frontend 에 체크아웃돼 있고 systemd가 그 경로에서
+# 직접 서비스를 서빙한다(.env.local은 gitignore 대상이라 새로 클론하면 못 찾는다).
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-frontend-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: /home/server/repository/reafy_frontend
+    steps:
+      - name: Put Node on PATH
+        run: echo "/home/server/.nvm/versions/node/v24.15.0/bin" >> "$GITHUB_PATH"
+
+      - name: Sync working tree to latest main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git clean -fd
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+      - name: Restart service
+        run: sudo systemctl restart reafy-frontend
+
+      - name: Verify service is active
+        run: sudo systemctl is-active --quiet reafy-frontend
+
+      - name: Verify homepage responds
+        run: |
+          sleep 2
+          curl -sf http://localhost:3011/ -o /dev/null

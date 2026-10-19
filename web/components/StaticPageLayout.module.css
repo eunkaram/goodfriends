@@ -1,0 +1,24 @@
+/* 🔒 artifact 실측(showStaticPage) — 제목 20px/600, 본문 14px/24px 줄높이,
+   white-space:pre-line(본문 안의 \n을 그대로 줄바꿈으로 보여준다) */
+/* 🔒 사용자 지시(2026-08, "목업 CSS를 무조건 따라가야해") — artifact 실측
+   gap:20px(기존 --space-lg=16px는 4px 부족). */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.body {
+  font-size: 15px;
+  line-height: 24px;
+  color: #3a3d44;
+  white-space: pre-line;
+  margin: 0;
+}

@@ -1,0 +1,97 @@
+# Reafy 로컬 개발 스택 — PRD §17.1
+#
+# 자체 호스팅 결정(§17)의 최소 재현이다. 프로덕션도 같은 구성을 쓴다(§12.2가
+# "스테이징은 프로덕션과 동일 스택"을 요구).
+#
+#   앱 ──▶ PgBouncer(6432, 트랜잭션 모드) ──▶ Postgres(5432) + pg_bigm
+#     └──▶ Redis(6379)
+#
+# 🔒 PgBouncer가 여기 있는 이유는 편의가 아니다. §10.1-bis G1 가드는
+#    실제 트랜잭션 모드 풀러가 있어야만 재현된다. 테스트도 6432로 붙는다.
+#
+# 🔒 배포 실측(2026-09-05, 오라클 클라우드) — 세 포트 다 127.0.0.1로만
+#    바인딩한다. Docker는 게시된 포트에 대해 자체 iptables 규칙을 넣는데,
+#    이게 호스트의 INPUT 체인(방화벽)을 우회한다 — 클라우드 Security List
+#    설정 하나에만 기대지 않고 호스트 자체도 막는다. 앱은 컨테이너가 아니라
+#    호스트에서 직접 도는 구조라 127.0.0.1로 충분하다.
+
+services:
+  postgres:
+    build:
+      context: ./docker/postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: community_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+      POSTGRES_DB: ai_community
+      # 한국어 정렬. lc_collate는 initdb 시점에만 적용된다.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U community_owner -d ai_community"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    command:
+      - postgres
+      # 벤치마크(T11) 재현성을 위해 계획 노이즈를 줄인다
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - track_io_timing=on
+
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p2
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: community_owner
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+      DB_NAME: ai_community
+      # 🔒 핵심 설정 — 이게 session이면 G1 가드가 무의미해진다
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_CLIENT_CONN: "200"
+      # 커넥션을 적게 두어야 재사용이 실제로 일어나고 G1이 재현된다
+      DEFAULT_POOL_SIZE: "3"
+      ADMIN_USERS: community_owner
+      # 앱 역할이 PgBouncer를 통과할 수 있도록 허용
+      AUTH_QUERY: "SELECT usename, passwd FROM pg_shadow WHERE usename=$$1"
+      # 트랜잭션 모드는 세션 상태를 바꾸는 시작 파라미터를 거부한다.
+      # 클라이언트 드라이버가 습관적으로 보내는 것들을 무시하게 둔다.
+      # 실측으로 확인: 이게 없으면 "unsupported startup parameter: statement_timeout"
+      IGNORE_STARTUP_PARAMETERS: "extra_float_digits,statement_timeout,idle_in_transaction_session_timeout,search_path"
+    ports:
+      - "127.0.0.1:${PGBOUNCER_PORT:-6432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U community_owner"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "allkeys-lru", "--requirepass", "${REDIS_PASSWORD:-devpass}"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-devpass}", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:
+  redisdata:

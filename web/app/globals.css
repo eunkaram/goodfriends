@@ -1,0 +1,36 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font: var(--text-body-lg);
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* 🔒 실전 발견(2026-08, 사용자 리포트 — Community 팝업이 유튜브 iframe에
+   가려짐) — 크로스 오리진 iframe(유튜브 임베드)이 별도 GPU 합성 레이어로
+   그려져서 z-index를 아무리 올려도 모달 위로 뚫고 나왔다. 모달이 열려
+   있는 동안(`components/use-modal-open-effect.ts`가 body에 이 클래스를
+   단다) iframe·video를 통째로 숨겨서 근본 차단한다 — CSS 스태킹만으로는
+   못 고치는 브라우저 합성 단계의 문제라 이 방법이 유일한 확실한 해법이다. */
+body.modal-open iframe,
+body.modal-open video {
+  visibility: hidden;
+}

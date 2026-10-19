@@ -1,0 +1,35 @@
+{
+  "name": "ai-community-backend",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node src/server.ts",
+    "start": "NODE_ENV=production node src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d --build && node scripts/wait-for-db.ts",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && npm run db:up && npm run db:migrate",
+    "db:migrate": "node scripts/migrate.ts",
+    "db:backup": "node scripts/backup-db.ts",
+    "test": "vitest run",
+    "test:guards": "vitest run tests/guards",
+    "worker:news": "node worker/news-bot.ts"
+  },
+  "dependencies": {
+    "ioredis": "^5.11.1",
+    "nodemailer": "^9.0.3",
+    "pg": "^8.13.1",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.11.10",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
+  }
+}

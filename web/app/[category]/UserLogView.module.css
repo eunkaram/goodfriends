@@ -1,0 +1,76 @@
+/**
+ * 🔒 §11.7.6류 "우 사이드바 없음" 공용 셸 — `StaticPageLayout`(정적 페이지
+ * 5개)·`friends/page.tsx`·`albums/page.tsx`(로그인된 뷰어용 렌더)가
+ * 이 파일의 `.layout`/`.left`/`.center`를 공유한다. 비로그인 게이트는
+ * `LoginRequiredGate.tsx`로 통일해서 이 파일을 안 쓴다(2026-08-24).
+ * 🔒 후속(2026-08, 사용자 제시 스크린샷) — `/@{username}` 프로필 화면
+ * 자체는 3단(우 사이드바 있음) 레이아웃으로 바뀌어 이 파일을 더 이상 안
+ * 쓴다 — 전용 그리드는 `UserLogViewLayout.module.css` 참고. 이 파일은
+ * 2단 구조가 여전히 맞는 나머지 3개 소비처를 위해 그대로 둔다(공유
+ * 모듈을 3단으로 바꾸면 `.right` 없이 렌더링하는 그 페이지들이 빈 3번째
+ * 그리드 트랙만큼 중앙 정렬이 어긋난다 — 실제로 겪을 뻔한 회귀).
+ */
+
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업 — pc/pad/phone 3단 반응형) —
+   phone(<768px) 기본 padding-bottom을 84px로 늘렸다: Gnb.tsx 하단 탭바
+   (64px, fixed)가 화면 아래에 항상 떠 있어 그만큼 본문 마지막 줄을 가리지
+   않게 여백을 준다(64+20, artifact `shellPadding` phone 값) — app/page.module.css
+   의 같은 수정 참고(전체 설명). */
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.center {
+  min-width: 0;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.left {
+  display: none;
+}
+
+/* 🔒 후속(2026-08, 새 pad 티어) — 이전엔 이 파일만 1024px에서 사이드바를
+   보여줬다(다른 페이지는 1280px) — 그 구간(1024~1279px)에서 phone 폴백
+   `<Gnb>`(sticky 56px)가 실제로 화면에 떠 있었기 때문에 `--gnb-height`
+   보정이 필요했다(CLAUDE_HISTORY.md 참고). 이제 그 폴백은 phone
+   (<768px)에서만 나타나(Gnb.module.css `.mobileOnly`) 1024~1279px에도
+   더는 뜨지 않는다 — 나머지 페이지와 같은 768px 기준·같은 32px 오프셋으로
+   통일하고 `--gnb-height` 보정도 걷어냈다. */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 208px minmax(0, 1fr);
+    justify-content: center;
+    padding: 32px 24px 40px;
+    gap: 28px;
+  }
+  .left {
+    display: block;
+    position: sticky;
+    top: 32px;
+    max-height: calc(100vh - 32px - 40px);
+    overflow-y: auto;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .layout {
+    grid-template-columns: 240px 680px;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  .left {
+    top: 40px;
+    max-height: calc(100vh - 40px * 2);
+  }
+}
+
