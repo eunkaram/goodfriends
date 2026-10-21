@@ -9,7 +9,7 @@
  * 봇 컨텍스트로 통과시킨다(createCommunityPost 재사용).
  */
 import { appPool, ownerPool, queryRaw } from './db.ts';
-import { generateDigestDraft, escapeHtmlText } from './llm.ts';
+import { generateDigestDraft } from './llm.ts';
 import { createCommunityPost } from './posts.ts';
 
 const pool = appPool('exists');
@@ -182,14 +182,11 @@ export async function publishDigestDraft(id: string): Promise<{ ok: true; postPu
   const categoryId = rows.rows[0]?.category_id;
   if (!botId || !categoryId) return { ok: false, error: 'BOT_OR_CATEGORY_MISSING' };
 
-  // 초안 본문은 관리자 편집 가능한 plain text(마크다운 목록) — 발행 시
-  // 이중 빈줄을 단락으로 보고 HTML <p>로 감싼다. 목록의 - 접두는 살려둔다.
-  const html = draft.content
-    .split(/\n{2,}/)
-    .map((p) => `<p>${escapeHtmlText(p).replace(/\n/g, '<br />')}</p>`)
-    .join('\n');
-
-  const post = await createCommunityPost(botId, { categoryId, title: draft.title, body: html });
+  // 🔒 초안 발행은 앱 body 계약(컴포저 저장 형식 — 플레인 텍스트 문단) 그대로
+  // 저장한다. 구버전은 이중 빈줄을 HTML <p> 래핑으로 바꿨는데, 화면(body를
+  // 플레인으로만 파싱하는 link-detect.ts)에서 태그가 그대로 노출되는 계약
+  // 위반이었다. 목록의 - 접두는 살려둔다.
+  const post = await createCommunityPost(botId, { categoryId, title: draft.title, body: draft.content.trim() });
   if (!post.ok) return { ok: false, error: `POST_REJECTED: ${post.error}` };
 
   await ownerPool().query(

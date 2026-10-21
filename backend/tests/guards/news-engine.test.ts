@@ -177,7 +177,9 @@ describe('뉴스봇 사이클(neon 없는 검증 — fixture 주입)', () => {
     for (const row of posts.rows) {
       expect(row.author_username).toBe(NEWS_BOT_USERNAME);
       expect(row.category_slug).toBe(NEWS_CATEGORY_SLUG);
-      expect(row.body).toMatch(/원문: <a href="https:\/\/example\.test\//);
+      // 🔒 body 계약(컴포저 저장 형식 = 플레인) — 태그 없이 "원문: <url>" 한 줄로 끝난다.
+      expect(row.body).toMatch(/원문: https:\/\/example\.test\//);
+      expect(row.body).not.toMatch(/</);
     }
   });
 

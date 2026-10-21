@@ -11,7 +11,7 @@
  */
 import { appPool, ownerPool, queryRaw } from './db.ts';
 import { NEWS_SOURCES, fetchFeed, type FeedItem } from './rss.ts';
-import { summarizeNewsKorean, escapeHtmlText } from './llm.ts';
+import { summarizeNewsKorean } from './llm.ts';
 import { alertAdminOfError } from './error-alert.ts';
 import { createCommunityPost } from './posts.ts';
 
@@ -103,16 +103,15 @@ async function resolveBotAndCategory(): Promise<{ botId: string; categoryId: str
   return { botId, categoryId };
 }
 
-/** 본문 모양 — 요약 단락 + 원문 링크 단락. 원문 링크는 §3의 요구("원문 링크
- * 포함 발행")라 없을 수 없다. link-detect.ts가 <a> 태그를 감지하므로
- * <a href>로 감싼다. */
+/** 본문 모양 — 요약 단락 + "원문: <url>" 한 줄. 🔒 앱 body 계약은 컴포저
+ * 저장 형식(플레인 텍스트 문단, 빈 줄 구분)이다 — link-detect.ts는 태그를
+ * 파싱하지 않고 "줄 안의 URL"을 인라인 링크로 감지하므로(§ web/lib/
+ * link-detect.ts), 구버전의 <p>/<a> 래핑은 계약 위반이었다: feed 카드
+ * 미리보기(LEFT(body) 만)와 글 상세 어디에서도 태그가 문자 그대로
+ * 노출됐다. 링크는 문서 UI가 자동 링크 처리하고, 설정 유틸과 마크업
+ * escapeHtmlText는 body 계약상 불필요 — 제거했다. */
 function toNewsPostBody(digest: string, url: string): string {
-  return (
-    digest
-      .split(/\n{2,}/)
-      .map((p) => `<p>${escapeHtmlText(p)}</p>`)
-      .join('\n') + `\n<p>원문: <a href="${escapeHtmlText(url)}" rel="nofollow noopener" target="_blank">${escapeHtmlText(url)}</a></p>`
-  );
+  return `${digest.trim()}\n\n원문: ${url}`;
 }
 
 async function insertArticle(sourceKey: string, item: FeedItem): Promise<string | null> {
