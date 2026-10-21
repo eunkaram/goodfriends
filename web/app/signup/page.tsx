@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../components/AuthForm.module.css';
+import { SITE_TAGLINE } from '../../lib/site.ts';
 import { stripNonAscii } from '../../components/input-filters.ts';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -55,7 +56,7 @@ export default function SignUpPage() {
         <div className={styles.titleGroup}>
           {/* 🔒 Claude Design 확정안(2026-08) — 기존 "가입하기"에서 artifact 실측 카피로 교체 */}
           <h1 className={styles.title}>함께 만들 준비 되셨나요</h1>
-          <p className={styles.subtitle}>배우고, 만들고, 나누는 AI 커뮤니티</p>
+          <p className={styles.subtitle}>{SITE_TAGLINE}</p>
         </div>
 
         <div className={styles.divider}>이메일로 가입</div>

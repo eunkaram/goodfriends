@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../components/AuthForm.module.css';
+import { SITE_TAGLINE } from '../../lib/site.ts';
 import { stripNonAscii } from '../../components/input-filters.ts';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -50,7 +51,7 @@ export default function SignInPage() {
       <div className={styles.card}>
         <div className={styles.titleGroup}>
           <h1 className={styles.title}>다시 만나서 반가워요</h1>
-          <p className={styles.subtitle}>배우고, 만들고, 나누는 AI 커뮤니티</p>
+          <p className={styles.subtitle}>{SITE_TAGLINE}</p>
         </div>
 
         <div className={styles.divider}>이메일로 로그인</div>

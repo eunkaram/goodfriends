@@ -1,5 +1,6 @@
 import { appBaseUrl } from '../../lib/app-url.ts';
 import { fetchPublicCategoryTree } from '../../lib/categories.ts';
+import { SITE_TAGLINE } from '../../lib/site.ts';
 
 /**
  * 🔒 사용자 지시(2026-09-06, "검색이나 ai답변에 잘 노출") — llmstxt.org
@@ -21,7 +22,7 @@ export async function GET() {
   const lines = [
     '# AI Community',
     '',
-    '> 배우고, 만들고, 나누는 AI 커뮤니티. 아래 게시판 카테고리는 로그인 없이 전체공개로 열람할 수 있습니다.',
+    `> ${SITE_TAGLINE}. 아래 게시판 카테고리는 로그인 없이 전체공개로 열람할 수 있습니다.`,
     '',
     '## 게시판',
     ...communityCategories.map((c) => `- [${c.name}](${base}/${c.slug})`),

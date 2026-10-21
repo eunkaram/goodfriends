@@ -5,6 +5,7 @@ import type { GnbCategoryGroup } from './Gnb.tsx';
 import { NewPostButton } from './NewPostButton.tsx';
 import { SubscribedCategoriesWidget } from './SubscribedCategoriesWidget.tsx';
 import { CommunityPopup } from './CommunityPopup.tsx';
+import { SITE_TAGLINE } from '../lib/site.ts';
 import styles from './HomeSidebars.module.css';
 
 /**
@@ -236,7 +237,8 @@ export function LeftSidebarLoggedOut({
         AI Community
       </a>
       <div className={styles.loggedOutIntro}>
-        <p className={styles.intro}>세상을 읽고, 나를 기록하는 커뮤니티</p>
+        {/* 🔒 디자인 리뷰(2026-10-20) — Reafy 구태그라인이 잔존했었다(branding sweep 누락분). SITE_TAGLINE 단일 소스로 교체 */}
+        <p className={styles.intro}>{SITE_TAGLINE}</p>
         <div className={styles.authBtns}>
           <a className={styles.secondaryBtn} href="/signin">
             로그인
