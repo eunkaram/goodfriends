@@ -3,21 +3,11 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../components/AuthForm.module.css';
-import { COUNTRIES } from '../../lib/countries.ts';
-import { stripNonAscii, stripNonDigits } from '../../components/input-filters.ts';
-
-function ChevronDownIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 9.5l6 6 6-6" />
-    </svg>
-  );
-}
+import { stripNonAscii } from '../../components/input-filters.ts';
 
 const ERROR_MESSAGES: Record<string, string> = {
   EMAIL_TAKEN: '이미 가입된 이메일이에요.',
   RECENTLY_DELETED: '최근 탈퇴한 이메일이에요. 7일 후 다시 가입할 수 있어요.',
-  UNDERAGE: '가입 가능한 나이가 아니에요.',
   INVALID_INPUT: '입력하신 내용을 다시 확인해주세요.',
 };
 
@@ -25,10 +15,6 @@ export default function SignUpPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // 사용자 지시(2026-08-25, "생년월일 입력시 년도부분에... 현재년도-100~현재 년도까지") — 렌더마다 새로 계산해 오늘 날짜를 반영한다.
-  const birthdateMax = new Date().toISOString().slice(0, 10);
-  const birthdateMin = `${new Date().getFullYear() - 100}-01-01`;
-  const [postalCodeValue, setPostalCodeValue] = useState('');
   const [emailValue, setEmailValue] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
 
@@ -42,9 +28,6 @@ export default function SignUpPage() {
       nickname: form.get('nickname'),
       email: form.get('email'),
       password: form.get('password'),
-      birthdate: form.get('birthdate'),
-      country: form.get('country'),
-      postalCode: form.get('postalCode') || undefined,
     };
 
     try {
@@ -66,13 +49,13 @@ export default function SignUpPage() {
   return (
     <div className={styles.page}>
       <a className={styles.logo} href="/">
-        Reafy
+        AI Community
       </a>
       <div className={styles.card}>
         <div className={styles.titleGroup}>
           {/* 🔒 Claude Design 확정안(2026-08) — 기존 "가입하기"에서 artifact 실측 카피로 교체 */}
-          <h1 className={styles.title}>함께 기록할 준비 되셨나요</h1>
-          <p className={styles.subtitle}>세상을 읽고, 나를 기록하는 커뮤니티</p>
+          <h1 className={styles.title}>함께 만들 준비 되셨나요</h1>
+          <p className={styles.subtitle}>배우고, 만들고, 나누는 AI 커뮤니티</p>
         </div>
 
         <div className={styles.divider}>이메일로 가입</div>
@@ -119,38 +102,10 @@ export default function SignUpPage() {
             />
           </div>
 
-          <div className={styles.row}>
-            <div className={styles.field}>
-              {/* 사용자 지시(2026-08-25) — 년도 4자리(현재년도-100~현재년도)로 제한. type=date는 년도 세그먼트가 4자리를 넘게 입력받지 않아 별도 처리가 필요 없다. */}
-              <input id="birthdate" name="birthdate" type="date" min={birthdateMin} max={birthdateMax} aria-label="생년월일" required />
-            </div>
-            <div className={styles.field}>
-              <div className={styles.selectWrap}>
-                <select id="country" name="country" defaultValue="KR" aria-label="거주 국가" required>
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-                <span className={styles.selectChevron}>
-                  <ChevronDownIcon />
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <input
-              id="postalCode"
-              name="postalCode"
-              placeholder="우편번호 (선택)"
-              aria-label="우편번호 (선택)"
-              inputMode="numeric"
-              value={postalCodeValue}
-              onChange={(e) => setPostalCodeValue(stripNonDigits(e.target.value, 5))}
-            />
-          </div>
+          {/* 🔒 사용자 지시(2026-10-19, "회원가입에서 생년월일, 위치, zipcode 입력창
+              제거") — 가입은 닉네임·이메일·비밀번호만 받는다. 생년월일·국가는
+              선택 입력이 되어 NULL 저장 백엔드(auth.ts) 코멘트 참고 — 온보딩
+              (/onboarding) 또는 프로필 편집에서 채울 수 있다. */}
 
           <button className={styles.submit} type="submit" disabled={submitting}>
             {submitting ? '가입 중…' : '가입하기'}

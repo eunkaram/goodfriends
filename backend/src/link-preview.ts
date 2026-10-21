@@ -80,7 +80,7 @@ async function fetchFollowingSafeRedirects(startUrl: URL, signal: AbortSignal): 
     const res = await fetch(current.toString(), {
       signal,
       redirect: 'manual',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ReafyLinkPreview/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AICommunityLinkPreview/1.0)' },
     });
     if (res.status >= 300 && res.status < 400 && res.headers.has('location')) {
       await res.body?.cancel().catch(() => {});

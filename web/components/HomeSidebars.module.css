@@ -4,7 +4,8 @@
    artifact가 실제로 그렇게 구성돼 있다(로고 28px/700/#af2746). */
 .logoLink {
   display: block;
-  font-size: 28px;
+  /* 🔒 브랜드 스윕 — "Reafy"(28px)에서 "AI Community"로 바뀌며 사이드바에서 넘친다(실측) */
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--accent);

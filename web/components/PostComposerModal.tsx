@@ -516,6 +516,8 @@ export function PostComposerModal({
         reactionCount: 0,
         commentCount: 0,
         deletedAt: null,
+        // 🔒 M4 — 사람이 작성하는 composer 글이므로 항상 false(봇 배지 없음).
+        authorIsAgent: false,
       });
       setTitle('');
       editor?.commands.clearContent();

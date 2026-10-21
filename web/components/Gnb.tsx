@@ -212,8 +212,8 @@ function MobileGnb({ sidebar, activeTab, profileHref = '/signin', categoryTree =
         <button className={styles.iconBtn} onClick={() => setDrawerOpen(true)} aria-label="메뉴 열기">
           <HamburgerIcon />
         </button>
-        <a className={styles.logo} href="/" aria-label="Reafy">
-          <span className={styles.wordmark}>Reafy</span>
+        <a className={styles.logo} href="/" aria-label="AI Community">
+          <span className={styles.wordmark}>AI Community</span>
         </a>
         {/* 🔒 사용자 지시(2026-08 — "오른쪽 상단 메뉴버튼 클릭하면 community
             categories 팝업을 띄워주고") — 드로어를 거치지 않고 이 버튼

@@ -42,7 +42,7 @@ function emailFrom(zohoUser: string): string {
   // 🔒 `??`가 아니라 `||`다 — `.env`에 `EMAIL_FROM=`(빈 문자열)로 남겨두는 게
   // 기본 안내(.env.example)라, `??`는 빈 문자열을 "설정됨"으로 보고 폴백을
   // 안 타서 발신 주소가 빈 값이 될 뻔했다.
-  return process.env.EMAIL_FROM || `Reafy <${zohoUser}>`;
+  return process.env.EMAIL_FROM || `AI Community <${zohoUser}>`;
 }
 
 // 🔒 요청마다 새로 만들지 않는다 — SMTP 커넥션 풀을 nodemailer가 내부에서
@@ -105,7 +105,7 @@ function emailLayout(opts: { preheader: string; heading: string; body: string; c
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e3bdbe;border-radius:16px;">
             <tr>
               <td style="padding:32px 32px 0;">
-                <span style="font-size:24px;font-weight:700;color:#950026;">Reafy</span>
+                <span style="font-size:24px;font-weight:700;color:#950026;">AI Community</span>
               </td>
             </tr>
             <tr>
@@ -140,10 +140,10 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
   const link = `${appBaseUrl()}/verify-email?token=${token}`;
   await sendEmail({
     to,
-    subject: 'Reafy 이메일 인증',
+    subject: 'AI Community 이메일 인증',
     text: `가입해주셔서 감사해요. 아래 링크를 눌러 이메일 인증을 완료해주세요 (24시간 유효):\n${link}`,
     html: emailLayout({
-      preheader: '이메일 인증을 완료하고 Reafy를 시작하세요.',
+      preheader: '이메일 인증을 완료하고 AI Community를 시작하세요.',
       heading: '이메일 인증',
       body: '가입해주셔서 감사해요. 아래 버튼을 눌러 이메일 인증을 완료해주세요.',
       ctaLabel: '이메일 인증하기',
@@ -163,7 +163,7 @@ export async function sendEmailChangedNotice(to: string, newEmail: string): Prom
   const link = `${appBaseUrl()}/forgot-password`;
   await sendEmail({
     to,
-    subject: 'Reafy 계정 이메일이 변경됐어요',
+    subject: 'AI Community 계정 이메일이 변경됐어요',
     text: `이 계정(${to})의 로그인 이메일이 ${newEmail}(으)로 변경됐어요. 본인이 한 게 맞다면 무시하셔도 됩니다. 본인이 아니라면 지금 바로 비밀번호를 재설정해주세요:\n${link}`,
     html: emailLayout({
       preheader: '계정 이메일이 변경됐어요 — 본인이 아니라면 확인해주세요.',
@@ -180,7 +180,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   const link = `${appBaseUrl()}/reset-password?token=${token}`;
   await sendEmail({
     to,
-    subject: 'Reafy 비밀번호 재설정',
+    subject: 'AI Community 비밀번호 재설정',
     text: `아래 링크에서 새 비밀번호를 설정해주세요 (1시간 유효):\n${link}`,
     html: emailLayout({
       preheader: '비밀번호를 재설정하세요.',

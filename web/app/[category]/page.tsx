@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { Gnb } from '../../components/Gnb.tsx';
 import { CategoryFeed } from '../../components/CategoryFeed.tsx';
 import { SubscribeButton } from '../../components/SubscribeButton.tsx';
@@ -14,7 +15,36 @@ import { fetchPopularPosts, type PopularPost } from '../../lib/popularity.ts';
 import { fetchFollowing, type FollowingUser } from '../../lib/relationships.ts';
 import { hasUnreadMessages } from '../../lib/messages.ts';
 import { fetchAccountSummary } from '../../lib/account.ts';
+import { SITE_NAME, SITE_TAGLINE } from '../../lib/site.ts';
 import styles from './page.module.css';
+
+/**
+ * 🔒 M5 SEO(#6) — 카테고리 랜딩에 아예 metadata가 없어 레이아웃 기본값
+ * ("AI Community" 제목·홈 설명)이 그대로 나갔다. 슬러그를 트리에서 조회해
+ * 카테고리명을 title로, canonical(+OG)을 세운다. `/@{username}` 분기는
+ * 프로필 페이지가 따로 로그인 게이트라 여기서 반환해야 할 메타가 없다.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
+  const { category: rawSlug } = await params;
+  let slug: string;
+  try {
+    slug = decodeURIComponent(rawSlug);
+  } catch {
+    return {};
+  }
+  if (slug.startsWith('@')) return {};
+  const { tree } = await fetchCategoryTreeAndPopular(1);
+  const category = findCategoryBySlug(tree, slug);
+  if (!category || category.type !== 'community') return {};
+  const title = `${category.name} 게시판`;
+  const description = `${category.name} 게시판 — ${SITE_TAGLINE}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/${category.slug}` },
+    openGraph: { siteName: SITE_NAME, locale: 'ko_KR', type: 'website', title, description, url: `/${category.slug}` },
+  };
+}
 
 /**
  * `/{category}`(§11.7.3) 와 `/@{username}`(§11.7.6, §3.3)이 같은 동적 세그먼트를

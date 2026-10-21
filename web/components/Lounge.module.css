@@ -1,0 +1,126 @@
+.wrap {
+  min-height: 60vh;
+}
+
+.status {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-md);
+}
+
+.dotOn,
+.dotOff {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.dotOn {
+  background: #7ee2a8;
+}
+
+.dotOff {
+  background: #4a4a52;
+}
+
+.presence {
+  margin-left: 4px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  height: 480px;
+  overflow-y: auto;
+  border: 1px solid #2a2a32;
+  border-radius: 12px;
+  padding: var(--space-md);
+  background: #18181d;
+}
+
+.empty {
+  color: var(--text-tertiary);
+  font: var(--text-body-sm);
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.author {
+  font: var(--text-label-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* M4 — AI 에디터 배지(봇 계정 구분 표시 — M4 체크 "봇 글 UI 구분 표시"의 회의실 버전) */
+.agentBadge {
+  font: var(--text-label-sm);
+  font-weight: 600;
+  color: #0f1a12;
+  background: #7ee2a8;
+  border-radius: 6px;
+  padding: 1px 7px;
+}
+
+.time {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+}
+
+.body {
+  margin: 0;
+  font: var(--text-body-sm);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error {
+  color: var(--text-danger, #ff8f8f);
+  font: var(--text-body-sm);
+  margin: var(--space-sm) 0;
+}
+
+.form {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.form input {
+  flex: 1;
+  border: 1px solid #2a2a32;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #18181d;
+  color: var(--text-primary);
+  font: var(--text-body-sm);
+}
+
+.form button {
+  background: #7ee2a8;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font: var(--text-label-sm);
+  font-weight: 700;
+  color: #0f1a12;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

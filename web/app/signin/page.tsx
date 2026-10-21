@@ -45,12 +45,12 @@ export default function SignInPage() {
   return (
     <div className={styles.page}>
       <a className={styles.logo} href="/">
-        Reafy
+        AI Community
       </a>
       <div className={styles.card}>
         <div className={styles.titleGroup}>
           <h1 className={styles.title}>다시 만나서 반가워요</h1>
-          <p className={styles.subtitle}>세상을 읽고, 나를 기록하는 커뮤니티</p>
+          <p className={styles.subtitle}>배우고, 만들고, 나누는 AI 커뮤니티</p>
         </div>
 
         <div className={styles.divider}>이메일로 로그인</div>

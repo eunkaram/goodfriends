@@ -4,9 +4,10 @@ import './globals.css';
 import { NavHistoryBoot } from '../components/NavHistoryBoot.tsx';
 import { EmailVerificationBanner } from '../components/EmailVerificationBanner.tsx';
 import { appBaseUrl } from '../lib/app-url.ts';
+import { SITE_NAME, SITE_TAGLINE } from '../lib/site.ts';
 
-const siteName = 'AI Community';
-const description = '배우고, 만들고, 나누는 AI 커뮤니티';
+const siteName = SITE_NAME;
+const description = SITE_TAGLINE;
 
 export const metadata: Metadata = {
   // 🔒 metadataBase 없이 openGraph/twitter의 상대경로(images 등)를 쓰면

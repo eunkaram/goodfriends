@@ -71,7 +71,7 @@ export async function generateMetadata({
       // 🔒 Next.js는 openGraph 객체를 세그먼트별로 통째로 교체한다(필드 단위
       // 딥머지가 아님) — 여기서 siteName/locale을 다시 안 넣으면 루트
       // layout.tsx 기본값이 사라진다(실측 확인, curl로 <head> 비교).
-      siteName: 'Reafy',
+      siteName: 'AI Community',
       locale: 'ko_KR',
       type: 'article',
       title: post.title,
@@ -280,6 +280,9 @@ export default async function PostDetailPage({ params }: { params: Promise<{ cat
                 )}
                 <div className={styles.headerText}>
                   {post.deletedAt && <span className={styles.deletedBadge}>삭제됨</span>}
+                  {/* 🔒 M4 — 뉴스봇·다이제스트봇 글("AI 에디터"). PostCard와 같은
+                      배지 — users.is_agent가 소스다. */}
+                  {post.authorIsAgent && !post.deletedAt && <span className={styles.agentBadge}>AI 에디터</span>}
                   <div className={styles.meta}>
                     {/* 🔒 사용자 지시(2026-08, "아이디 부분을 붉은색으로 변경") —
                         PostCard와 같은 패턴으로 유저 로그 페이지 링크 추가.

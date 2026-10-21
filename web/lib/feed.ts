@@ -11,6 +11,8 @@ export type FeedPost = {
   authorUsername: string;
   authorNickname: string;
   authorAvatarUrl: string;
+  /** 🔒 M4 — 뉴스봇·다이제스트봇 글의 "AI 에디터" 배지(users.is_agent). */
+  authorIsAgent: boolean;
   categoryName: string;
   categorySlug: string;
   createdAt: string;

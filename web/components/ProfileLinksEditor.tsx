@@ -32,13 +32,14 @@ export function ProfileLinksEditor({ links, onLinksChange }: { links: ProfileLin
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔒 사용자 지시(2026-08, "프로필 편집에서 링크를 기본 링크 이름을 Reafy로
+  // 🔒 사용자 지시(2026-08, "프로필 편집에서 링크를 기본 링크 이름을 서비스명으로
   // 변경해줘") — 새 링크를 추가할 때 이름 입력창의 기본값(placeholder가
-  // 아니라 실제 채워진 값)을 "Reafy"로 미리 채운다. 사용자가 그대로 저장할
-  // 수도, 다른 이름(예: Instagram)으로 덮어쓸 수도 있다.
+  // 아니라 실제 채워진 값)을 서비스명으로 미리 채운다. 사용자가 그대로 저장할
+  // 수도, 다른 이름(예: Instagram)으로 덮어쓸 수도 있다. 원안은 "Reafy"였다,
+  // 브랜드 스윕(2026-10-19)으로 AI Community로 통일.
   function openAdd() {
     setEditingId('new');
-    setNameValue('Reafy');
+    setNameValue('AI Community');
     setUrlValue('');
     setError(null);
   }

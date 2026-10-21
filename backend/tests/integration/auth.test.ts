@@ -135,6 +135,52 @@ describe('POST /api/auth/signup', () => {
     expect(body.userId).toBeTruthy();
   });
 
+  // 🔒 사용자 지시(2026-10-19, "회원가입에서 생년월일, 위치, zipcode 입력창 제거") —
+  // 가입 폼이 닉네임·이메일·비밀번호만 받게 됐다(사용자 지시 2026-10-19). 생년월일·
+  // 국가 미제출도 가입돼야 하고, users에 NULL로 저장된다(onboarding/프로필에서 채움).
+  it('최소 가입(생년월일·국가 미제출)도 201이고, users에 NULL이 저장된다', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/signup`, {
+      method: 'POST',
+      body: JSON.stringify(validSignupBody({
+        email: 'authtest_minimal@example.com',
+        birthdate: undefined,
+        country: undefined,
+      })),
+    });
+    expect(res.status).toBe(201);
+    const { userId } = await res.json();
+    const row = await owner.query<{ birthdate: string | null; country: string | null }>(
+      `SELECT birthdate, country FROM users WHERE id = $1`, [userId],
+    );
+    expect(row.rows[0].birthdate).toBeNull();
+    expect(row.rows[0].country).toBeNull();
+  });
+
+  // 🔒 배포 실측(2026-10-19) — Secure 하드코딩 때문에 http LAN IP서브에서 로그인이
+  // 조용히 실패했다(브라우저가 Secure 쿠키를 저장 안 함, localhost만 예외).
+  // secureCookieAttr() 판정을 계약으로 고정한다: http(bl비)-이면 Secure 없음,
+  // COOKIE_SECURE=true면 강제로 있다.
+  it('세션 쿠키의 Secure 속성은 APP_BASE_URL(https)/COOKIE_SECURE 판정을 따른다', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/signup`, {
+      method: 'POST',
+      body: JSON.stringify(validSignupBody({ email: 'authtest_cookieattr@example.com' })),
+    });
+    const cookie = getCookie(res, 'aic_session')!;
+    // 테스트 러너의 APP_BASE_URL은 http(localhost) — Secure가 없어야 한다.
+    expect(cookie).not.toContain('Secure');
+
+    process.env.COOKIE_SECURE = 'true';
+    try {
+      const secureRes = await fetch(`${baseUrl}/api/auth/signup`, {
+        method: 'POST',
+        body: JSON.stringify(validSignupBody({ email: 'authtest_cookieattr_secure@example.com' })),
+      });
+      expect(getCookie(secureRes, 'aic_session')).toContain('Secure');
+    } finally {
+      delete process.env.COOKIE_SECURE;
+    }
+  });
+
   // GitHub #1 — Secure 쿠키는 RN fetch가 못 읽고, 로컬 HTTP 개발 백엔드에선
   // 네이티브 쿠키 저장소에도 안 실린다. 바디의 token이 쿠키 안 값과 같은지까지 확인.
   it('GitHub #1 — 응답 바디의 token이 Set-Cookie 안 토큰 값과 같다', async () => {

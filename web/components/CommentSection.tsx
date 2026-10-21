@@ -549,7 +549,15 @@ export function CommentSection({
 
   // 🔒 사용자 지시(2026-08, 1-depth 답글) — 최상위 댓글마다 자기 답글을
   // 묶어서 렌더링한다("댓글은 thread처럼 그룹으로 묶고").
-  const topLevelComments = comments.filter((c) => !c.parentCommentId);
+  // 🔒 M2(마감 후속, "채택된 답변은 상단에 고정") — 채택 댓글(id = adoptedId,
+  // 낙관 state — 채택 즉시 이 값이 바뀌므로 props 원본이 아니라 state 기준)은
+  // 최상위 목록에서 맨 앞으로 올린다. 나머지는 작성 순서 그대로( stabil).
+  const topLevelComments = (() => {
+    const flat = comments.filter((c) => !c.parentCommentId);
+    if (!adoptedId) return flat;
+    const adopted = flat.filter((c) => c.id === adoptedId);
+    return adopted.length > 0 ? [...adopted, ...flat.filter((c) => c.id !== adoptedId)] : flat;
+  })();
   const repliesOf = (parentId: string) => comments.filter((c) => c.parentCommentId === parentId);
 
   // 🔒 사용자 지시(2026-08, 1-depth 답글 후속) — "세로연결선을 원 댓글과

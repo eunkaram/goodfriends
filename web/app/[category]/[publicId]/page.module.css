@@ -316,6 +316,18 @@
   margin-bottom: 6px;
 }
 
+/* 🔒 M4 — 뉴스봇·다이제스트봇 글 "AI 에디터" 배지. PostCard.module.css의
+   .agentBadge와 같은 값(토큰 재사용). */
+.agentBadge {
+  display: inline-block;
+  font: var(--text-label-sm);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--success, #7ee2a8);
+  color: #12351f;
+  margin-bottom: 6px;
+}
+
 /* 🔒 사용자 발견(2026-08) — "url처럼 띄워쓰기 없고 길이가 길경우 글자가
    오른쪽 레이아웃으로 침범해". overflow-wrap으로 공백 없는 긴 문자열도
    박스 폭 안에서 강제 줄바꿈한다(PostCard.module.css의 .preview와 같은 이유). */

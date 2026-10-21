@@ -12,6 +12,8 @@ export type PostDetail = {
   authorUsername: string;
   authorNickname: string;
   authorAvatarUrl: string;
+  /** 🔒 M4 — 뉴스봇·다이제스트봇 글을 구분하는 "AI 에디터" 배지(users.is_agent). */
+  authorIsAgent: boolean;
   categoryId: string | null;
   categoryName: string;
   categorySlug: string;

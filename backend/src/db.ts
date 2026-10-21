@@ -101,15 +101,28 @@ export function schemaPool() {
 }
 
 /** 슈퍼유저 — 컨테이너 부트스트랩과 테스트 픽스처 전용. 앱 런타임 사용 금지. */
+let ownerPoolInstance: pg.Pool | null = null;
+
+/**
+ * 🔒 실전 결함(2026-10-19, worker 스모크 실행에서 발견) — 이전엔 호출마다 new Pool
+ * 을 돌려줬다. worker/news-bot.ts가 아이템마다 ownerPool()을 부르는 순간 아무도
+ * end() 하지 않는 풀이 RSS 개수만큼 쌓여 Postgres 커넥션 한도를 찼고, 사이클은
+ * `sorry, too many clients already`(53300)로 즉사했다. 테스트처럼 "한 번 만들고
+ * afterAll에서 end()"하는 호출 패턴과 양립하려면 싱글턴을 돌려주되, 끊긴 뒤
+ * 다시 부르면 새로 만들어 준다.
+ */
 export function ownerPool() {
-  return new Pool({
-    host: HOST,
-    port: POSTGRES_PORT,
-    database: 'ai_community',
-    user: 'community_owner',
-    password: PASSWORD,
-    max: 4,
-  });
+  if (!ownerPoolInstance || ownerPoolInstance.ending || ownerPoolInstance.ended) {
+    ownerPoolInstance = new Pool({
+      host: HOST,
+      port: POSTGRES_PORT,
+      database: 'ai_community',
+      user: 'community_owner',
+      password: PASSWORD,
+      max: 4,
+    });
+  }
+  return ownerPoolInstance;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

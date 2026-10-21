@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# cron 템플릿 — ai_community DB 자체 백업 1일 1회.
+#
+# 설치(리눅스 서버 기준):
+#   crontab -e  →  아래 줄을 붙여넣고 경로·시각을 환경에 맞게 수정
+#   전제: docker compose 스택이 같은 머신에서 돌고(backup-db.ts가 compose exec 사용),
+#         backend/.env에 ADMIN_ALERT_EMAIL이 채워지면 실패 시 알림 메일이 간다.
+#
+# `npm run db:backup`가 Node 24 strip-types로 그대로 TS를 돌린다(수동 검증됨).
+# 실패 시 스크립트가 exit 1 — cron은 메일/로그만 남기므로 데드맨 스위치는 ADMIN_ALERT_EMAIL 알림이 담당.
+#
+# 덤프 로테이션은 스크립트 내부(BACKUP_KEEP_DAYS, 기본 14일). 외부 rsync(오프사이트
+# 보관)는 운영 단계 과제 — 이 템플릿엔 로컬 덤프만.
+30 3 * * * cd /SOMEWHERE/ai_community/backend && env BACKUP_DIR=/SOMEWHERE/ai_community/backend/backups/postgres npm run db:backup >> /var/log/ai-community-backup.log 2>&1

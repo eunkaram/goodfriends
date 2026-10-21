@@ -99,6 +99,18 @@
   margin-bottom: 4px;
 }
 
+/* 🔒 M4 — 뉴스봇·다이제스트봇(ai_news_bot/ai_digest_bot) 글 "AI 에디터" 배지.
+   M2 채택 배지(#7ee2a8)와 같은 초록 계열로 "생성 콘텐츠"임을 알린다. */
+.agentBadge {
+  display: inline-block;
+  font: var(--text-label-sm);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--success, #7ee2a8);
+  color: #12351f;
+  margin-bottom: 4px;
+}
+
 /* 카테고리 배지 + "···" 메뉴를 한 그룹으로 묶어 헤더 우측에 둔다. */
 .headerRight {
   display: flex;

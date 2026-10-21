@@ -122,13 +122,13 @@ export default function OnboardingPage() {
     // account/delete 등도 다 같이 움직임).
     <div className={styles.page} style={{ justifyContent: 'flex-start', paddingTop: '120px' }}>
       <a className={styles.logo} href="/">
-        Reafy
+        AI Community
       </a>
       <div className={styles.card}>
         {blocked ? (
           <>
             <h1 className={styles.title}>가입할 수 없어요</h1>
-            <p className={styles.subtitle}>Reafy는 만 14세 이상만 이용할 수 있어요. 입력하신 내용 기준으로는 아직 이용하실 수 없어요.</p>
+            <p className={styles.subtitle}>AI Community는 만 14세 이상만 이용할 수 있어요. 입력하신 내용 기준으로는 아직 이용하실 수 없어요.</p>
             <a className={styles.footer} href="/">
               홈으로 돌아가기
             </a>

@@ -24,6 +24,7 @@ import { handleAdminRoutes } from './admin-http.ts';
 import { handleDigestAdminRoutes } from './admin-digest-http.ts';
 import { handleSitemapRoutes } from './sitemap-http.ts';
 import { handleAnnouncementsRoutes } from './announcements-http.ts';
+import { handleLoungeRoutes } from './lounge-http.ts';
 import { attachWsServer } from './ws-server.ts';
 import { json } from './http-utils.ts';
 import { alertAdminOfError } from './error-alert.ts';
@@ -70,6 +71,7 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
     if (await handleUserLogRoutes(req, res)) return;
     if (await handleProfileLinksRoutes(req, res)) return;
     if (await handleSavedPostsRoutes(req, res)) return;
+    if (await handleLoungeRoutes(req, res)) return;
     if (await handleNotificationsRoutes(req, res)) return;
     // 🔒 순서 — /api/admin/*는 admin-http.ts가 마지막에 catch-all 404로 닫기
     // 때문에, digest(같은 prefix)는 반드시 앞에서 처리한다.

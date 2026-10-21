@@ -12,8 +12,13 @@
 
 .wordmark {
   font: var(--text-display-md);
+  /* 🔒 브랜드 스윕(2026-10-19) — "Reafy"(5자)에서 "AI Community"(12자)로 바뀌면서
+     데스크톱 GNB 헤더 안에서 넘친다. display-md(20px)에서 16px로 줄이고
+     자간은 그대로 — 2단 높이 변화 없이 한 줄 유지. */
+  font-size: 16px;
   letter-spacing: -0.01em;
   color: var(--logo);
+  white-space: nowrap;
 }
 
 /* 🔒 사용자 지시(2026-08) — GNB가 사라지고 좌 사이드바 안의 트리거로

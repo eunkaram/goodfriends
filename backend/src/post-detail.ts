@@ -17,6 +17,8 @@ export type PostDetail = {
   authorUsername: string;
   authorNickname: string;
   authorAvatarUrl: string;
+  /** 🔒 M4 — 뉴스봇·다이제스트봇 글 "AI 에디터" 배지(users.is_agent). */
+  authorIsAgent: boolean;
   categoryId: string | null;
   categoryName: string;
   categorySlug: string;
@@ -65,6 +67,7 @@ export async function fetchPostDetail(userId: string | null, publicId: string): 
       author_username: string;
       author_nickname: string;
       author_avatar_url: string;
+      author_is_agent: boolean;
       category_id: string | null;
       category_name_key: string | null;
       category_slug: string | null;
@@ -78,7 +81,7 @@ export async function fetchPostDetail(userId: string | null, publicId: string): 
       series_id: string | null;
       series_title: string | null;
     }>(
-      `SELECT p.id, p.public_id, p.title, p.body, p.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url,
+      `SELECT p.id, p.public_id, p.title, p.body, p.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url, u.is_agent AS author_is_agent,
               p.category_id, c.name_key AS category_name_key, c.slug AS category_slug, p.created_at, p.visibility, p.deleted_at, p.views, p.adopted_comment_id,
               s.id AS series_id, s.title AS series_title,
               (SELECT count(*) FROM reactions WHERE target_type = 'post' AND target_id = p.id) AS reaction_count,
@@ -115,6 +118,7 @@ export async function fetchPostDetail(userId: string | null, publicId: string): 
     authorUsername: r.author_username,
     authorNickname: r.author_nickname,
     authorAvatarUrl: r.author_avatar_url,
+    authorIsAgent: r.author_is_agent,
     categoryId: r.category_id,
     categoryName: r.category_name_key ? t(r.category_name_key) : '',
     categorySlug: r.category_slug ?? '',

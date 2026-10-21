@@ -52,12 +52,29 @@ function userSessionsKeyFor(userId: string) {
   return `user_sessions:${userId}`;
 }
 
+/**
+ * 🔒 배포 실측(2026-10-19) — Secure가 하드코딩이었다가 워크스테이션 dev 배포에서
+ * 로그인이 "성공하는데 로그인이 안 되는" 상태가 됐다: http LAN IP
+ * (http://10.10.1.100:3021)에서 브라우저는 Secure 쿠키를 저장하지 않는데,
+ * 서버 응답·세션 생성 자체는 정상이라 유저 입장에선 조용한 로그인 실패였다
+ * (localhost는 브라우저 예외로 Secure 쿠키 저장을 허용해서 로컬에서만 일했다).
+ * 판정: COOKIE_SECURE env(true/false) 최우선 → 없으면 APP_BASE_URL이 https일 때만
+ * Secure. 운영(https 도메인)에선 env 없이도 자동 걸린다.
+ */
+function secureCookieAttr(): string {
+  const env = process.env.COOKIE_SECURE;
+  const secure = env !== undefined
+    ? env === 'true'
+    : (process.env.APP_BASE_URL ?? '').startsWith('https');
+  return secure ? 'Secure; ' : '';
+}
+
 export async function createSession(userId: string): Promise<{ token: string; setCookie: string }> {
   const token = randomBytes32();
   await redis().set(keyFor(token), userId, 'EX', TTL_SECONDS);
   await redis().sadd(userSessionsKeyFor(userId), token);
   await redis().expire(userSessionsKeyFor(userId), TTL_SECONDS);
-  const setCookie = `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Max-Age=${TTL_SECONDS}; Path=/${cookieDomainAttr()}`;
+  const setCookie = `${SESSION_COOKIE}=${token}; HttpOnly; ${secureCookieAttr()}SameSite=Lax; Max-Age=${TTL_SECONDS}; Path=/${cookieDomainAttr()}`;
   return { token, setCookie };
 }
 
@@ -94,9 +111,9 @@ export async function destroyAllSessionsForUser(userId: string): Promise<void> {
   await redis().del(indexKey);
 }
 
-/** createSession()과 같은 Domain 로직을 써야 한다 — 하나만 바뀌면 로그아웃이 새 도메인 쿠키를 못 지운다(이슈 #8). */
+/** createSession()과 같은 Domain·Secure 로직을 써야 한다 — 하나만 바뀌면 로그아웃이 새 도메인 쿠키를 못 지우거나(이슈 #8), 반대로 Secure 속성이 다르면 브라우저가 별개 쿠키로 취급해 구 쿠키가 안 지워진다. */
 export function clearSessionCookie(): string {
-  return `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/${cookieDomainAttr()}`;
+  return `${SESSION_COOKIE}=; HttpOnly; ${secureCookieAttr()}SameSite=Lax; Max-Age=0; Path=/${cookieDomainAttr()}`;
 }
 
 function randomBytes32(): string {

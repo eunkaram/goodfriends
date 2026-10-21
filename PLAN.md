@@ -2,6 +2,7 @@
 
 > 기준 문서: ai-board-phase1.pdf (2026.10.18 확정 1차 개념)
 > 슬로건: "배우고, 만들고, 나누는 AI 커뮤니티"
+> **진행 상태 (2026-10-19)**: M0~M4 ✅ 완료 — 다음 M5. 완료 근거·남은 과제는 각 마일스톤 섹션과 `docs/2026-10-18-19-worklog-m2-m3.md` §6 todo 참고.
 
 ---
 
@@ -28,9 +29,9 @@ backend/   Node 20+ · TypeScript · 커스텀 http-server (Reafy 패턴)
            PostgreSQL(pg) + Redis(ioredis) + WebSocket(ws)
            마이그레이션: scripts/migrate.ts 방식 계승
 web/       Next.js 16 · React 19 · Tiptap 에디터 (Reafy 패턴)
-worker/    뉴스봇 파이프라인 (RSS 수집 → 중복제거 → AI 요약 → 발행)
-test/      vitest (단위) + Playwright (E2E, 론칭 전 핵심 플로우만)
-deploy/    docker-compose (Postgres · Redis · backend · worker)
+worker/    뉴스봇 파이프라인 (RSS 수집 → 중복제거 → AI 요약 → 발행) — 🔒 실제로는 backend/worker에 구현(M3 결정, 위 목록의 루트 worker/ 계획은 흡수됨)
+test/      vitest (단위) + Playwright (E2E, 론칭 전 핵심 플로우만) — 실제로는 backend/tests(web 21건은 web/)
+deploy/    docker-compose (Postgres · Redis · backend · worker) — 실제로는 backend/docker-compose.yml
 ```
 
 **LLM 요약 API**: 요약 전용으로 하나만 선택 (가볍게 시작 → 비용 보고 교체 가능한 구조로 추상화). 정확한 프로바이더·요약 길이·1일 발행 수는 개발 단계에서 확정 (문서 원칙 준수).
@@ -140,22 +141,33 @@ chat_messages(room, user_id, body, created_at) -- 라운지 채팅
 - [x] 실패 알림 (`error-alert` 패턴): RSS 죽음/LLM 실패 시 운영자에게 알림 — 기존 alertAdminOfError 재사용(5분 rate-limit), ADMIN_ALERT_EMAIL 없으면 콘솔 폴백
 - **완료 기준**: 하루 1회 사이클이 사람 개입 없이 돌고, 관리 화면에서 다이제스트 1건 발행 가능 ✅ — 실서버에서 전 흐름 실증(소스 추가 → 초안 생성 → 관리자 수정 → 발행 → `/api/feed`에 봇 글 노출), 사이클 크래시/소스죽음/LLM실패 3시나리오 테스트로 복구 검증
 - 비고: backend `npm test` 554건 통과(39파일) / web tsc·빌드 통과. 남긴 것: 봇 글 UI 구분 표시·채택 답변 고정은 M4, 한 소스 편중(openai-news가 queue를먹음)은 운영 튜닝 과제
+- **운영 튜닝 완료(2026-10-19, M4 라운드)**:
+  - 소스 편중 완화 — `NEWS_DEFAULT_SPEC.perSourceCycleCap`(NEWS_PER_SOURCE_CYCLE, 기본 2) + summarizeQueue를 `row_number() OVER (PARTITION BY source_key)` 상한 → 소스 간 라운드로빈 병합으로 교체(A소스가 5건 전부 먹던 실측 개선). 총 장수는 maxPerCycle 우선. 테스트 1건 추가(3소스×5건 — 발행 3건이 3소스 고르게). `npm test` 561건(40파일)
+  - 훅 발견 결함 — worker 단발 스모크가 `too many clients already`(53300)로 크래시: ownerPool()이 호출마다 new Pool을 돌려주고 아무도 end() 안 함. db.ts에서 싱글턴 memoize(끊긴 뒤 재호출 시 재생성 — afterAll `owner.end()` 패턴 양립) + worker 단발 모드는 종료 전 풀 end(). 스모크 재실행 — fetched 2435/recorded 44/published 0(NEWS_MAX_PER_CYCLE=0 스모크) 후 클린 exit
+  - 스케줄 템플릿 — backend/deploy/(news-bot.cron.example, ai-community-news-bot.plist.example). LLM_API_KEY·ADMIN_ALERT_EMAIL 실값은 사용자 주입 필요(stub은 계속 동작)
+  - **LLM 실계 승격 완료(로컬 vLLM)** — 10.10.1.100:8000 `/v1`(vLLM, QuantTrio/Qwen3.5-9B-AWQ): .env에 LLM_API_KEY/BASE_URL/MODEL 기입 + `LLM_EXTRA_BODY_JSON`(제공사별 확장 필드 env 통로 — vLLM `chat_template_kwargs.enable_thinking:false`). 실발행 5건 요약 품질 확인(한국어 경어체 제목+2문장, 사이클 51s→16s). **배움**: ① 이 Qwen 배포는 `/no_think` 소프트 스위치를 무시한다 — 템플릿 kwargs로만 억제 ② thinking 잘림(토큰 상한) 시 Answer 구분선 부재 → stripThinking이 빈 문자열로 실패 처리해 추론 노이즈 발행 막음(max_tokens 상한 800/2400) ③ OpenAI 호환 계약 유지: 제공사 전용 검증 필드를 body 상수로 박아 넣지 않고 env로만 ④ 봇 글 게이트 품질은 stub 요약과 같은 모양(krTitle/digest)이라 코드 변경 없이 승격됨 ⑤ 운영 유의: 공유 DB에서 status='new' 재큐 직후 테스트 스위트를 돌리면 beforeAll 위생이 다시 'failed'로 바꿔치기 한다 — 재큐 직후엔 곧바로 워커. arXiv(cs.AI/cs.CL)는 2천+건 피드라 소스 편중 캡 2/사이클이 배리어로 맞히며, 잔여 큐는 다음 사이클 자기복구로 드레인
 
 ### M4 — 라운지 채팅 & 마감 기능 (Week 5~6)
 
-- [ ] ws 기반 라운지 채팅 (전체방 1개, 최소 기능: 접속/발言/최근 기록)
-- [ ] 봇 글 UI 구분 표시, 채택 답변 상단 고정, 반응(리액션)
-- [ ] 스팸 방어 점검 (rate limit, 신고 처리 화면)
-- **완료 기준**: 두 브라우저에서 실시간 채팅 확인, 신고→숨김 플로우 동작
+- [x] ws 기반 라운지 채팅 (전체방 1개, 최소 기능: 접속/발言/최근 기록) — 0052 `chat_messages`(btrim 1..1000 CHECK) + `src/lounge.ts`·`lounge-ws.ts`(60초 세션 재검증, 비인증 4001)·`lounge-http.ts`(GET hydration) + ws-server 업그레이드 라우팅 `/ws/lounge` + web `Lounge.tsx`(is_agent 발언 배지 포함). 쿠키는 포트 무시 매칭이라 3011→3010 직결(next rewrites는 WS 업그레이드를 프록시하지 않음 — next.config.ts 주석). 테스트 6건(핸드셰이크·히스토리·브로드캐스트·레이트리밋 10/60s `lounge:{userId}`·INVALID_BODY/FRAME)
+- [x] 봇 글 UI 구분 표시, 채택 답변 상단 고정, 반응(리액션)
+  - feed·post-detail DTO에 `authorIsAgent`(users.is_agent) 추가 → PostCard·글 상세 "AI 에디터" 배지(M2 채택 배지와 같은 초록 계열)
+  - CommentSection 최상위 목록에서 채택 댓글(adoptedId state 기준 — 채택 즉시 반영) 맨 앞 고정
+  - 반응은 M0.md 네이티브 intent로 1차 구현되어 상세 6-emoticon 바가 이미 재사용됨(M2 점검 완료, 추가 작업 없음)
+- [x] 스팸 방어 점검 (rate limit, 신고 처리 화면)
+  - **신고→숨김 플로우 실증(라이브 curl)**: ① 일반유저 POST /api/reports 201 → ③ 모더레이터 /api/admin/reports/:id/resolve 200 → ④ /api/admin/posts/:id/delete 200 → ⑤ RLS로 피드에서 소실·상세 404 · ⑦ 모더레이터 눈에만 deletedAt(=삭제됨 배지) — "자동 임계값 숨김" 없이 접수(큐)→수동 처리가 1차 설계다
+  - **rate limit 전표 문서화**(rate-limit.ts Redis 고정윈도우, 키:값 — 초당/h당): 라운지 발언 10/60s(`lounge:{userId}`, M4) · 신고 10/h · 댓글 30/h · 계정삭제 5/h · 이메일변경 5/h · 로그인 5/IP/h · 가입 5/IP/h · 비밀번호재설정 5/IP/h · 이메일인증재발송 5/IP/h · 이메일 인증메일 재요청(온보딩) 10/h · 시리즈 10/h · 링크프리뷰 30/h · 유튜브용량체크 30/h · 중복확인류 60/10min — 모두 429/프레임으로 응답
+  - 신고 처리 화면(AdminReportsList)·유저 정지·글/댓글 삭제(0035 모더레이션+moderation_access_log 감사)는 M0 세대에서 재사용 확인
+- **완료 기준**: 두 브라우저에서 실시간 채팅 확인 ✅(라이브 E2E — 두 클라이언트 상호 수신·hydration·RATE_LIMITED·봇 is_agent 발언), 신고→숨김 플로우 동작 ✅(라이브 7단계 실증) — **M4 완료 2026-10-19**
 
 ### M5 — 론칭 준비 (Week 6~8)
 
-- [ ] **시드 콘텐츠 작성** (봇이 못 채우는 것 위주):
-  - 개발 로그: 이 커뮤니티 기획·개발 과정 일지 4~6편 (시리즈)
-  - 프로젝트 쇼케이스: Reafy 소개 포함 2~3편
-  - 활용 노하우 3~5편 + Q&A 마중물 질문 3~5건
-- [ ] SEO: sitemap, OG 태그, 카테고리 랜딩
-- [ ] 배포: docker-compose 기반 VPS (도메인은 이 시점에 확정 — 보류 항목 해소)
+- [x] **시드 콘텐츠 작성** (봇이 못 채우는 것 위주) — ✅ 완료(2026-10-19, worklog 4ter.5):
+  - 개발 로그: 이 커뮤니티 기획·개발 과정 일지 5편 (시리즈 "AI 커뮤니티 만들기 — 실전 개발 일지"로 엮음)
+  - 프로젝트 쇼케이스 2편 + 활용 노하우 4편(ai-tips) + Q&A 마중물 4건(qna, 채택 1건 시연)
+  - scripts/seed-content.ts + seed-run.ts(idempotent HTTP 시드 실행기)
+- [x] SEO: sitemap, OG 태그, 카테고리 랜딩 — ✅ 완료(2026-10-19, worklog 4ter.6): 카테고리 랜딩 generateMetadata + sitemap에 게시판 랜딩 URL + 브랜드 스윕('AI Community' 전면 통일 — 로고·OG·이메일·법적 고지)
+- [ ] 배포: docker-compose 기반 VPS (도메인은 이 시점에 확정 — 보류 항목 해소) — **dev 서버 배포 완료(워크스테이션 10.10.1.100, 백엔드 3020/웹 3021, Reafy 스택 병행 — worklog 4ter.7)**; 프로덕션 도메인+시크릿만 대기 (백업 스크립트+크론 템플릿은 로컬 검증 완료)
 - [ ] 모니터링/백업 스크립트 이관 (Reafy `backup-db.ts` 패턴)
 - [ ] 소프트 론치 → 소셜 커뮤니티·오픈채팅방 홍보 (문서의 사람 모으기)
 - **완료 기준**: 실사용자 10명이 글 1개 이상 남기는 것

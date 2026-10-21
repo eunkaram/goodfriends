@@ -30,8 +30,12 @@ export type SignUpInput = {
   nickname: string;
   email: string;
   password: string;
-  birthdate: string; // YYYY-MM-DD
-  country: string; // ISO 3166-1 alpha-2, 예: KR, US — 2026-08 재도입(프로필 위치 표시용, age-gate.ts 참고)
+  // 🔒 사용자 지시(2026-10-19, "회원가입에서 생년월일, 위치, zipcode 입력창 제거") —
+  // 가입 프론트가 이 세 필드를 안 받는다. nullable 컬럼이라 스키마 수정 불필요:
+  // 미입력은 NULL 저장, 이후 onboarding(/api/auth/onboarding — age-gate 포함)
+  // 또는 프로필 편집에서 채운다.
+  birthdate?: string; // YYYY-MM-DD
+  country?: string; // ISO 3166-1 alpha-2, 예: KR, US
   postalCode?: string;
 };
 
@@ -98,15 +102,25 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     !input.nickname?.trim() ||
     !EMAIL_RE.test(email) ||
     !input.password ||
-    input.password.length < 8 ||
-    !input.country?.trim()
+    input.password.length < 8
   ) {
     return { ok: false, error: 'INVALID_INPUT' };
   }
   if (isReservedNickname(input.nickname)) return { ok: false, error: 'INVALID_INPUT' };
 
-  const birthdate = new Date(input.birthdate);
-  if (Number.isNaN(birthdate.getTime())) return { ok: false, error: 'INVALID_INPUT' };
+  // 🔒 회원가입 최소화(2026-10-19) — 생년월일/국가는 선택이다. 받은 값은
+  // 이전과 같은 수준으로 검증한다(유효한 날짜·2자리 국가코드), 없으면 NULL 저장.
+  let birthdate: string | null = null;
+  if (input.birthdate != null && input.birthdate !== '') {
+    birthdate = input.birthdate;
+    if (Number.isNaN(new Date(input.birthdate).getTime())) return { ok: false, error: 'INVALID_INPUT' };
+  }
+
+  let country: string | null = null;
+  if (input.country != null) {
+    country = input.country.trim().toUpperCase();
+    if (!country || !/^[A-Z]{2}$/.test(country)) return { ok: false, error: 'INVALID_INPUT' };
+  }
 
   const client = await pool.connect();
   try {
@@ -134,7 +148,7 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     const userRow = await client.query<{ id: string }>(
       `INSERT INTO users (username, nickname, birthdate, country, postal_code)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [username, input.nickname.trim(), input.birthdate, input.country, input.postalCode ?? null],
+      [username, input.nickname.trim(), birthdate, country, input.postalCode ?? null],
     );
     const userId = userRow.rows[0].id;
 

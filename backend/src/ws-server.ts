@@ -21,6 +21,7 @@ import type { Duplex } from 'node:stream';
 import { redis } from './redis.ts';
 import { appPool } from './db.ts';
 import { getSessionUserId, parseCookieHeader, SESSION_COOKIE } from './session.ts';
+import { createLoungeWsServer } from './lounge-ws.ts';
 
 type ThinSignal = { threadId: string; messageId: string; at: string };
 
@@ -179,6 +180,10 @@ export function createWsServer() {
  */
 export function attachWsServer(httpServer: Server, onOtherPath?: (req: IncomingMessage, socket: Duplex, head: Buffer) => void) {
   const wss = createWsServer();
+  // M4 라운지 — 같은 업그레이드 감청에 실리는 경로만 다른 두 번째 wss(push 경로
+  // HMR 리스너 무력화 문제가 그대로 재활용되나 — 분리 서버를 다시 몰래 스캔해
+  // 방어하는 불변식(stripForeignUpgradeListeners)을 두 모두가 공유한다).
+  const loungeWss = createLoungeWsServer();
 
   // 🔒 이 정리를 upgradeListener 밖에서 재사용 — 'request'와 'upgrade' 두
   // 이벤트 모두에서 부른다(아래 주석).
@@ -202,6 +207,10 @@ export function attachWsServer(httpServer: Server, onOtherPath?: (req: IncomingM
     if (pathname === '/ws') {
       wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit('connection', ws, req);
+      });
+    } else if (pathname === '/ws/lounge') {
+      loungeWss.handleUpgrade(req, socket, head, (ws) => {
+        loungeWss.emit('connection', ws, req);
       });
     } else {
       onOtherPath?.(req, socket, head);

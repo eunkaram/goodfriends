@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { publicBackendFetch } from '../lib/backend.ts';
+import { fetchPublicCategoryTree } from '../lib/categories.ts';
 import { appBaseUrl } from '../lib/app-url.ts';
 
 /**
@@ -18,8 +19,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { entries } = await publicBackendFetch<{
     entries: { publicId: string; categorySlug: string; createdAt: string; updatedAt: string }[];
   }>('/api/sitemap-data', revalidate);
+  // 🔒 M5 SEO(#6) — 게시판 카테고리 랜딩은 sitemap에 있어야 크롤러가
+  // 카테고리 트리로 재귀 탐색을 시작할 수 있다(포스트만 던져놓으면
+  // 카테고리 랜딩이 홈에서만 발견된다). llms.txt와 같은 트리 소스를 쓴다.
+  const { tree } = await fetchPublicCategoryTree(0);
+  const communityCategories = tree.flatMap((g) => g.children.filter((c) => c.type === 'community'));
   return [
     { url: base, changeFrequency: 'always' },
+    ...communityCategories.map((category) => ({
+      url: `${base}/${category.slug}`,
+      changeFrequency: 'daily' as const,
+    })),
     ...entries.map((entry) => ({
       url: `${base}/${entry.categorySlug}/${entry.publicId}`,
       lastModified: new Date(entry.updatedAt ?? entry.createdAt),

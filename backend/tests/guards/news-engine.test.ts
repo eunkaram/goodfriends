@@ -39,20 +39,17 @@ beforeAll(async () => {
   expect(bots.rows.map((r) => r.username).sort()).toEqual(['ai_digest_bot', 'ai_news_bot']);
   // 공유 DB 위생 — 다른 파일이 남긴 'new' 큐와 본 테스트의 잔해를 치운다.
   await owner.query(`UPDATE news_articles SET status = 'failed' WHERE status = 'new'`);
-  await owner.query(`DELETE FROM news_articles WHERE url LIKE 'https://example.test/%'`);
-  await owner.query(`DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = 'ai_news_bot') AND (title LIKE '%Ghost Deps%' OR title LIKE '%Agent SDK%')`);
+  await owner.query(`DELETE FROM news_articles WHERE url LIKE 'https://example.test/%' OR url LIKE 'https://busy.test/%' OR url LIKE 'https://calm.test/%' OR url LIKE 'https://side.test/%'`);
+  await owner.query(`DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = 'ai_news_bot') AND (title LIKE '%Ghost Deps%' OR title LIKE '%Agent SDK%' OR title LIKE '%OpenAI ships%' OR title LIKE '%Anthropic%' OR title LIKE '%EU drafts%' OR title LIKE '%agent maturity%' OR title LIKE '%Google expands%' OR title LIKE '%Meta opens%' OR title LIKE '%Nvidia packages%' OR title LIKE '%MIT survey%' OR title LIKE '%Stanford benchmark%' OR title LIKE '%Hugging Face adds%' OR title LIKE '%ArXiv trend%')`);
 });
 
 afterAll(async () => {
   // 발행된 봇 글 + 수집 로그 정리(테스트 프리픽스만)
   await owner.query(
-    `DELETE FROM news_articles WHERE source_key = 'test:fixture' AND (url LIKE 'https://example.test/%')`,
+    `DELETE FROM news_articles WHERE (source_key = 'test:fixture' AND url LIKE 'https://example.test/%') OR url LIKE 'https://example.test/%'`,
   );
   await owner.query(
-    `DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = 'ai_news_bot') AND title LIKE '%Ghost Deps%'`,
-  );
-  await owner.query(
-    `DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = 'ai_news_bot') AND title LIKE '%Agent SDK%'`,
+    `DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = 'ai_news_bot') AND (title LIKE '%OpenAI ships%' OR title LIKE '%Anthropic%' OR title LIKE '%EU drafts%' OR title LIKE '%agent maturity%' OR title LIKE '%Ghost Deps%' OR title LIKE '%Agent SDK%')`,
   );
   await owner.end();
 });
@@ -209,5 +206,63 @@ describe('뉴스봇 사이클(neon 없는 검증 — fixture 주입)', () => {
     });
     expect(result.failures).toBe(1);
     expect(result.recorded).toBe(0);
+  });
+
+  it('소스 편중 완화(운영 튜닝) — 한 소스가 큐를 독식해도 발행은 소스 간 분산', async () => {
+    // 🔒 제목은 목 유사도 문턱(0.85)을 통과할 만큼 서로 달라야 한다 — "#0/#1"처럼
+    // 한 글자 다른 합성 제목은 같은 소식으로 버려진다(유사도 타당한 부작용).
+    const busyTitles = [
+      'OpenAI ships reasoning mode for enterprise workloads',
+      'Anthropic releases tool-use tracing for agents',
+      'Google expands Gemini function calling to all devs',
+      'Meta opens Llama APIs for commercial fine-tuning',
+      'Nvidia packages inference runtime for cloud vendors',
+    ];
+    const calmTitles = [
+      'EU drafts rules for model training disclosures',
+      'MIT survey finds adoption barriers in small teams',
+      'Stanford benchmark shows a sharp jump in long context',
+      'Hugging Face adds reproducible eval suites',
+      'ArXiv trend: retrieval beats fine-tuning again',
+    ];
+    const busy: FeedItem[] = busyTitles.map((title, i) => ({
+      url: `https://example.test/news/busy-${i}`,
+      title,
+      description: `busy desc ${i}`,
+      publishedAt: new Date(new Date('2026-10-17T12:30:00Z').getTime() + i * 60_000),
+    }));
+    const calm: FeedItem[] = calmTitles.map((title, i) => ({
+      url: `https://example.test/blog/calm-${i}`,
+      title,
+      description: `calm desc ${i}`,
+      publishedAt: new Date(new Date('2026-10-16T12:30:00Z').getTime() + i * 60_000),
+    }));
+    const side: FeedItem[] = [
+      { url: 'https://example.test/journal/side-0', title: 'Side journal: agent maturity report', description: 'side desc 0', publishedAt: new Date('2026-10-15T12:30:00Z') },
+    ];
+    const before = await countBotPosts();
+    const startedAt = new Date();
+    const result = await runNewsCycle({
+      sources: [
+        { key: 'test:busy', url: 'https://busy.test/feed' },
+        { key: 'test:calm', url: 'https://calm.test/feed' },
+        { key: 'test:side', url: 'https://side.test/feed' },
+      ],
+      spec: { maxPerCycle: 3, maxAgeDays: 30 },
+      fetchFeedFn: fetcherFor({ 'https://busy.test/feed': busy, 'https://calm.test/feed': calm, 'https://side.test/feed': side }),
+      summarizeFn: stubSummarizer,
+    });
+    expect(result.recorded).toBe(11);
+    expect(result.published).toBe(3);
+    const srcs = await owner.query<{ source_key: string }>(
+      `SELECT DISTINCT na.source_key
+       FROM news_articles na
+       WHERE na.url LIKE 'https://example.test/%' AND na.status = 'published' AND na.created_at > $1`,
+      [startedAt],
+    );
+    // 발행 3건이 라운드로빈으로 3소스에 골고루 간다(대량 소스가 독식하지 않음)
+    const keys = srcs.rows.map((r) => r.source_key).sort();
+    expect(keys).toEqual(['test:busy', 'test:calm', 'test:side']);
+    expect(await countBotPosts()).toBe(before + 3);
   });
 });

@@ -14,7 +14,7 @@ export default function VerifyEmailPendingPage() {
   return (
     <div className={styles.page}>
       <a className={styles.logo} href="/">
-        Reafy
+        AI Community
       </a>
       <div className={styles.card}>
         <h1 className={styles.title}>이메일을 확인해주세요</h1>

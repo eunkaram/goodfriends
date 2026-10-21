@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# cron 템플릿 — ai_community 뉴스봇 1일 1회 사이클.
+#
+# 설치(리눅스 서버 기준):
+#   crontab -e  →  아래 줄을 붙여넣고 경로·시각을 환경에 맞게 수정
+#   로그는 docker-compose 안 돌고 npm run worker:news가 직접 DB(55434)를 본다
+#   전제: backend/.env의 DATABASE_URL·REDIS_URL·LLM_API_KEY·ADMIN_ALERT_EMAIL 채워짐
+#
+# 시각 의미 — 08:30은 "아침 큐 정리" 자리일 뿐; 봇은 이전 사이클의 'new' 잔여분을
+# 자기복구로 같이 처리하므로 하루 몇 시에 도는지는 운영 취향이다.
+# 실험해보려면: NEWS_MAX_PER_CYCLE=0으로 돌리면 기록만 하고 발행은 안 한다(smock).
+30 8 * * * cd /SOMEWHERE/ai_community/backend && npm run worker:news >> /var/log/ai-news-bot.log 2>&1

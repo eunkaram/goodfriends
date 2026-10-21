@@ -29,6 +29,13 @@ export const NEWS_DEFAULT_SPEC = {
   titleSimilarityThreshold: 0.85,
   /** 제목 중복 검사 상한(최근 30일) */
   titleWindowDays: 30,
+  /**
+   * 🔒 M3 운영 튜닝(실측: maxPerCycle 5건이 전부 openai-news로 편중) — 한
+   * 사이클/한 그룹 소스가 큐를 독식하지 않게, 소스(source_key)별로 큐에서
+   * 꺼낼 수 있는 상한. 전체 maxPerCycle이 우선 — 8소스×2 상한이어도 5건이면
+   * 5건만 발행하고, 소스 간엔 라운드로빈으로 고르게 돌린다. 0이면 무제한.
+   */
+  perSourceCycleCap: Number(process.env.NEWS_PER_SOURCE_CYCLE ?? 2),
 };
 
 export type NewsSource = { key: string; url: string };
@@ -122,17 +129,60 @@ async function insertArticle(sourceKey: string, item: FeedItem): Promise<string 
 
 /** 큐 조사 — 방금 수집한 것만이 아니라 남아 있는 status='new'(예전 사이클의
  * LLM 실패 리트라이)도 같은 문으로 처리한다. "소스 장애·LLM 실패가 있어도
- * 다음 날 자기 복구한다"가 이 쿼리 하나로 성립한다. */
-async function summarizeQueue(limit: number): Promise<Array<{ id: string; url: string; title: string; description: string; sourceKey: string }>> {
-  const rows = await ownerPool().query<{ id: string; url: string; title: string; description: string; source_key: string }>(
-    `SELECT id, url, title, COALESCE(description, '') AS description, source_key
-     FROM news_articles
-     WHERE status = 'new'
-     ORDER BY created_at DESC
-     LIMIT $1`,
-    [limit],
+ * 다음 날 자기 복구한다"가 이 쿼리 하나로 성립한다.
+ *
+ * 🔒 M3 운영 튜닝(소스 편중 완화) — created_at DESC로는 한 소스만 큐를 채운다
+ * (실측: 5건 전부 openai-news). 소스별 `rn <= perSourceCap` 상한 후 앱에서
+ * 라운드로빈으로 합친다 — LLM 실패 잔여분(source별 소량)도 같은 창에 자연히
+ * 포함되며, 총 장수는 maxPerCycle에서 우선한다.
+ */
+async function summarizeQueue(limit: number, perSourceCap = 0): Promise<Array<{ id: string; url: string; title: string; description: string; sourceKey: string }>> {
+  type QueueRow = { id: string; url: string; title: string; description: string; source_key: string; created_at: string | Date };
+  const capped = perSourceCap > 0
+    ? await ownerPool().query<QueueRow>(
+        `SELECT id, url, title, COALESCE(description, '') AS description, source_key, created_at
+         FROM (
+           SELECT na.*, row_number() OVER (PARTITION BY source_key ORDER BY created_at DESC) AS rn
+           FROM news_articles na
+           WHERE status = 'new'
+         ) ranked
+         WHERE rn <= $1
+         ORDER BY created_at DESC`,
+        [perSourceCap],
+      )
+    : await ownerPool().query<QueueRow>(
+        `SELECT id, url, title, COALESCE(description, '') AS description, source_key, created_at
+         FROM news_articles
+         WHERE status = 'new'
+         ORDER BY created_at DESC
+         LIMIT $1`,
+        [limit],
+      );
+  // 라운드로빈 병합 — 소스별 큐를 하나로 서로 재주는(unbounce) 행으로 XOR
+  const perSource = new Map<string, typeof capped.rows>();
+  for (const row of capped.rows) {
+    const bucket = perSource.get(row.source_key) ?? [];
+    bucket.push(row);
+    perSource.set(row.source_key, bucket);
+  }
+  const buckets = [...perSource.values()].sort(
+    (a, b) => new Date(a[0].created_at).getTime() - new Date(b[0].created_at).getTime(),
   );
-  return rows.rows.map((r) => ({ id: r.id, url: r.url, title: r.title, description: r.description, sourceKey: r.source_key }));
+  const out: Array<{ id: string; url: string; title: string; description: string; sourceKey: string }> = [];
+  let idx = 0;
+  while (out.length < limit) {
+    let advanced = false;
+    for (const bucket of buckets) {
+      if (idx < bucket.length) {
+        out.push({ id: bucket[idx].id, url: bucket[idx].url, title: bucket[idx].title, description: bucket[idx].description, sourceKey: bucket[idx].source_key });
+        advanced = true;
+        if (out.length >= limit) break;
+      }
+    }
+    if (!advanced) break;
+    idx++;
+  }
+  return out;
 }
 
 export type NewsCycleResult = {
@@ -192,7 +242,7 @@ export async function runNewsCycle(options: {
     }
   }
   // ── 2단계: 큐(방금 기록 + 이전 사이클 남은 'new')를 요약 + 발행 ──
-  const queue = await summarizeQueue(spec.maxPerCycle);
+  const queue = await summarizeQueue(spec.maxPerCycle, spec.perSourceCycleCap);
 
   for (const entry of queue) {
     const summarized = await summarize({

@@ -90,7 +90,7 @@ export default function DeleteAccountPage() {
   return (
     <div className={authStyles.page}>
       <a className={authStyles.logo} href="/">
-        Reafy
+        AI Community
       </a>
       <div className={authStyles.card}>
         {loadError ? (

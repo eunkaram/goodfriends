@@ -34,7 +34,7 @@ export async function alertAdminOfError(err: unknown, context: string): Promise<
 
     await sendEmail({
       to,
-      subject: `[Reafy] 서버 에러 발생 — ${context}`,
+      subject: `[AI Community] 서버 에러 발생 — ${context}`,
       text: `처리 안 된 예외가 발생했어요.\n\n경로: ${context}\n\n${truncated}\n\n같은 종류의 에러는 ${ALERT_WINDOW_SECONDS / 60}분 동안 다시 알리지 않아요 — 자세한 내용은 서버 로그(journalctl -u reafy)를 확인하세요.`,
       html: `<p>처리 안 된 예외가 발생했어요.</p><p><strong>경로:</strong> ${context}</p><pre style="white-space:pre-wrap;font-size:13px;">${truncated}</pre><p style="color:#8a8a92;font-size:12px;">같은 종류의 에러는 ${ALERT_WINDOW_SECONDS / 60}분 동안 다시 알리지 않아요 — 자세한 내용은 서버 로그(journalctl -u reafy)를 확인하세요.</p>`,
     });

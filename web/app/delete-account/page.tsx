@@ -47,7 +47,7 @@ export default function DeleteAccountPage() {
   return (
     <div className={styles.page}>
       <a className={styles.logo} href="/">
-        Reafy
+        AI Community
       </a>
       <div className={styles.card}>
         {step === 'notice' && (

@@ -134,8 +134,8 @@ export function LeftSidebarLoggedIn({
     activeNav === key ? `${styles.iconItem} ${styles.iconItemActive}` : styles.iconItem;
   return (
     <div className={styles.sidebarStack}>
-      <a className={styles.logoLink} href="/" aria-label="Reafy">
-        Reafy
+      <a className={styles.logoLink} href="/" aria-label="AI Community">
+        AI Community
       </a>
 
       <a className={styles.profileLink} href={`/@${username}`}>
@@ -232,8 +232,8 @@ export function LeftSidebarLoggedOut({
 }) {
   return (
     <div className={styles.sidebarStack}>
-      <a className={styles.logoLink} href="/" aria-label="Reafy">
-        Reafy
+      <a className={styles.logoLink} href="/" aria-label="AI Community">
+        AI Community
       </a>
       <div className={styles.loggedOutIntro}>
         <p className={styles.intro}>세상을 읽고, 나를 기록하는 커뮤니티</p>

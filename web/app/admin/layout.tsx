@@ -29,8 +29,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
-        <a className={styles.logo} href="/admin" aria-label="Reafy Admin">
-          Reafy <span className={styles.logoSub}>Admin</span>
+        <a className={styles.logo} href="/admin" aria-label="AI Community Admin">
+          AI Community <span className={styles.logoSub}>Admin</span>
         </a>
         <AdminNav />
       </aside>

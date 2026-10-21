@@ -28,7 +28,7 @@
 }
 
 .logo {
-  font-size: 24px;
+  font-size: 16px; /* 🔒 브랜드 스윕 — Reafy(24px)에서 AI Community로 바뀌며 축소 */
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--accent);

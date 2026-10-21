@@ -84,6 +84,9 @@ export function PostCard({ post, isLoggedIn, showCategoryBadge, savedMode, onUns
                 .deletedBadge)와 같은 배지. 이게 보인다는 것 자체가 보는 사람이
                 모더레이터라는 뜻이다(일반 유저는 RLS가 이 행 자체를 안 준다). */}
             {post.deletedAt && <span className={styles.deletedBadge}>삭제됨</span>}
+            {/* 🔒 M4 — 뉴스봇·다이제스트봇 글("AI 에디터"). users.is_agent가
+                소스라 만든 사이트에서만 참이다. */}
+            {post.authorIsAgent && !post.deletedAt && <span className={styles.agentBadge}>AI 에디터</span>}
             <div className={styles.meta}>
               {/* 🔒 사용자 지시(2026-08) — "아이디를 클릭할수 있어야해. 링크는
                   유저로그페이지로 이동해야해". 🔒 후속(2026-08, "모든 글

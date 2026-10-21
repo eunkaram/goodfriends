@@ -48,7 +48,7 @@ function ResetPasswordInner() {
   return (
     <div className={styles.page}>
       <a className={styles.logo} href="/">
-        Reafy
+        AI Community
       </a>
       <div className={styles.card}>
         <h1 className={styles.title}>새 비밀번호 설정</h1>

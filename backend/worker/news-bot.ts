@@ -14,6 +14,7 @@
  * 여기서 잡는 건 사이클 자체의 크래시(DB 죽음)다.
  */
 import { runNewsCycle } from '../src/news-bot.ts';
+import { ownerPool } from '../src/db.ts';
 
 async function main(): Promise<void> {
   const loop = process.argv.includes('--loop');
@@ -39,6 +40,10 @@ async function main(): Promise<void> {
   if (loop) {
     console.log(`[news-bot] loop mode — ${intervalMs / 3600000}시간마다 다시 돈다 (Ctrl+C로 종료)`);
     setInterval(runOnce, intervalMs);
+  } else {
+    // 🔒 결함 교훈(53300, db.ts ownerPool 주석) — 단발 실행은 풀을 풀어줘야
+    // node 프로세스가 열린 소켓 때문에 끝나지 않고 매달리지 않는다.
+    await ownerPool().end();
   }
 }
 

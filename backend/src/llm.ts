@@ -20,17 +20,27 @@ export type SummarizedNews = {
 
 type ChatMessage = { role: 'system' | 'user'; content: string };
 
-function llmConfig(): { apiKey: string; baseUrl: string; model: string } | null {
+function llmConfig(): { apiKey: string; baseUrl: string; model: string; extraBody: Record<string, unknown> } | null {
   const apiKey = process.env.LLM_API_KEY?.trim();
   if (!apiKey) return null;
+  let extraBody: Record<string, unknown> = {};
+  const raw = process.env.LLM_EXTRA_BODY_JSON?.trim();
+  if (raw) {
+    try {
+      extraBody = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      throw new Error('LLM_EXTRA_BODY_JSON 파싱 실패 — 올바른 JSON을 넣어라');
+    }
+  }
   return {
     apiKey,
     baseUrl: (process.env.LLM_BASE_URL?.trim() || 'https://api.openai.com/v1').replace(/\/$/, ''),
     model: process.env.LLM_MODEL?.trim() || 'gpt-4o-mini',
+    extraBody,
   };
 }
 
-async function callLlm(messages: ChatMessage[], maxOutputChars: number): Promise<string> {
+async function callLlm(messages: ChatMessage[], maxOutputChars: number, maxTokens = 1200): Promise<string> {
   const config = llmConfig();
   if (!config) throw new Error('LLM_API_KEY 미설정'); // 호출자가 stub 폴백 분기
 
@@ -48,16 +58,44 @@ async function callLlm(messages: ChatMessage[], maxOutputChars: number): Promise
         model: config.model,
         messages,
         temperature: 0.3,
+        // 🔒 실측(2026-10-19, 로컬 vLLM Qwen3.5) — 상한 없이 두면 thinking 모델이
+        // 추론 토큰을 대량 생성해 60초 타임아웃으로 전 건 실패한다. 출력 요구량에
+        // 맞춘 상한이 코스트·타임아웃 양쪽의 배리어다.
+        max_tokens: maxTokens,
+        // 🔒 제공사별 확장 필드는 env로만 주입한다 — body에 상수로 특정 제공사의
+        // 필드(vLLM chat_template_kwargs 등)를 몰아넣으면 OpenAI 등 다른 서버가
+        // 거부할 수 있다. "URL/모델만 갈아끼운다"의 계약을 유지하는 유일한 안전 통로.
+        ...config.extraBody,
       }),
     });
     if (!res.ok) throw new Error(`LLM HTTP ${res.status}`);
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const text = data.choices?.[0]?.message?.content?.trim() ?? '';
-    if (!text) throw new Error('LLM 응답이 비었다');
+    const text = stripThinking(data.choices?.[0]?.message?.content?.trim() ?? '');    if (!text) throw new Error('LLM 응답이 비었다');
     return text.slice(0, maxOutputChars);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * 🔒 실측(2026-10-19, 로컬 vLLM Qwen3.5) — no-think 스위치(/no_think, 시스템
+ * 안내)만으로는 추론 프리앰블이 응답에 섞일 수 있다("Thinking Process: 1. …
+ * Answer: …"). 발행 파서는 첫 줄을 제목으로 잡기 때문에 그대로 다면 봇 글이
+ * 추론 스케치로 발행된다. 프리앰블로 명확히 시작한 경우에만 말미의 Answer 구분선
+ * 뒤를 취한다 — 정상 응답(한국어 제목으로 시작)에는 무동작.
+ */
+function stripThinking(text: string): string {
+  if (!/^(thinking process|let me think|\*\*thinking)/i.test(text)) {
+    return text;
+  }
+  const marker = /(?:\*\*?answer:?\*\*?|answer:)\s*/i;
+  const idx = text.search(marker);
+  if (idx < 0) {
+    // 프리앰블로 시작했는데 말미 구분선도 없다(토큰 상한으로 잘렸을 때 등) —
+    // 발행할 수 없는 노이즈이므로 빈 문자열로 내려 발행을 막고 failed로 기록.
+    return '';
+  }
+  return text.slice(idx + (marker.exec(text)?.[0].length ?? 0)).trim();
 }
 
 /** 🔒 이스케이프 — 발행 본문은 HTML 단락으로 감싸진다(발행 쪽 toPostBody).
@@ -105,7 +143,7 @@ export async function summarizeNewsKorean(input: {
           content:
             '너는 한국어 AI 뉴스 에디터다. 해외 AI 뉴스 원문(제목+요약)을 한국어로 다듬는다. ' +
             '응답 형식: 첫 줄은 한국어 제목(60자 이하, 원문 기사 제목 번역), 그다음 줄부터 본문 요약(2~3문장, 반말이 아닌 다듬은 전문체). ' +
-            '경어체로 쓴다. 링크·이모지·목록 기호를 넣지 마라.',
+            '경어체로 쓴다. 링크·이모지·목록 기호를 넣지 마라. /no_think — 추론 과정은 출력하지 말고 바로 편집 결과만 쓴다.',
         },
         {
           role: 'user',
@@ -113,6 +151,7 @@ export async function summarizeNewsKorean(input: {
         },
       ],
       1200,
+      800,
     );
     const [titleLine, ...bodyLines] = text.split('\n').filter((l) => l.trim());
     const digest = bodyLines.join('\n\n').trim() || titleLine;
@@ -164,7 +203,7 @@ export async function generateDigestDraft(input: DigestDraftInput): Promise<{ ok
           content:
             '너는 AI 커뮤니티의 데일리 편집자다. 최근 하루 커뮤니티 활동(글 제목/본문 발췌/댓글 수)을 ' +
             '곱씹어 "오늘의 AI 화제" 다이제스트를 쓴다. 마크다운 목록(- 항목) 형식, 각 항목은 한두 문장. ' +
-            '경어체. 글 제목을 그대로 벗겨내지 말고 관점(논점·논쟁·아이디어)을 짚어준다.',
+            '경어체. 글 제목을 그대로 벗겨내지 말고 관점(논점·논쟁·아이디어)을 짚어준다. /no_think — 추론 과정은 출력하지 말고 바로 편집 결과만 쓴다.',
         },
         {
           role: 'user',
@@ -172,6 +211,7 @@ export async function generateDigestDraft(input: DigestDraftInput): Promise<{ ok
         },
       ],
       4000,
+      2400,
     );
     const [titleLine, ...bodyLines] = content.split('\n').filter((l) => l.trim());
     return { ok: true, value: { title: titleLine.slice(0, 100), content: bodyLines.join('\n\n').trim() || titleLine } };

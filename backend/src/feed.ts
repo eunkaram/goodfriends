@@ -34,6 +34,12 @@ export type FeedPost = {
   authorUsername: string;
   authorNickname: string;
   authorAvatarUrl: string;
+  /**
+   * 🔒 M4(M3 후속) — 뉴스봇·다이제스트봇(is_agent=true)이 쓴 글은 프론트가
+   * "AI 에디터" 배지를 그린다. Claude Design 확정안과 같은 매커니즘(False
+   * 카운터feit 배지 불가 — 이 값은 users 테이블에서 온다).
+   */
+  authorIsAgent: boolean;
   categoryName: string;
   categorySlug: string;
   createdAt: string;
@@ -62,6 +68,7 @@ type FeedRow = {
   author_username: string;
   author_nickname: string;
   author_avatar_url: string;
+  author_is_agent: boolean;
   category_name_key: string | null;
   category_slug: string | null;
   created_at: string;
@@ -80,6 +87,7 @@ function toFeedPost(row: FeedRow, t: (key: string) => string): FeedPost {
     authorUsername: row.author_username,
     authorNickname: row.author_nickname,
     authorAvatarUrl: row.author_avatar_url,
+    authorIsAgent: row.author_is_agent,
     categoryName: row.category_name_key ? t(row.category_name_key) : '',
     categorySlug: row.category_slug ?? '',
     createdAt: row.created_at,
@@ -99,7 +107,7 @@ function toFeedPost(row: FeedRow, t: (key: string) => string): FeedPost {
 // 🔒 사용자 지시(2026-08, "모든 글 리스트에도 아이디대신 유저네임으로") —
 // u.nickname을 추가 — 목록 화면 표시는 닉네임, href 라우팅은 여전히 username.
 const POST_SELECT_FIELDS = `
-  p.id, p.public_id, p.title, p.body, p.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url,
+  p.id, p.public_id, p.title, p.body, p.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url, u.is_agent AS author_is_agent,
   c.name_key AS category_name_key, c.slug AS category_slug, p.created_at, p.deleted_at,
   (SELECT count(*) FROM reactions WHERE target_type = 'post' AND target_id = p.id) AS reaction_count,
   (SELECT count(*) FROM comments  WHERE target_type = 'post' AND target_id = p.id) AS comment_count
