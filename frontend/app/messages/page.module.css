@@ -1,0 +1,80 @@
+/* MessagesView가 자체 2단(활성 스레드+목록) 레이아웃을 이미 갖고 있어
+   전역 RightSidebar 없이 좌 사이드바 + 넓은 본문만 쓴다(goodfriends-ui
+   디코딩 원본 line 474 "grid-column: 2 / 4" — 우측 유틸 없음). */
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.center {
+  min-width: 0;
+}
+
+.left {
+  display: none;
+}
+
+/* pad(768~1279px) — 208px 좌 사이드바 + 나머지 전부 본문(우측 유틸은 애초에 이 화면에 없다). */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 208px minmax(0, 1fr);
+    padding: 32px 24px 40px;
+    gap: 28px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 32px;
+    height: calc(100vh - 32px - 40px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  /* .center에 높이 제약이 없으면 대화가 길어질 때 페이지 전체가 늘어나며
+     스크롤된다(.messages 내부 스크롤은 부모 높이가 없으면 무의미하다).
+     .left와 같은 계산식으로 뷰포트에 맞춰 잘라내고, 실제 스크롤은
+     MessagesView 내부(.messages/.listPanel)에서 하도록 overflow를 감춘다. */
+  .center {
+    height: calc(100vh - 32px - 40px);
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 1280px) {
+  .layout {
+    grid-template-columns: 240px 1fr;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 40px;
+    height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    height: calc(100vh - 40px * 2);
+    overflow: hidden;
+  }
+}
+
+/* phone(<768px) 하단 고정 탭바(64px)가 본문을 가리지 않게 여백을 준다. */
+@media (max-width: 767px) {
+  .layout {
+    padding-bottom: 84px;
+  }
+}

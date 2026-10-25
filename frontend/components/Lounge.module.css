@@ -1,0 +1,438 @@
+.status {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-md);
+}
+
+.dotOn,
+.dotOff {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.dotOn {
+  background: #7ee2a8;
+}
+
+.dotOff {
+  background: #4a4a52;
+}
+
+.presence {
+  margin-left: 4px;
+}
+
+/* 🔒 사용자 발견(2026-10, "오른쪽 스크롤바때문에 라운드처리가 안돼") —
+   overflow-y:auto+border-radius를 같은 요소에 두면 스크롤바가 둥근 모서리
+   클리핑 밖에서 그려져 각져 보인다. .listWrap이 radius+overflow:hidden으로
+   모서리를 담당하고, .list는 안쪽에서 실제 스크롤만 한다.
+   🔒 사용자 발견(2026-10, "입력된 글과 글을 입력하면 텍스트가 안보여") —
+   이 배경이 다크 테마 리터럴(#18181d)로 남아 있었는데, 글자색(.body 등)은
+   처음부터 --text-primary(라이트 테마 전용, 이 사이트엔 다크모드 자체가
+   없다 — tokens.css 참고)라 어두운 배경 위에 어두운 글자가 겹쳐 안 보였다.
+   search/page.module.css와 같은 원인 — 실제 토큰으로 교체.
+   🔒 사용자 지시(2026-10, "높이를 다이내믹하게... 화면높이에 따라서
+   가변적으로") — 고정 480px였다. 768px+에서는 부모(app/lounge/page.module.css
+   `.center`)가 이미 뷰포트 높이로 잘려 있으므로(messages와 같은 패턴) 이
+   요소는 그 안에서 `flex:1`로 남는 공간을 전부 채운다. 그 미디어쿼리가
+   아직 안 걸리는 phone 기본값은 부모에 높이 기준이 없어 flex만으론 안 돼
+   — `min(60vh, 560px)`로 뷰포트 비율에 직접 비례하게 둔다(그 자체로도
+   이전 고정값보다 "다이내믹"하다는 요청을 충족한다). */
+.listWrap {
+  position: relative;
+  height: min(60vh, 560px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--raised);
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .listWrap {
+    height: auto;
+    flex: 1;
+    min-height: 0;
+  }
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+.empty {
+  color: var(--text-tertiary);
+  font: var(--text-body-sm);
+}
+
+/* 🔒 사용자 지시(2026-10, "스크롤이 위에 있을경우, 새글이 올라오면... 오른쪽에
+   아이콘이 플로팅되어서 아래로 갈수 있게") — .listWrap(relative) 안에 떠
+   있는 원형 버튼. .list(스크롤 컨테이너) 안이 아니라 .listWrap에 둬야
+   스크롤과 무관하게 항상 같은 화면 위치(우하단)에 떠 있는다. */
+.newMessageBtn {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: #7ee2a8; /* .form button(보내기)과 같은 배경색 */
+  color: #0f1a12;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.newMessageBtn:hover {
+  filter: brightness(1.08);
+}
+
+/* 🔒 사용자 지시(2026-10, "내글은 채팅리스트에서 오른쪽에... 메세지 페이지의
+   UI를 따라가도 될것 같아") — MessagesView.module.css의 bubbleRowMine/
+   bubbleMine/theirsRow/theirsContent/theirsName/bubbleRowTheirs/bubbleTheirs
+   와 같은 이름·같은 값(말풍선 패딩/radius/톤)을 쓴다. 다만 Messages는 1:1
+   DM이라 "상대"가 고정이고 그 이름을 .theirsRow 밖(헤더)에서 한 번만
+   보여주지만, 라운지는 매 메시지의 작성자가 다른 사람일 수 있어 이름을
+   .theirsContent 안(theirsHead)에 메시지마다 넣는다 — 그 차이 하나만 다르다. */
+/* 🔒 사용자 지시(2026-10, "텍스트에 링크가 있으면 메세지 아래에 카드형식으로")
+   — 카드는 말풍선 바깥(색 배경 없이) 아래에 쌓여야 해서 "가로 한 줄
+   (time+bubble)"이던 이전 구조를 "세로 스택"으로 바꿨다. .messageMine이
+   전체(스택+시간)를 오른쪽 정렬된 열로 묶는다.
+   🔒 사용자 발견(2026-10, "상대방 글이 한줄짜리인데 여러줄로 보여질까") —
+   `.bubbleStackMine`의 `max-width:70%`가 실제로는 거의 0에 가깝게
+   계산되고 있었다: 퍼센트 max-width는 "정해진 폭을 가진 조상"을 기준으로
+   풀리는데, 이 조상(.messageMine)이 `align-items:flex-end`라 자식을
+   늘리지 않아(stretch 아님) 자기 자신도 콘텐츠 크기로만 줄어드는 auto
+   폭이다 — 결국 70%가 "auto의 70%"라는 순환 참조가 되어 브라우저가
+   아주 작은 값으로 접어버렸다(getBoundingClientRect 실측으로 확인, 9글자
+   한글이 78px 폭에 욱여넣어져 있었다). 퍼센트 대신 고정 px 상한(420px —
+   LinkPreviewCard가 이미 쓰는 "카드 최대 폭" 관례와 맞춤, 카드와 말풍선
+   폭이 비슷해 보이는 부수 효과도 있다)으로 바꿔 이 순환 참조 자체를
+   없앤다 — 고정값은 조상의 폭이 얼마든 상관없이 그대로 적용된다. */
+.messageMine {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.bubbleStackMine {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 420px;
+}
+.bubbleMine {
+  display: block;
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 19px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.theirsRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+.theirsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.theirsHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.theirsName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.bubbleStackTheirs {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 420px; /* 🔒 .bubbleStackMine과 같은 이유(위 주석) — % 대신 고정값 */
+}
+.bubbleTheirs {
+  display: block;
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 19px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  background: var(--chip-bg);
+  color: var(--text-primary);
+}
+
+.chatAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* M4 — AI 에디터 배지(봇 계정 구분 표시 — M4 체크 "봇 글 UI 구분 표시"의 회의실 버전) */
+.agentBadge {
+  font: var(--text-label-sm);
+  font-weight: 600;
+  color: #0f1a12;
+  background: #7ee2a8;
+  border-radius: 6px;
+  padding: 1px 7px;
+}
+
+.time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+/* 🔒 사용자 지시(2026-10, "글에 댓글 달기도... 원글이 일부 포함되어야 하고
+   원글을 클릭하면 원글위치로 옮겨져서") — 답장 버튼(.metaRow 안, time 옆)·
+   인용 블록(.quote, 말풍선 스택 맨 위)·클릭 시 강조(.highlighted)·전송 전
+   미리보기 바(.replyPreview). */
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.replyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.replyBtn:hover {
+  color: var(--accent);
+  background: var(--chip-bg);
+}
+
+.quote {
+  display: block;
+  max-width: 100%;
+  border: none;
+  border-left: 3px solid var(--border);
+  border-radius: 6px;
+  background: var(--chip-bg);
+  padding: 4px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.quoteAuthor {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.quoteBody {
+  display: block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 인용을 클릭해 원글로 스크롤했을 때 잠깐 알려주는 강조 — 배경색 대신
+   테두리 글로우를 쓴다(말풍선 배경이 이미 accent/chip-bg로 각각 달라서
+   "원래 배경으로 되돌아가는" 애니메이션을 배경색만으로 깔끔히 표현하기
+   어렵다 — 글로우는 둘 다에 똑같이 자연스럽다). */
+.highlighted .bubbleMine,
+.highlighted .bubbleTheirs {
+  animation: loungeHighlight 1.5s ease;
+}
+@keyframes loungeHighlight {
+  0% {
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.replyPreview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding: 6px 10px;
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--chip-bg);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.replyPreviewText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.replyPreviewClose {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.replyPreviewClose:hover {
+  color: var(--text-primary);
+}
+
+.error {
+  color: var(--text-danger, #ff8f8f);
+  font: var(--text-body-sm);
+  margin: var(--space-sm) 0;
+}
+
+.form {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.form input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: var(--search-bg);
+  color: var(--text-primary);
+  font: var(--text-body-sm);
+}
+
+.form button {
+  background: #7ee2a8;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font: var(--text-label-sm);
+  font-weight: 700;
+  color: #0f1a12;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 🔒 사용자 지시(2026-10, "오른쪽 영역에 접속된 사용자 리스트도... 온라인상태도
+   보여줘") — RightSidebar(TRENDING NOW/SPONSORED)의 위젯 제목(13px/700/
+   letter-spacing/--text-tertiary)과 같은 시각 언어를 쓴다. 이 컴포넌트는
+   /lounge에서만 쓰여 HomeSidebars.module.css를 또 import하는 대신 같은
+   스펙을 여기 로컬로 둔다. */
+.onlineTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+}
+.onlineCount {
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: normal;
+}
+
+.onlineEmpty {
+  color: var(--text-tertiary);
+  font: var(--text-body-sm);
+}
+
+.onlineList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.onlineRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.onlineAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.onlineName {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 접속자 목록은 정의상 전부 "온라인"이다(연결이 끊기면 목록에서 빠진다) —
+   별도 상태값 없이 항상 켜진 점으로 충분하다. */
+.onlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #7ee2a8;
+  flex-shrink: 0;
+}

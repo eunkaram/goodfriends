@@ -153,6 +153,55 @@ describe('발언 → 전체방 브로드캐스트', () => {
   });
 });
 
+// 🔒 사용자 지시(2026-10, "댓글 달기하면 내 글에 원글이 일부 포함되어야
+// 하고 원글을 클릭하면 원글위치로 옮겨져서") — 0056 reply_to_id.
+describe('답장(reply)', () => {
+  it('replyToId 없이 보내면 replyTo는 null', async () => {
+    const a = await openSocket(aliceToken);
+    await waitForType(a, 'history');
+    const p = waitForType(a, 'message');
+    a.send(JSON.stringify({ type: 'message', body: 'LOUNGE-TEST::reply-none' }));
+    const frame = (await p).message as { replyTo: unknown };
+    expect(frame.replyTo).toBeNull();
+    a.close();
+  });
+
+  // 🔒 처음엔 소켓 2개(발신자+관전자)로 "다른 사람도 같은 요약을 받는다"까지
+  // 같이 검증했는데, 한 테스트 안에서 같은 소켓에 waitForType을 여러 번
+  // 겹쳐 거는 조합이 가끔(약 25% 관측) 타임아웃으로 흔들렸다 — "둘 다 받는다"
+  // 자체는 위 "발언 → 전체방 브로드캐스트" 테스트가 이미 증명했으므로
+  // (reply_to_id 유무와 무관하게 브로드캐스트 메커니즘은 동일), 여기서는
+  // 소켓 하나로 단순화해 reply_to_id 조회·요약 로직만 집중해서 본다.
+  it('유효한 replyToId로 보내면 원글 요약(작성자·일부 본문)이 같이 온다', async () => {
+    const a = await openSocket(aliceToken);
+    await waitForType(a, 'history');
+
+    const pOriginal = waitForType(a, 'message');
+    const original = 'LOUNGE-TEST::reply-original';
+    a.send(JSON.stringify({ type: 'message', body: original }));
+    const originalId = ((await pOriginal).message as { id: string }).id;
+
+    const pReply = waitForType(a, 'message');
+    a.send(JSON.stringify({ type: 'message', body: 'LOUNGE-TEST::reply-child', replyToId: originalId }));
+    const replyFrame = ((await pReply).message ?? {}) as {
+      replyTo: { id: string; authorUsername: string; authorNickname: string | null; bodyExcerpt: string } | null;
+    };
+    expect(replyFrame.replyTo).toEqual({ id: originalId, authorUsername: 'logetest_alice', authorNickname: null, bodyExcerpt: original });
+
+    a.close();
+  });
+
+  it('존재하지 않는 replyToId는 에러 없이 조용히 무시된다(replyTo: null)', async () => {
+    const a = await openSocket(aliceToken);
+    await waitForType(a, 'history');
+    const p = waitForType(a, 'message');
+    a.send(JSON.stringify({ type: 'message', body: 'LOUNGE-TEST::reply-dangling', replyToId: '00000000-0000-0000-0000-000000000000' }));
+    const frame = (await p).message as { replyTo: unknown };
+    expect(frame.replyTo).toBeNull();
+    a.close();
+  });
+});
+
 describe('방어 선', () => {
   it('길이 1,000자+ → INVALID_BODY', async () => {
     const a = await openSocket(aliceToken);
@@ -182,6 +231,36 @@ describe('방어 선', () => {
     const errorFrame = await waitForType(a, 'error');
     expect(errorFrame.code).toBe('RATE_LIMITED');
     a.close();
+  });
+});
+
+// 🔒 사용자 지시(2026-10, "오른쪽 영역에 접속된 사용자 리스트도... 온라인상태도") —
+// lounge-ws.ts의 onlineUsers Map(userId 기준 dedup)을 검증한다.
+describe('접속자 목록(presence)', () => {
+  it('다른 사람이 접속하면 기존 접속자가 받는 presence에 둘 다 뜬다', async () => {
+    const a = await openSocket(aliceToken);
+    await waitForType(a, 'history');
+    const presenceOnBobJoin = waitForType(a, 'presence');
+    const b = await openSocket(bobToken);
+    const frame = await presenceOnBobJoin;
+    const users = frame.users as Array<{ username: string }>;
+    expect(frame.action).toBe('joined');
+    expect(users.some((u) => u.username === 'logetest_alice')).toBe(true);
+    expect(users.some((u) => u.username === 'logetest_bob')).toBe(true);
+    a.close();
+    b.close();
+  });
+
+  it('같은 유저가 탭을 두 개 열어도 접속자 목록엔 한 번만 뜬다', async () => {
+    const a1 = await openSocket(aliceToken);
+    await waitForType(a1, 'history');
+    const presenceOnSecondTab = waitForType(a1, 'presence');
+    const a2 = await openSocket(aliceToken);
+    const frame = await presenceOnSecondTab;
+    const users = frame.users as Array<{ username: string }>;
+    expect(users.filter((u) => u.username === 'logetest_alice')).toHaveLength(1);
+    a1.close();
+    a2.close();
   });
 });
 

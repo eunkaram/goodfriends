@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd 템플릿 — macOS(개발머신)에서 goodfriends 뉴스봇 1일 1회.
+
+  설치:
+    cp goodfriends-news-bot.example.plist ~/Library/LaunchAgents/goodfriends-news-bot.plist
+    # 내부 경로(SOMEWHERE)를 실제 클론 위치로 고친다
+    launchctl load ~/Library/LaunchAgents/goodfriends-news-bot.plist
+    launchctl list | grep goodfriends      # 적재 확인
+    launchctl start goodfriends-news-bot   # 수동 1회(test)
+
+  Greenwood 메모:
+    - bash -lc로 감싸는 이유 — npm/node가 PATH 잡힌 인터랙티브 셸 기준이기 때문.
+    - StartCalendarInterval 08:30 — 봇은 이전 사이클 'new' 잔여분을 자기복구로
+      같이 처리하므로 돌리는 시각은 운영 취향이다.
+    - NEWS_MAX_PER_CYCLE=0 (환경변수, EnvironmentVariables에 넣어도 된다)로
+      돌리면 기록만 하고 발행은 안 한다 — 연결 확인용.
+-->
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>goodfriends-news-bot</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/env</string>
+      <string>bash</string>
+      <string>-lc</string>
+      <string>cd /SOMEWHERE/goodfriends/backend &amp;&amp; npm run worker:news</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+      <key>Hour</key>
+      <integer>8</integer>
+      <key>Minute</key>
+      <integer>30</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/ai-news-bot.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/ai-news-bot.log</string>
+  </dict>
+</plist>

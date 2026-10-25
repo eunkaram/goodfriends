@@ -1,0 +1,64 @@
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 300px;
+  gap: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 🔒 사용자 발견(2026-10, "검색결과 페이지의 타이틀 택스트 컬러 수정해줘") —
+ * 이 파일 전체가 사이트 실제 라이트 팔레트(styles/tokens.css)가 아니라
+ * 한 번도 안 쓰인 다크 톤 리터럴(#f0f0f4/#16161c/#2a2a33/#9a9aa4)로
+ * 남아 있었다 — 흰 배경 위에 거의 흰 제목 글자라 사실상 안 보였다.
+ * PostCard.module.css의 리스트 한 줄(카드 박스 없이 border-bottom 구분선)
+ * 패턴을 그대로 따른다 — 이 사이트 다른 모든 글 목록과 같은 시각 언어.
+ */
+.heading {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 24px;
+}
+
+.empty {
+  margin-top: 24px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.guidance {
+  margin-top: 24px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+@media (min-width: 1280px) {
+  .layout {
+    grid-template-columns: 240px 680px 280px;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .left,
+  .right {
+    display: none;
+  }
+}

@@ -2,7 +2,7 @@
  * 화제 다이제스트 엔진의 도메인 — M3(§3)의 반수동 제작 흐름:
  *
  *   관리자가 소재 계정 리스트를 관리 → 초안 생성(LLM) → 확인/수정 → 발행
- *   (ai-topics 카테고리, ai_digest_bot 명의)
+ *   (news 카테고리, ai_digest_bot 명의 — 0053 이전엔 ai-topics)
  *
  * HTTP는 admin-digest-http.ts가, UI는 web/components/AdminDigests.tsx가
  * 이 모듈을 부른다. 발행 시에만 커뮤니티 posts 쿼리를 만지는데, RLS는
@@ -14,7 +14,9 @@ import { createCommunityPost } from './posts.ts';
 
 const pool = appPool('exists');
 
-export const DIGEST_CATEGORY_SLUG = 'ai-topics';
+// 🔒 0053(goodfriends 카테고리 교체) — 'ai-topics'(오늘의 AI 화제)는 goodfriends
+// 11개 카테고리에 없어 비공개 처리됐다. 다이제스트는 가장 가까운 News로 합친다.
+export const DIGEST_CATEGORY_SLUG = 'news';
 export const DIGEST_BOT_USERNAME = 'ai_digest_bot';
 /** 초안 생성이 훑으러 갈 활동 윈도우. "오늘의"라지만 새벽에 돌면 하루가
  * 빈다 — 48시간을 창으로 두고 중복은 digest_drafts 발행 이력이 걸러낸다. */

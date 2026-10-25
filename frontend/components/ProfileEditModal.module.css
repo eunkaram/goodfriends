@@ -1,0 +1,504 @@
+/* 🔒 Claude Design 확정안(artifact `editOpen`) 실측값 — PostComposerModal의
+   .modalOverlay와 같은 상단 오프셋(98px, CommunityPopup/New Post 모달 공용 상수) */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 28, 45, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 98px var(--space-lg) var(--space-3xl);
+  z-index: var(--z-modal);
+  overflow-y: auto;
+}
+
+/* 🔒 사용자 지시(2026-08, "모든 모달 팝업의 left위치를 중앙 컨텐츠 시작
+   위치와 일치시켜야 해") — components/HomeFeed.module.css의 `.modalOverlay`
+   와 같은 이유·같은 값 (`.layout`과 grid-template-columns를 공유해
+   -20px 오프셋을 손계산 없이 자동으로 맞춘다). */
+@media (min-width: 1280px) {
+  .modalOverlay {
+    display: grid;
+    grid-template-columns: 240px 680px 280px;
+    gap: 40px;
+    justify-content: center;
+    align-content: start;
+    align-items: start;
+    padding: 98px 0 var(--space-3xl);
+  }
+  .modal {
+    grid-column: 2;
+  }
+}
+
+/* 🔒 사용자 발견(2026-10, "오른쪽 스크롤바때문에 라운드처리가 안돼") —
+   overflow-y:auto와 border-radius를 같은 요소에 같이 주면 세로 스크롤바가
+   둥근 모서리 클리핑 밖에서 그려져 각져 보인다(PostComposerModal
+   .categoryMenuPopover와 같은 원인). 이 요소는 radius+overflow:hidden으로
+   모서리만 담당하고, 실제 스크롤은 안쪽 `.modalScroll`로 옮긴다. */
+.modal {
+  width: 100%;
+  max-width: 680px;
+  max-height: 85vh;
+  overflow: hidden;
+  background: var(--raised);
+  border-radius: var(--radius-lg);
+  box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+.modalScroll {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modalHeaderTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+}
+
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* 🔒 사용자 지시(2026-08, "사진변경 버튼은 제거, 대신 유저 아이콘 오른쪽아래에
+   변경아이콘을 표시하고 유저아이콘을 클릭시 이미지 업로드 기능넣어줘. ...
+   유저 아이콘 크기를 유저닉네임, 아이디 인풋폼 두개의 높이와 같게 설정해줘") —
+   아바타 자체가 업로드 트리거인 버튼이 됐다. 크기는 옆의 두 입력창
+   (.nicknameInput 38px + .avatarField gap 4px + .handleFieldCompact 38px =
+   80px)과 정확히 같게 맞췄다. */
+.avatarButton {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.avatarButton:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 700;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.avatarEditBadge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  border: 2px solid var(--raised);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarFileInput {
+  display: none;
+}
+
+.avatarField {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* 🔒 사용자 지시(2026-08, "유저 아이디 부분을 이름옆에 위치 시키고") —
+   닉네임+아이디를 한 줄에 나란히 놓는다. flex-basis(고정 px 아님)라 좁은
+   화면에서는 wrap으로 아이디가 아래로 떨어진다 — 강제로 안 찌그러진다. */
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.nicknameInput {
+  flex: 1 1 180px;
+  min-width: 0;
+  height: 38px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-md);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--search-bg);
+  box-sizing: border-box;
+  outline: none;
+}
+.nicknameInput:focus {
+  border-color: var(--accent-light);
+}
+
+/* 🔒 사용자 지시(2026-08) — "사진 변경자리에 아이디 인풋폼을 위치시켜줘".
+   기존 독립 필드였던 .handleField(44px)를 이 자리에 맞춰 38px 컴팩트
+   버전으로 옮겼다 — 나머지(캡슐 모양·"@" 접두어) 언어는 그대로 유지.
+   🔒 후속(2026-08, 스크린샷 제시 — "인풋 박스 사이즈는 고정. 그 위에
+   빨간색 박스 부분에 메세지 div를 올리라고") — 메시지를 형제로 옆에 두면
+   (flex:1로 줄여 공간을 나눠 먹던 버전) 입력창 자체의 폭이 메시지 유무에
+   따라 바뀐다 — 그게 아니라 입력창은 항상 같은 크기를 유지하고, 메시지는
+   그 오른쪽 안쪽에 절대위치로 겹쳐서 뜬다. 이 필드가 position:relative
+   기준점이다.
+   🔒 후속(2026-08, "유저 아이디 부분을 이름옆에 위치 시키고") — .nameRow
+   안으로 옮기며 닉네임과 폭을 나눠 갖는다(flex-basis, 고정 px 아님 —
+   .nicknameInput과 같은 이유). */
+.handleFieldCompact {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 160px;
+  min-width: 0;
+  height: 38px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-md);
+  background: var(--search-bg);
+  box-sizing: border-box;
+}
+.handleFieldCompact:focus-within {
+  border-color: var(--accent-light);
+}
+/* 🔒 실전 버그(사용자 발견, "글자 색상은 왜 바꼈어?") — 이전엔 이 규칙이
+   `.handleFieldCompact span`(범용 자손 선택자)였는데, 확인 메시지 span을
+   같은 .handleFieldCompact 안으로 옮기면서 그 메시지도 이 선택자에 걸려
+   버렸다 — 특이도가 `.checkOk`/`.checkBad`(클래스 1개, 0,1,0)보다 이 규칙
+   (클래스 1개+태그 1개, 0,1,1)이 더 높아서 메시지 색이 전부 이 회색으로
+   덮어써지고 있었다. "@" 접두어 전용 클래스로 좁혀서 재발을 막는다 —
+   범용 span 선택자를 앞으로도 안 쓴다. */
+.atPrefix {
+  font-size: 15px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.handleFieldCompact input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+  padding: 0 0 0 2px;
+  min-width: 0;
+}
+
+/* 🔒 사용자 지시(2026-08, "아이디 있던 부분에 이메일을 보여줘. 수정가능
+   하면 좋을것 같아") — 아이디가 옮겨가며 비게 된 자리(예전 .handleFieldCompact
+   줄)에 놓인 이메일 입력. .postalFieldWrap과 같은 이유로 래퍼가
+   position:relative 기준점을 맡는다(<input>은 자식을 못 가진다) — 확인
+   메시지는 .checkOverlay로 겹쳐서 뜬다. */
+.emailFieldWrap {
+  position: relative;
+}
+.emailInput {
+  width: 100%;
+  height: 38px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-md);
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--search-bg);
+  box-sizing: border-box;
+  outline: none;
+}
+.emailInput:focus {
+  border-color: var(--accent-light);
+}
+
+.emailChangeHint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: 0 var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* 🔒 goodfriends 우측 프로필 위젯(2026-10) — 디코딩 원본 line 1203-1232
+   "관심 분야"/"사용 중인 스택" 실측값. 칩 배경(#e4e7f2 활성/#dce9e6 스택)은
+   이 두 지점에서만 쓰는 artifact 리터럴이라(기존 --chip-bg보다 더 쨍한
+   라벤더/민트 톤) 토큰화 없이 그대로 옮긴다 — PostCard.module.css의
+   `.preview`(#3a3d44)와 같은 선례. */
+.fieldLabelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.fieldHint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.interestOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+.interestChip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.interestChipActive {
+  border-color: var(--accent-light);
+  background: #e4e7f2;
+  color: var(--accent);
+}
+
+.stackGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stackGroupRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.stackGroupLabel {
+  width: 44px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 32px;
+}
+.stackGroupItems {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.stackChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 6px 0 12px;
+  border-radius: var(--radius-full);
+  background: #dce9e6;
+  color: #36524f;
+  font-size: 13px;
+  font-weight: 600;
+}
+.stackChipRemove {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stackChipRemove:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+.stackAddInput {
+  width: 96px;
+  height: 32px;
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--radius-full);
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: none;
+  box-sizing: border-box;
+  outline: none;
+}
+.stackAddInput:focus {
+  border-color: var(--accent);
+}
+
+.fieldError {
+  font-size: 13px;
+  color: var(--danger);
+}
+
+/* 🔒 사용자 지시(2026-08, "사용가능하면 초록색, 불가능하면 빨간색으로
+   메세지를 표시해줘" → 후속 "인풋 박스 사이즈는 고정. 그 위에... 메세지
+   div를 올리라고") — 입력창(고정 크기) 오른쪽 안쪽에 겹쳐 뜨는 절대위치
+   오버레이. `pointer-events:none`이라 그 아래 입력창 클릭·타이핑을 절대
+   가로막지 않는다. 🔒 "성공 초록"은 이 앱의 기존 팔레트(크림슨 액센트·
+   danger 빨강)에 없던 색이라 이 지점 전용 리터럴로 새로 둔다. */
+.checkOverlay {
+  position: absolute;
+  right: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.checkOk {
+  color: #1a7f37;
+}
+.checkBad {
+  color: var(--danger);
+}
+.checkNeutral {
+  color: var(--text-tertiary);
+}
+
+.introTextarea {
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-lg);
+  padding: 14px var(--space-lg);
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--search-bg);
+  resize: none;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+}
+.introTextarea:focus {
+  border-color: var(--accent-light);
+}
+
+.privacyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.privacyLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.privacyHint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+/* 🔒 사용자 지시(2026-08, "프로필 공개를 비공개/follower/공개 로
+   토글버튼으로 수정해줘") — 켜짐/꺼짐 스위치를 3단 세그먼트 컨트롤로
+   교체(공개/비공개 2단계로는 팔로워 공개를 표현할 수 없었다). New Post
+   팝업의 게시판/My Post 세그먼트(components/HomeFeed.module.css의
+   .destinationSegment/.segmentBtn/.segmentBtnActive)와 같은 시각 언어 —
+   회색 트랙 안에서 활성 쪽만 흰 배경+옅은 box-shadow+액센트 글자로
+   튀어나와 보인다(§11.2.3 — 배경을 액센트로 채우지 않는다). */
+.visibilitySegment {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--segment-bg);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  flex-shrink: 0;
+}
+.visibilitySegmentBtn {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.visibilitySegmentBtnActive {
+  background: var(--raised);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(17, 28, 45, 0.12);
+}
+
+.footer {
+  padding: var(--space-md) 24px 24px;
+  flex-shrink: 0;
+}
+
+.submitBtn {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.submitBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

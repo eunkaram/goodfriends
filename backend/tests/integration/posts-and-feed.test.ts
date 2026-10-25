@@ -17,11 +17,16 @@ let owner: pg.Pool;
 let alice: string;
 let bob: string; // alice가 팔로우
 let carol: string; // 무관계
+let moderator: string; // is_moderator=true — News 작성 허용 대상
+let agent: string; // is_agent=true(뉴스봇 등 시스템 계정) — News 작성 허용 대상
 let dailyChatId: string;
 let advicetId: string;
+let newsId: string;
 let aliceToken: string;
 let bobToken: string;
 let carolToken: string;
+let moderatorToken: string;
+let agentToken: string;
 
 function sessionCookieHeader(token: string) {
   return { Cookie: `${SESSION_COOKIE}=${token}` };
@@ -55,21 +60,35 @@ beforeAll(async () => {
   bob = u.rows.find((r) => r.username === 'feedtest_bob')!.id;
   carol = u.rows.find((r) => r.username === 'feedtest_carol')!.id;
 
-  const cats = await owner.query<{ id: string; slug: string }>(`SELECT id, slug FROM categories WHERE slug IN ('free', 'qna')`);
+  const roleUsers = await owner.query<{ id: string; username: string }>(
+    `INSERT INTO users (username, is_moderator, is_agent) VALUES
+       ('feedtest_mod', true, false),
+       ('feedtest_agent', false, true)
+     RETURNING id, username`,
+  );
+  moderator = roleUsers.rows.find((r) => r.username === 'feedtest_mod')!.id;
+  agent = roleUsers.rows.find((r) => r.username === 'feedtest_agent')!.id;
+
+  const cats = await owner.query<{ id: string; slug: string }>(`SELECT id, slug FROM categories WHERE slug IN ('free', 'qna', 'news')`);
   dailyChatId = cats.rows.find((r) => r.slug === 'free')!.id;
   advicetId = cats.rows.find((r) => r.slug === 'qna')!.id;
+  newsId = cats.rows.find((r) => r.slug === 'news')!.id;
 
   await owner.query(`INSERT INTO follows (follower_id, followee_id) VALUES ($1, $2)`, [alice, bob]);
 
   aliceToken = (await createSession(alice)).token;
   bobToken = (await createSession(bob)).token;
   carolToken = (await createSession(carol)).token;
+  moderatorToken = (await createSession(moderator)).token;
+  agentToken = (await createSession(agent)).token;
 });
 
 afterAll(async () => {
   await destroySession(aliceToken);
   await destroySession(bobToken);
   await destroySession(carolToken);
+  await destroySession(moderatorToken);
+  await destroySession(agentToken);
   await owner?.query(`DELETE FROM follows WHERE follower_id = $1`, [alice]);
   await owner?.query(`DELETE FROM reactions WHERE target_id IN (SELECT id FROM posts WHERE title LIKE 'FEED::%')`);
   await owner?.query(`DELETE FROM comments WHERE target_id IN (SELECT id FROM posts WHERE title LIKE 'FEED::%')`);
@@ -133,6 +152,36 @@ describe('POST /api/posts — 커뮤니티 글 작성 (§6.2)', () => {
       body: JSON.stringify({ categoryId: dailyChatId, title: 'FEED::empty body', body: '\n\n\n' }),
     });
     expect(res.status).toBe(400);
+  });
+
+  // 🔒 사용자 지시(2026-10, "news메뉴는 시스템또는 어드민만 올릴수 있게...
+  // 일반 유저는 읽기/댓글만") — moderation.ts isModeratorOrAgent().
+  it('News 카테고리는 일반 유저가 쓰면 403', async () => {
+    const res = await fetch(`${baseUrl}/api/posts`, {
+      method: 'POST',
+      headers: sessionCookieHeader(aliceToken),
+      body: JSON.stringify({ categoryId: newsId, title: 'FEED::news by regular user', body: '본문' }),
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'FORBIDDEN' });
+  });
+
+  it('News 카테고리는 모더레이터가 쓸 수 있다', async () => {
+    const res = await fetch(`${baseUrl}/api/posts`, {
+      method: 'POST',
+      headers: sessionCookieHeader(moderatorToken),
+      body: JSON.stringify({ categoryId: newsId, title: 'FEED::news by moderator', body: '본문' }),
+    });
+    expect(res.status).toBe(201);
+  });
+
+  it('News 카테고리는 시스템 계정(is_agent)이 쓸 수 있다 — 뉴스봇과 같은 권한', async () => {
+    const res = await fetch(`${baseUrl}/api/posts`, {
+      method: 'POST',
+      headers: sessionCookieHeader(agentToken),
+      body: JSON.stringify({ categoryId: newsId, title: 'FEED::news by agent', body: '본문' }),
+    });
+    expect(res.status).toBe(201);
   });
 });
 
@@ -424,6 +473,24 @@ describe('PATCH /api/posts/:id — 글 수정', () => {
       body: JSON.stringify({ categoryId: marketCat.rows[0].id, title: '수정', body: '' }),
     });
     expect(res.status).toBe(400);
+    const row = await owner.query(`SELECT category_id FROM posts WHERE id = $1`, [post.rows[0].id]);
+    expect(row.rows[0].category_id).toBe(post.rows[0].category_id); // 안 바뀌었다
+  });
+
+  // 🔒 사용자 지시(2026-10, "news메뉴는 시스템또는 어드민만") — 생성뿐
+  // 아니라 "이미 쓴 글을 수정해서 News로 옮기는" 우회도 같은 validateCommunityCategory가 막는다.
+  it('News 카테고리로는 일반 유저가 옮길 수 없다 — 403', async () => {
+    const post = await owner.query<{ id: string; category_id: string }>(
+      `INSERT INTO posts (author_id, category_id, title, visibility) VALUES ($1, $2, 'FEED::update to news', 'public') RETURNING id, category_id`,
+      [alice, dailyChatId],
+    );
+    const res = await fetch(`${baseUrl}/api/posts/${post.rows[0].id}`, {
+      method: 'PATCH',
+      headers: sessionCookieHeader(aliceToken),
+      body: JSON.stringify({ categoryId: newsId, title: '수정', body: '본문' }),
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'FORBIDDEN' });
     const row = await owner.query(`SELECT category_id FROM posts WHERE id = $1`, [post.rows[0].id]);
     expect(row.rows[0].category_id).toBe(post.rows[0].category_id); // 안 바뀌었다
   });

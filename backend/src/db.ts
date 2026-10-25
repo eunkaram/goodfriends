@@ -56,7 +56,7 @@ export function appPool(variant: Variant, opts: { direct?: boolean } = {}) {
   return new Pool({
     host: HOST,
     port: opts.direct ? POSTGRES_PORT : PGBOUNCER_PORT,
-    database: 'ai_community',
+    database: 'goodfriends',
     user: `community_app_${variant}`,
     password: PASSWORD,
     max: Number(process.env.PG_POOL_MAX ?? 4),
@@ -76,7 +76,7 @@ export function authPool() {
   return new Pool({
     host: HOST,
     port: PGBOUNCER_PORT,
-    database: 'ai_community',
+    database: 'goodfriends',
     user: 'community_app_auth',
     password: PASSWORD,
     max: Number(process.env.PG_POOL_MAX ?? 4),
@@ -93,7 +93,7 @@ export function schemaPool() {
   return new Pool({
     host: HOST,
     port: POSTGRES_PORT,
-    database: 'ai_community',
+    database: 'goodfriends',
     user: 'community_schema',
     password: PASSWORD,
     max: 4,
@@ -116,7 +116,7 @@ export function ownerPool() {
     ownerPoolInstance = new Pool({
       host: HOST,
       port: POSTGRES_PORT,
-      database: 'ai_community',
+      database: 'goodfriends',
       user: 'community_owner',
       password: PASSWORD,
       max: 4,

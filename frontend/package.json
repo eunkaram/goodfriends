@@ -1,0 +1,38 @@
+{
+  "name": "goodfriends-frontend",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev -p ${PORT:-3011}",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3011}",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.30.1",
+    "@tiptap/extension-document": "^3.30.1",
+    "@tiptap/extension-history": "^3.30.1",
+    "@tiptap/extension-paragraph": "^3.30.1",
+    "@tiptap/extension-placeholder": "^3.30.1",
+    "@tiptap/extension-text": "^3.30.1",
+    "@tiptap/pm": "^3.30.1",
+    "@tiptap/react": "^3.30.1",
+    "hls.js": "^1.7.0",
+    "next": "^16.2.12",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.0"
+  }
+}

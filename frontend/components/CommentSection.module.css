@@ -1,0 +1,557 @@
+/* 🔒 사용자 지시(2026-08, /design-review) — "댓글 쓰는 부분의 디자인도
+   thread처럼 바꾸고 싶어". 아바타 + 알약(pill) 모양 입력창 + 우측
+   아이콘(비어있으면 이미지, 입력 중이면 펼치기+전송)으로 재구성.
+   🔒 후속(2026-08, "댓글 부분도 목업 디자인으로 마이그레이션 해줘") —
+   artifact `showDetail` 실측: 아바타가 pill "바깥"의 별도 원이고, pill
+   자체는 입력창+아이콘+버튼만 감싼다 — .composerRow(바깥, 아바타+pill)와
+   .composerPill(안쪽, 입력 캡슐)로 분리했다. */
+.composerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.composerPill {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 36px;
+  box-sizing: border-box;
+  background: var(--search-bg);
+  /* artifact 실측 — 평소엔 투명, 포커스 시에만 링(#e5a8b1, AuthForm.module.css
+     입력창 포커스와 같은 리터럴 — 이 프로젝트에서 이미 확립된 예외). */
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-xs) 0 var(--space-md);
+}
+.composerPill:focus-within {
+  border-color: #e5a8b1;
+}
+
+/* 🔒 후속(2026-08, artifact 마이그레이션) — 32px→36px, artifact 실측.
+   🔒 사용자 지시(2026-08-24, "댓글 쓰기에서 아이콘 표시 안됨") — 실제 사진과
+   이니셜 폴백(<span>) 둘 다 이 클래스를 공유하므로 .avatar와 같은 중앙정렬 +
+   폰트 규칙이 필요하다. */
+.composerAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--chip-bg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  object-fit: cover;
+}
+
+.composerInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font: var(--text-body-sm);
+  color: var(--text-primary);
+  padding: var(--space-sm) 0;
+}
+.composerInput:focus {
+  outline: none;
+}
+.composerInput::placeholder {
+  color: var(--text-tertiary);
+}
+.composerInput.composerInputWarn {
+  opacity: 0.8;
+}
+.composerInput.composerInputWarn::placeholder {
+  color: rgb(224, 72, 62);
+  font-size: 13px;
+}
+
+.composerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+/* 🔒 사용자 지시(2026-08, /design-review) — "아이콘 부분이 오른쪽으로 좀더
+   와야 하고 2px정도... 오른쪽 이미지 아이콘은 좀더 크게하고 이미지 업로드
+   가능하게... 업로드 왼쪽에 아이콘은 안보여줘도 돼"(펼치기 아이콘 제거
+   확인). 이제 입력 여부와 무관하게 [이미지][전송] 두 버튼이 항상 나란히
+   있다 — 실제로 파일 선택창이 열리는 버튼이라 cursor: pointer. */
+.imageBtn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: -2px;
+}
+.imageBtn:hover:not(:disabled) {
+  color: var(--text-secondary);
+  background: var(--chip-bg);
+}
+.imageBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 첨부 이미지 썸네일 줄 — 업로드 진행/실패 상태와 제거 버튼을 pill 위에 보여준다. */
+.imagePreviewRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.imagePreviewItem {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.imagePreviewThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.imagePreviewSpinner {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.35);
+}
+.imagePreviewSpinner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: commentImageSpin 0.7s linear infinite;
+}
+@keyframes commentImageSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.imagePreviewError {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font: var(--text-label-md);
+  font-weight: 700;
+}
+
+.imagePreviewRemove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.imagePreviewRemove:hover {
+  color: var(--danger);
+}
+
+/* 댓글 본문 안에 심은 이미지 마커 렌더링 — BodyContent.module.css .image와
+   같은 "박스 없이 자연스러운 비율" 원칙. 🔒 사용자 발견(2026-08) — "댓글에서
+   업로든 이미지 크기가 작은것 같아. 댓글 폭에 맞춰서 키워줘". 320px 상한을
+   없애 댓글 컬럼(.commentBody) 폭 전체를 그대로 채운다. */
+.commentImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: var(--space-xs) 0;
+}
+
+/* 본문에 한 글자라도 있으면 활성화되는 원형 전송 버튼 — §11.2.3 CTA는 accent 채움 허용.
+   🔒 사용자 지시(2026-08, /design-review) — "입력 버튼도 왼쪽으로 2px정도 옮기자". */
+.sendBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.sendBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.sendBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 🔒 사용자 지시(2026-08, 1-depth 답글 후속) — "댓글그룹사이에 라인으로
+   구분을 하고 싶은데 눈에 거슬리지 않게" → "구분선은 좀더 흐리고 점선으로
+   처리해줘" → "근데 너무 빨간색 계열만 쓰는거 아냐?"로 색상 자체를 재검토
+   해서 당시엔 `--text-tertiary` 기반 중성 회색으로 국소 예외를 뒀었다.
+   🔒 후속(2026-08, "댓글 부분도 목업 디자인으로 마이그레이션 해줘") — 그
+   예외를 되돌렸다: 그 사이 "토큰 전면 교체"(Claude Design 확정안) 라운드가
+   `--border`를 핑크 웜톤(#e3bdbe)에서 블루라벤더(#e0e8fb)로 이미 바꿔놨다
+   — artifact `showDetail`의 구분선·연결선도 정확히 이 `#e0e8fb` 하나를
+   그대로 쓴다(굵기 1px solid, dashed 아님). 즉 "빨간기 도는" 원인이던 옛
+   토큰 값 자체가 사라져서, 이 예외는 이제 실체 없이 남아있던 상태였다 —
+   `var(--border)`로 되돌리면 artifact와 리터럴로 일치하면서 동시에 색
+   재검토가 원했던 "중성 톤"도 자연히 만족한다. PostCard.module.css의
+   `.card`(padding+border-bottom 조합)와 같은 패턴 — 그룹 사이 여백은 border
+   자체가 아니라 padding-bottom이 만든다.
+   🔒 후속 — "구분선과 다음댓글의 간격이 너무 붙어있어. +10px해줘": 첫
+   그룹 위에는 필요 없어(위에 아무것도 없다) :not(:first-child)로만
+   padding-top 10px를 추가했다. */
+.threadGroup {
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.threadGroup:not(:first-child) {
+  padding-top: 10px;
+}
+.threadGroup:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.comment {
+  display: flex;
+  gap: var(--space-sm);
+  /* 검색 결과에서 #comment-* 앵커로 진입할 때 sticky 헤더에 가리지 않게. */
+  scroll-margin-top: 80px;
+}
+
+/* 🔒 사용자 지시(2026-08, 1-depth 답글 후속) — "댓글쓰기폼의 유저아이콘
+   사이즈와 댓글의 아이콘 사이즈를 통일 시켜줘. 댓글쓰기폼의 사이즈로
+   맞춰". .composerAvatar와 항상 짝을 맞춘다(후속 — artifact 마이그레이션
+   라운드에서 36px로 다시 함께 확대됐다). */
+.avatar {
+  position: relative;
+  z-index: 1; /* .threadLine 선(z-index:0) 위로 아바타가 덮이도록 — 아바타 원 뒤로 선이 지나가는 것처럼 보이게 한다 */
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--chip-bg);
+  flex-shrink: 0;
+  /* 🔒 사용자 지시(2026-08) — 실제 사진(<img>)과 이니셜 폴백(<span>) 둘 다
+     이 클래스를 공유한다. 예전엔 텍스트가 아예 없어(빈 원) 중앙정렬이
+     필요 없었다. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  object-fit: cover;
+}
+
+.commentBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-xs);
+}
+
+/* 🔒 사용자 지시(2026-08, "아이디 텍스트 크기도 14px로 해줘") — .commentMeta의
+   --text-label-sm(12px)을 그대로 물려받던 걸 아이디(작성자명)만 14px로. */
+/* 🔒 사용자 지시(2026-08, "텍스트 사이즈를 13px로 변경하고 색상도 붉은색으로
+   변경해줘" → 후속 "유저네임의 font-weight도 통일 시켜줘. 500으로") */
+.commentAuthor {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* 🔒 사용자 지시(2026-08, "유저네임 옆의 글쓴시간도 font-weight: 500으로
+   해줘") — .commentMeta의 font 축약형(--text-label-sm, weight 400)을
+   이 시간 텍스트만 덮어쓴다. */
+.commentTime {
+  font-weight: 500;
+}
+
+/* 🔒 사용자 지시(2026-08, /design-review) — 레퍼런스의 "Author" 배지, 글쓴이 본인이 단 댓글에만 표시 */
+.authorBadge {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+}
+
+/* 🔒 사용자 발견(2026-08) — 긴 URL 같은 공백 없는 문자열이 레이아웃을
+   침범하는 문제(PostCard.module.css .preview와 같은 이유) — 댓글 본문도
+   같은 위험이 있어 함께 고쳤다. */
+.commentText {
+  font: var(--text-body-sm);
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+  margin: 0;
+}
+
+.empty {
+  font: var(--text-body-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* 🔒 사용자 지시(2026-08, /design-review) — "댓글 리스트도 첨부한 것처럼
+   디자인 레이아웃을 변경해줘. 아래에 like 및 댓글... 하트와 댓글만
+   사용해". 댓글 본문 아래 하트+답글 아이콘 줄 — PostActionButton.module.css의
+   .btn과 같은 "테두리 없는 아이콘+숫자" 언어.
+   🔒 후속(2026-08, 스크린샷 제시 — "아이콘들은 댓글 아래쪽에 위치 해야하고")
+   — 한때 하트만 `.commentRightActions`로 옮겨 "···" 메뉴 옆(행 오른쪽
+   위)에 뒀던 걸 다시 본문 아래로 되돌렸다. `.commentRightActions`는
+   이제 아무것도 안 담아 완전히 삭제 — "···" 메뉴(`.commentMenuWrap`)만
+   `.comment`의 직속 flex item으로 남는다(아래 참고, align-self는 그
+   래퍼 자신이 다시 갖는다). 답글 버튼은 여전히 최상위 댓글에만(isReply면
+   렌더링 자체를 안 함), 하트는 답글에도 항상 보인다(로그인 여부와
+   무관하게 disabled로만 막힘, 이전과 동일). */
+.commentActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+/* 🔒 후속(2026-08, artifact 마이그레이션) — height:28px/padding:0 9px/
+   완전한 pill(artifact 실측), 기존 --radius-sm 각진 사각형에서 교체.
+   🔒 후속(2026-08, "댓글의 아이콘과 옆의 숫자는 14px로 해줘") —
+   --text-label-sm(12px)의 굵기·줄높이는 그대로 두고 font-size만 14px로
+   override(font 단축속성 뒤에 오는 개별 속성이라 그 부분만 덮어쓴다). */
+.commentReactionBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 28px;
+  font: var(--text-label-sm);
+  font-size: 15px;
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0 9px;
+  cursor: pointer;
+}
+.commentReactionBtn:hover:not(:disabled) {
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+}
+.commentReactionBtn:disabled {
+  cursor: default;
+}
+.commentReactionActive {
+  color: var(--accent);
+}
+.commentReactionActive svg path {
+  fill: var(--accent);
+  stroke: none;
+}
+
+/* 🔒 사용자 지시(2026-08, 1-depth 답글) — "댓글 아이콘을 클릭하면 댓글쓰기
+   입력폼이 아래에 나타나고". 최상위 댓글에만 렌더링되는 실제 토글 버튼 —
+   .commentReactionBtn과 같은 언어(테두리 없음, hover에서만 배경). */
+.commentReplyBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 28px;
+  font: var(--text-label-sm);
+  font-size: 15px;
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0 9px;
+  cursor: pointer;
+}
+.commentReplyBtn:hover {
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+}
+.commentReplyActive {
+  color: var(--accent);
+  background: var(--chip-bg);
+}
+
+/* 🔒 사용자 지시(2026-08, 1-depth 답글 후속) — "세로연결선을 원 댓글과
+   댓글의 댓글 유저아이콘까지 연결하고 들여쓰기를 없애달라는것이야".
+   답글 아바타를 원댓글 아바타와 같은 x 위치(들여쓰기 없음)에 두고,
+   .threadLine이 그 사이를 세로선으로 잇는다. */
+.repliesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+/* .comment 자신의 아바타 아래에서 시작해 자기 박스 끝을 지나 다음 행
+   (다음 답글의 아바타, 또는 최초 답글의 아바타)까지 이어지는 세로선.
+   `top:0`/`bottom:calc(-1 * var(--space-md))`처럼 항상 "자기 박스 기준"
+   오프셋만 쓴다 — 댓글 본문이 몇 줄이든, 답글이 몇 개든 정확히 다음 행의
+   시작 지점(y:0)까지 닿는다(그 사이 간격이 전부 --space-md로 통일돼
+   있어서다: .comment→.repliesList의 margin-top, .repliesList 내부
+   answers 사이의 gap 둘 다 --space-md). 0~36px 구간은 아바타(z-index:1)가
+   덮어서 실제로는 아바타 "뒤"를 선이 지나가는 것처럼 보인다.
+   🔒 후속(2026-08, "댓글 부분도 목업 디자인으로 마이그레이션 해줘") — 위
+   .threadGroup과 같은 이유로 `--text-tertiary` 예외를 걷어내고
+   `var(--border)`로 되돌렸다 — artifact가 연결선에도 구분선과 똑같은
+   `#e0e8fb`(우리 --border와 리터럴 일치) 하나만 쓰기 때문에, 굳이 구분선
+   보다 옅은 별도 톤을 만들 필요가 없어졌다. left도 아바타 36px에 맞춰
+   16px→18px(중심)로. */
+.threadLine {
+  position: relative;
+}
+.threadLine::after {
+  content: '';
+  position: absolute;
+  left: 18px; /* 아바타(36px) 중심 */
+  top: 0;
+  bottom: calc(-1 * var(--space-md));
+  width: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+/* 답글 입력창 — .composerRow와 같은 모양이지만 목록 안에 중첩되므로
+   아래쪽 여백(margin-bottom)은 필요 없다. */
+.replyComposerRow {
+  margin-bottom: 0;
+}
+
+/* "..." 메뉴 — 내 댓글에만(수정하기는 이번 범위 밖, 삭제하기만 실제 동작) */
+/* 🔒 사용자 발견(2026-08) — "메뉴팝업이 이상한곳에서 떠. 버튼을 가리면서
+   메뉴창이 떠야해". .comment가 display:flex인데 align-items 기본값이
+   stretch라, 이 래퍼가 댓글 행 전체 높이(이미지가 있으면 수백px)까지
+   늘어나 있었다 — 팝오버의 top: calc(100% + ...)가 그 늘어난 높이의 100%
+   지점(행 맨 아래)을 기준으로 계산되면서 버튼과 완전히 동떨어진 곳에
+   떴다. align-self:flex-start로 고쳤다.
+   🔒 후속(2026-08, "아이콘들은 댓글 아래쪽에 위치 해야하고") — 하트가
+   `.commentRightActions`로 옮겨가며 한때 이 속성을 그 래퍼가 대신
+   가졌는데, 하트를 본문 아래로 되돌리면서 `.commentMenuWrap`이 다시
+   `.comment`의 직속 flex item이 됐다 — align-self:flex-start를 여기로
+   되돌린다(안 그러면 이 버그가 그대로 재발한다). */
+.commentMenuWrap {
+  position: relative;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.menuTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+.menuTrigger:hover {
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+}
+
+/* Gnb 메가메뉴·New Post 모달과 같은 패턴 — 바깥 클릭으로 닫는 투명 오버레이 */
+.menuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown);
+}
+
+.menuPopover {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: var(--z-dropdown);
+  min-width: 160px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem,
+.menuItemDanger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  font: var(--text-label-md);
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* 🔒 후속(2026-08, "댓글 부분도 목업 디자인으로 마이그레이션 해줘") —
+   배경 채움 호버를 없애고 색만 바뀌게 — artifact도 `style-hover="color:
+   #af2746"` 하나뿐이고(배경 없음), PostCardMenu·PostDetailMenu에서
+   이미 확정한 "호버는 배경 아니라 색"과도 통일된다. .menuItemDanger(삭제
+   하기)는 의도적으로 이 규칙 밖 — §11.2.4대로 hover에도 danger 유지. */
+.menuItem:hover {
+  color: var(--accent);
+}
+
+/* 파괴적 액션 — 절대 채우지 않는다(§11.2.4), 색으로만 구분, hover도 유지 */
+.menuItemDanger {
+  color: var(--danger);
+}

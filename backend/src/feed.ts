@@ -119,12 +119,12 @@ const POST_FROM_JOIN = `
 `;
 
 /** §5 홈 게이트: 커뮤니티 글(늘 전체공개, §5.2) + 홈노출 체크된 전체공개 로그 글. */
-const HOME_GATE = `(p.category_id IS NOT NULL OR (p.log_id IS NOT NULL AND p.show_on_home = true AND p.visibility = 'public'))`;
+export const HOME_GATE = `(p.category_id IS NOT NULL OR (p.log_id IS NOT NULL AND p.show_on_home = true AND p.visibility = 'public'))`;
 
 /**
  * 🔒 M2 — 공개 검색(PLAN M2 "Postgres FTS 검색"). §6.8 검색 계약을 그대로:
  * `lower(col) LIKE lower($1) || '%'`가 posts_title_bigm_idx/posts_body_bigm_idx
- * (0001, pg_trgm GIN)를 탄다 — ILIKE는 이 인덱스를 안 타서 금지.
+ * (0001, pg_bigm GIN)를 탄다 — ILIKE는 이 인덱스를 안 타서 금지.
  * 일단 문자열 검색(tsvector보다 싸고, 한국어 CJK에선 형태소 분석이 필요해 2차 과제).
  * 검색 대상은 홈 게이트(커뮤니티 글 + 홈노출 공개 로그)와 동일 — 공개 피드와 같은
  * 스코프로 검색한다.

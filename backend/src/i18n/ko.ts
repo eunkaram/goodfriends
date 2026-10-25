@@ -57,15 +57,15 @@ export const ko: Record<string, string> = {
   'category.share': '나누는',
 
   // 배우고 — AI 뉴스·오늘의 AI 화제는 봇(is_agent)이 매일 발행한다
-  'category.ai_news': 'AI 뉴스',
+  'category.ai_news': 'News', // 0053 — goodfriends 'News'. slug는 0054에서 'news'로 정리
   'category.ai_topics': '오늘의 AI 화제',
   'category.ai_tips': '활용 노하우',
   'category.qna': 'Q&A',
   'category.research': '논문·리서치', // 2차 보류
 
   // 만들고 — 아이디어 → 개발 로그 → 쇼케이스 파이프라인
-  'category.large_models': '대형 모델',
-  'category.ideas': '아이디어',
+  'category.large_models': 'Local LLM', // 0053 — goodfriends 'Local LLM'. slug는 0054에서 'local'로 정리
+  'category.ideas': '창업·아이디어', // 0053 — goodfriends '창업·아이디어'. slug는 0054에서 'idea'로 정리
   'category.dev_log': '개발 로그',
   'category.showcase': '프로젝트 쇼케이스',
   'category.open_models': '로컬·오픈 모델', // 2차 보류
@@ -74,6 +74,21 @@ export const ko: Record<string, string> = {
   // 나누는
   'category.free_chat': '자유게시판',
   'category.collab': '협업 찾기', // 2차 보류 — 사람이 모인 뒤에 개방
+
+  // ─── goodfriends taxonomy (0053) ───
+  // CLAUDE.md 4. 메뉴 구조 — 대분류 3개 + 신규 카테고리 6개(News/Q&A/
+  // 창업·아이디어/자유게시판/Local LLM은 위에서 기존 키 값을 이미 바꿨다).
+  'category.gf_community': '커뮤니티',
+  'category.gf_tools': '모델·도구',
+  'category.gf_usecase': '활용 분야',
+
+  'category.frontier_models': 'Frontier Models',
+  'category.agents_harness': 'Agents & Harness',
+  'category.ai_services': 'AI Services',
+
+  'category.ai_coding': 'Vibe Coding',
+  'category.automation': 'Automation',
+  'category.creative': 'Creative',
 };
 
 export function t(key: string): string {

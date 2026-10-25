@@ -12,7 +12,7 @@ async function probe(port: number, label: string) {
     const client = new Client({
       host: process.env.PGHOST ?? '127.0.0.1',
       port,
-      database: 'ai_community',
+      database: 'goodfriends',
       user: 'community_owner',
       password: PASSWORD,
       connectionTimeoutMillis: 3000,

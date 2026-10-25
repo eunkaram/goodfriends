@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import { handlePostsRoutes } from '../../src/posts-http.ts';
 import { handleSeriesRoutes } from '../../src/series-http.ts';
+import { handleSearchRoutes } from '../../src/search-http.ts';
 import { ownerPool } from '../../src/db.ts';
 import { createSession, destroySession, SESSION_COOKIE } from '../../src/session.ts';
 import { closeRedis } from '../../src/redis.ts';
@@ -33,6 +34,7 @@ function sessionCookieHeader(token: string) {
 beforeAll(async () => {
   server = createServer(async (req, res) => {
     try {
+      if (await handleSearchRoutes(req, res)) return;
       if (await handlePostsRoutes(req, res)) return;
       if (await handleSeriesRoutes(req, res)) return;
       res.writeHead(404);
@@ -125,6 +127,36 @@ describe('GET /api/posts/search — 공개 검색', () => {
     const posts = (await res.json()) as { posts: { publicId: string }[] };
     expect(posts.posts.map((p) => p.publicId)).toContain(freePostPublicId);
     expect(posts.posts.map((p) => p.publicId)).not.toContain(qnaPostPublicId);
+  });
+});
+
+describe('GET /api/search — 제목/본문 통합 검색', () => {
+  it('제목/본문 결과를 하나의 posts 목록으로 반환하고 댓글 필드는 없다', async () => {
+    const res = await fetch(`${baseUrl}/api/search?q=M2API`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      posts: { items: { publicId: string }[]; hasMore: boolean; nextOffset: number | null };
+    };
+    expect(body.posts.items.map((p) => p.publicId)).toEqual(expect.arrayContaining([qnaPostPublicId, freePostPublicId]));
+    expect(body).not.toHaveProperty('title');
+    expect(body).not.toHaveProperty('body');
+    expect(body).not.toHaveProperty('comments');
+  });
+
+  it('2자 미만은 빈 목록을 200으로 돌려준다', async () => {
+    const res = await fetch(`${baseUrl}/api/search?q=M`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { posts: { items: unknown[] } };
+    expect(body.posts.items).toHaveLength(0);
+  });
+
+  it('limit으로 hasMore를 계산한다', async () => {
+    const res = await fetch(`${baseUrl}/api/search?q=M2API&limit=1`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { posts: { items: unknown[]; hasMore: boolean; nextOffset: number | null } };
+    expect(body.posts.items).toHaveLength(1);
+    expect(body.posts.hasMore).toBe(true);
+    expect(body.posts.nextOffset).toBe(1);
   });
 });
 

@@ -1,0 +1,398 @@
+/* 🔒 사용자 지시(2026-08, "절대로 목업디자인으로 따라가") — artifact
+   실측(디코딩 원본 line 322): padding 0 0 16px, gap:20px 스택, 구분선은
+   artifact가 실제로 쓰는 `--border` 그대로(이 프로젝트의 "구분선은
+   --divider로 톤 낮춘다" 관례보다 artifact 실측값 우선).
+   🔒 사용자 발견(2026-08) — "리스트 시작시 글 구분선과 맞닿아 있어. 적당한
+   여백을 줘". `getBoundingClientRect()` 실측 — 카드 사이에 별도 gap이 없어서
+   앞 카드의 border-bottom(구분선)과 바로 다음 카드의 아바타/제목이 정확히
+   같은 y좌표에서 맞닿아 있었다(카드 자신은 padding-bottom만 갖고
+   padding-top이 없어서). 첫 카드는 이미 타이틀과 24px 떨어져 있어 문제
+   없었다 — `.card + .card`(인접 형제 선택자)로 "두 번째 카드부터만" 여백을
+   추가해 첫 카드-타이틀 간격은 그대로 두고 카드-카드 사이만 고쳤다. */
+.card {
+  padding: 0 0 var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  background: var(--raised);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.card + .card {
+  margin-top: var(--space-lg);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 🔒 사용자 지시(2026-08, "절대로 목업디자인으로 따라가") — artifact 실측:
+   42px, 테두리 없음, 배경 #dee0e1 + 이니셜(#5c5f60, 12px/600). 이전
+   라운드의 "48px+흰 배경+테두리"는 artifact와 다른 값이었다 — 정정. */
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  background: #dee0e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5c5f60;
+  flex-shrink: 0;
+  /* 🔒 사용자 지시(2026-08) — 실제 프로필 사진을 <img>로 그릴 때도 같은
+     클래스를 재사용한다(ProfileHeader.module.css의 .avatar와 같은 이유). */
+  object-fit: cover;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* 🔒 사용자 지시(2026-08, "절대로 목업디자인으로 따라가") — artifact 실측:
+   author/time 둘 다 12px, color var(--text-secondary)(#584143). */
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 🔒 사용자 지시(2026-08) — "게시판 카테고리 아이콘영역을 오른쪽 3점 메뉴
+   좌측 옆으로 옮겨줘". 원래 메타 줄(작성자·시각) 끝에 있었는데 `.headerRight`
+   (아래)로 옮기면서 옆 형제와의 간격은 그 컨테이너의 gap이 담당하게 돼
+   margin-left가 필요 없어졌다. */
+.categoryBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--chip-bg);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+/* 🔒 사용자 지시(2026-10, "홈 리스트 우측 카테고리 배지 컬러를 좌측 메뉴
+   그룹색에 맞춰줘") — 좌측 메뉴 아이콘 색(HomeSidebars.module.css
+   .catCommunity/.catTools/.catUsecase)과 같은 토큰을 재사용, 배경은 그
+   색의 옅은 틴트(styles/tokens.css --badge-*-bg). */
+.badgeCommunity {
+  color: var(--icon-community);
+  background: var(--badge-community-bg);
+}
+.badgeTools {
+  color: var(--icon-tools);
+  background: var(--badge-tools-bg);
+}
+.badgeUsecase {
+  color: var(--icon-usecase);
+  background: var(--badge-usecase-bg);
+}
+
+/* 🔒 사용자 지시(2026-09-06, "삭제된 글이면 모더레이터가 볼 때 삭제된 글이라고
+   표시가 되어야") — app/[category]/[publicId]/page.module.css의 .deletedBadge와
+   같은 값(토큰 재사용). */
+.deletedBadge {
+  display: inline-block;
+  font: var(--text-label-sm);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+/* 카테고리 배지 + "···" 메뉴를 한 그룹으로 묶어 헤더 우측에 둔다. */
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.metaSep {
+  color: var(--text-tertiary);
+}
+
+/* 🔒 사용자 지시(2026-08) — "아이디를 클릭할수 있어야해. 링크는 유저로그
+   페이지로 이동해야해".
+   🔒 후속(2026-08, "아이디 부분을 붉은색으로 변경") — 평소엔 .meta 색을
+   따르던 걸(잡음 최소화, 호버에만 액센트) 기본값부터 액센트로 바꿨다.
+   §11.2.3 "액센트는 링크에만" 규칙과 부딪히지 않는다 — 이 요소는 이미
+   실제 링크다. 호버는 하나 더 진한 --accent-hover로 눌림 신호를 유지. */
+/* 🔒 사용자 지시(2026-08, "유저네임의 font-weight도 통일 시켜줘. 500으로...
+   글 리스트에도... 똑같이") — CommentSection의 유저네임과 같은 weight. */
+.authorLink {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.authorLink:hover {
+  color: var(--accent-hover);
+}
+
+/* 🔒 사용자 지시(2026-08, "유저네임 옆의 글쓴시간도 font-weight: 500으로") */
+.metaTime {
+  font-weight: 500;
+}
+
+/* 1순위 — 카드에서 유일한 bold, 가장 큰 글자(§11.7.0). --text-title-md가
+   이미 artifact 실측(16px/700/줄높이20px)으로 맞춰져 있다(styles/tokens.css).
+   🔒 사용자 지시(2026-08, "글 제목을 위로 -2px 위치 이동") — 포스트 상세의
+   같은 수정과 짝(app/[category]/[postId]/page.module.css .title 참고). */
+.title {
+  display: block;
+  font: var(--text-title-md);
+  color: var(--text-primary);
+  text-decoration: none;
+  margin-top: -2px;
+}
+.title:hover {
+  color: var(--accent);
+}
+
+/* 2순위 — 2줄 고정 클램프. 가변 높이 금지.
+   🔒 사용자 지시(2026-08, "절대로 목업디자인으로 따라가") — artifact 실측:
+   14px/줄높이22px, color #3a3d44(메타 텍스트와는 다른, 본문 전용 리터럴
+   — 전용 토큰을 만들 만큼 다른 곳에서 반복되지 않는다).
+   🔒 사용자 발견(2026-08) — "url처럼 띄워쓰기 없고 길이가 길경우 글자가
+   오른쪽 레이아웃으로 침범해" — overflow-wrap으로 단어 중간에서라도 강제 줄바꿈.
+   🔒 white-space:pre-line도 artifact 원본에 있는데 누락돼 있었다(2026-08,
+   "리스트의 스타일을 모두 목업대로 처리해") — 본문에 실제 줄바꿈이 있어도
+   기본 CSS는 공백 하나로 뭉개버린다.
+   🔒 후속(2026-08, "글 내용시작을 왼쪽으로 붙여줘. 글 내용보기 스타일을
+   참조하면 돼") — artifact 실측이던 `padding-left:23px`를 없앴다. 포스트
+   상세의 `.body`(app/[category]/[postId]/page.module.css)는 애초에
+   padding-left가 전혀 없이 아바타·제목과 같은 왼쪽 기준선에서 시작한다 —
+   목록 카드만 23px 들여써져 있어 어긋났던 것. 아래 `.footer`도 같은
+   이유로 padding-left를 없애 상세의 `.actions`(padding-left 없음)와
+   맞췄다 — 안 그러면 본문은 왼쪽 기준선에 딱 붙는데 그 아래 하트·댓글
+   아이콘 줄만 16px 들여써진 채로 남아 또 다른 어긋남이 생긴다.
+   🔒 후속 2(2026-08, "글 내용부분을 좌우 5px씩 padding을 줘") — 완전히
+   0으로 붙여놨더니 너무 딱 붙어 보인다는 재조정. 상세의 `.body`와
+   짝으로 맞춘다 — 아래 `.footer`도 같이 5px씩 줘서 본문·아이콘 줄이
+   여전히 같은 기준선을 공유하게 유지(하나만 주면 다시 어긋난다). */
+.preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  white-space: pre-line;
+  font-size: 15px;
+  line-height: 22px;
+  color: #3a3d44;
+  margin: -10px 0 -5px;
+  padding-right: 5px;
+}
+/* 🔒 사용자 발견(2026-08, 스크린샷 첨부 — "글 리스트에서 유튜브 미리보기와
+   글자가 겹치는 문제") — 위 -10px/-5px 음수 마진은 원래 ".preview가
+   .bodyContent의 유일한 내용일 때" .card의 flex gap·.footer 간격을
+   좁히려고 설계된 값이다. 그런데 LinkAwareBody(위 "링크 순서 보존"
+   라운드)가 링크 앞/뒤 텍스트를 별도 문단으로 나눠 그리면서, 링크가 글
+   맨 앞에 있으면 .preview가 이제 유튜브/영상 미리보기 바로 다음
+   형제로 붙는 경우가 생겼다 — 이때 -10px 마진이 인접한 블록 형제
+   (영상 미리보기)를 그대로 파고들어 텍스트가 영상 하단 위로 겹쳐
+   보였다. .preview가 .bodyContent의 첫/마지막 자식이 아닐 때(=앞이나
+   뒤에 다른 콘텐츠가 있을 때)는 그 방향의 음수 마진을 `.youtubeWrap`
+   등 미리보기 래퍼가 이미 쓰는 것과 같은 양수 여백(--space-sm)으로
+   되돌린다. */
+.bodyContent > .preview:not(:first-child) {
+  margin-top: var(--space-sm);
+}
+.bodyContent > .preview:not(:last-child) {
+  margin-bottom: var(--space-sm);
+}
+
+/* 🔒 사용자 지시(2026-08, "본문 내용에 대해 padding-left를 20px로") —
+   텍스트(.preview)뿐 아니라 .previewCap(이미지)·LinkPreviewCard까지
+   전부 감싸는 ClickableCardArea 래퍼에 건다 — 콘텐츠 종류와 무관하게
+   한 곳에서 일관되게 들여쓴다. 아이콘 줄(.footer)은 이 래퍼 밖의
+   형제라 영향 없음. */
+.bodyContent {
+  padding-left: 20px;
+}
+
+/* 🔒 사용자 지시(2026-08) — "리스트에서 글하나의 높이가 너무 커져서 ux가
+   깨지는것 같아. 최대높이를 설정하고 그 높이보다 클경우 아래쪽에 배경색으로
+   페이드 아웃되게해줘". 세로로 긴 이미지 한 장이 카드 전체를 늘어뜨리는 걸
+   막는다 — 이미지가 있는 카드에서만 PostCard.tsx가 이 래퍼를 씌운다.
+   🔒 후속(2026-08) — "좀더 줄여줘. 50~100픽셀사이로" — 360px에서 80px로.
+   🔒 후속 2(2026-08) — "최대 크기를 약 50픽셀 더 키워줘. 페이드아웃을 좀더
+   강조해줘" — 80px→130px. 페이드는 그라데이션 정지점을 75%로 당겨서
+   (예전엔 박스 끝에서야 완전히 불투명해졌다) 나머지 25%는 완전한 배경색
+   평면으로 남게 했다 — 끝자락이 또렷하게 잘려 보여 "여기서 끊긴다"는
+   신호가 더 분명해진다. */
+/* 🔒 사용자 지시(2026-08) — "카드 최대 높이를 300px로 잡아줘. 이미지나
+   에셋이 보일경우". 130px에서 300px로 확대 — 페이드 높이도 같은 비율
+   (약 절반)로 유지. */
+/* 🔒 사용자 발견(2026-08, "리스트의 UI가 깨져... 내용의 일부도 안보여") —
+   `.preview`(margin: -10px 0 -5px)가 previewCap에 감싸이면서 그 마진이
+   실제로는 previewCap의 `overflow:hidden` 경계 "밖"으로 텍스트를
+   밀어내고 있었다(실측: 문단 top=54.5, previewCap top=64.5 — 상단 10px가
+   그대로 잘려서 안 보였다). overflow:hidden이 새 블록 서식 맥락을 만들어
+   자식의 음수 마진이 부모 밖으로 새지 않는데, 그 말은 곧 "부모 경계
+   밖으로 시각적으로 넘친다"는 뜻이라 클리핑된 것 — 같은 이유로 이미지
+   카드와 텍스트 카드의 카드 간 간격도 서로 달라져 있었다(텍스트 카드는
+   .preview 자신의 -10px/-5px가 .card의 gap:20px에 그대로 반영되는데,
+   이미지 카드는 그 -5px가 previewCap 안에 갇혀 footer 앞 간격이 5px
+   더 벌어졌다). .preview의 마진을 여기(바깥 래퍼)로 옮기고 안쪽
+   .preview는 0으로 리셋해서 두 경우가 정확히 같은 외부 간격을
+   갖도록 통일했다. */
+.previewCap {
+  position: relative;
+  max-height: 300px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  margin: -10px 0 -5px;
+}
+.previewCap .preview {
+  margin: 0;
+}
+
+/* 🔒 사용자 발견(2026-08, "이미지의 첫번째 글 내용이 그라데이션에 의해서
+   거의 안보이게 되어버리네") — `.previewCap`은 `max-height`만 걸려 있어
+   실제 콘텐츠가 짧으면(이미지가 안 뜨거나 텍스트 1~2줄뿐이면) 박스 자체가
+   그 짧은 높이로 줄어든다 — 그런데 `.previewFade`가 `bottom:0`(자기
+   위치를 "박스의 실제 바닥"에 고정)이라, 박스가 148px(페이드 높이)보다
+   짧으면 페이드의 불투명 구간(그라데이션 75% 지점부터)이 콘텐츠 상단까지
+   그대로 덮어버렸다(실측: 44px짜리 텍스트 박스에서 y=0 지점이 이미
+   그라데이션 진행률 70%를 넘어 거의 불투명). `bottom:0` 대신 `top:152px`
+   (= max-height 300px − 페이드 높이 148px, 콘텐츠가 최대치에 딱 닿았을
+   때의 원래 위치와 정확히 같다)로 고정하면, 박스가 실제로 152px보다
+   짧을 때(대부분의 텍스트 전용/이미지 실패 카드) `.previewCap`의
+   `overflow:hidden`이 페이드 전체를 박스 바깥으로 클리핑해서 아예 안
+   보이게 되고, 박스가 152~300px 사이로 자랄수록(실제로 큰 이미지가 있을
+   때) 페이드가 자연스럽게 비례해서 나타난다 — 박스가 정확히 300px(최대치)
+   에 닿으면 예전 `bottom:0`과 완전히 같은 결과가 된다. 별도 min-height는
+   필요 없다 — 짧은 콘텐츠는 페이드 자체가 안 보이니 억지로 빈 공간을
+   만들 이유가 없다. */
+.previewFade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 152px;
+  height: 148px;
+  background: linear-gradient(to bottom, transparent, var(--raised) 75%);
+  pointer-events: none;
+}
+
+/* 🔒 사용자 지시(2026-08, "절대로 목업디자인으로 따라가") — artifact 실측:
+   gap 4px, margin-top -8px(카드 gap:20px을 좁혀 본문과 더 가깝게).
+   🔒 후속(2026-08, "글 내용시작을 왼쪽으로 붙여줘. 글 내용보기 스타일을
+   참조하면 돼") — padding-left 16px 제거(위 `.preview` 주석 참고) —
+   포스트 상세의 `.actions`도 padding-left가 없어 본문·아이콘 줄이 같은
+   왼쪽 기준선에서 시작한다.
+   🔒 후속 2(2026-08, "글 내용부분을 좌우 5px씩 padding을 줘") — `.preview`와
+   같은 5px를 여기도 줘서 기준선을 계속 공유하게 유지. */
+/* 🔒 사용자 지시(2026-08, "아래쪽 아이콘들(좋아요, 댓글) 오른쪽으로 4px옮겨줘"
+   → 후속 "1px더 오른쪽으로 옮겨줘" → 후속 "-1px 해줘") */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -8px;
+  margin-left: 4px;
+  padding: 0 5px;
+}
+
+/* "···" 메뉴 — CommentSection.module.css의 .commentMenuWrap과 같은 패턴.
+   .header가 justify-content:space-between이라 별도 margin-left:auto는 필요 없다. */
+.menuWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.menuTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  cursor: pointer;
+}
+.menuTrigger:hover {
+  background: var(--chip-bg);
+}
+
+.menuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown);
+}
+
+/* 🔒 사용자 지시(2026-08, "메뉴간 간격은 좌측 메뉴의 간격과 동일하게") —
+   HomeSidebars.module.css `.navGroup`(항목 사이 gap:2px)과 짝. */
+.menuPopover {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: var(--z-dropdown);
+  min-width: 150px;
+  background: var(--raised);
+  border-radius: var(--radius-md);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 🔒 사용자 지시(2026-08, "메뉴간 간격은 좌측 메뉴의 간격과 동일하게. 마우스
+   오버시 아이콘,텍스트 글자색상 변경") — HomeSidebars.module.css의
+   `.iconItem`과 값을 맞췄다: gap(아이콘-텍스트) --space-sm(8px)→--space-md
+   (12px), padding --space-sm(8px 사방)→3px 14px. */
+.menuItem,
+.menuItemDanger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  font: var(--text-label-md);
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 3px 14px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* 🔒 사용자 지시(2026-08, "리스트의 마우스 오버 액션모두 제거") — 배경
+   채움(var(--chip-bg)) 호버를 없애고 `.iconItem:hover`와 같은 방식(색만
+   바뀜)으로 교체. `.menuItemDanger`는 안 건드린다 — §11.2.4 "파괴적
+   버튼은 hover도 accent가 아니라 danger 유지" 원칙과 같은 이유로,
+   신고하기·저장취소 같은 파괴적/비가역 액션에 액센트 호버를 걸면 "안전한
+   탐색"처럼 보여 오해를 살 수 있다. */
+.menuItem:hover {
+  color: var(--accent);
+}
+
+.menuItemDanger {
+  color: var(--danger);
+}
+
+/* 🔒 후속(2026-08, "공용컴포넌트로 뽑아내줘") — 이 삭제 확인 오버레이는
+   `ConfirmDialog.tsx`(공용 컴포넌트, ConfirmDialog.module.css) 사용으로
+   옮겼다. z-index는 이 카드의 .menuPopover(--z-dropdown=100)보다 훨씬
+   위인 --z-toast(500)를 써서 항상 그 위에 뜬다는 원칙은 공용 컴포넌트
+   쪽 CSS로 그대로 이어졌다. */

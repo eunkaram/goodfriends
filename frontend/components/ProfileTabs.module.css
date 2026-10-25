@@ -1,0 +1,255 @@
+/* 🔒 goodfriends 리브랜딩(2026-10) — 이전엔 리터럴 크림슨(#af2746)이 토큰
+   없이 박혀 있어 색상 스윕에서 빠졌었다. styles/tokens.css 변수로 교체. */
+.tabBar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+
+.tab,
+.tabActive {
+  text-align: center;
+  padding: 14px 0;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: -1px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+}
+.tab {
+  color: var(--text-tertiary);
+}
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+}
+
+.empty {
+  padding: var(--space-3xl) 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font: var(--text-body-sm);
+}
+
+/* 🔒 사용자 발견(2026-08, "탭메뉴와 아래의 리스트와의 간격도 안맞아") —
+   artifact 실측(디코딩 원본 674, 708-709/733-734): 탭 바(`.tabBar`)와 그
+   아래 콘텐츠(친구 그리드·글 목록)는 같은 바깥 `gap:28px` flex 컬럼의
+   형제일 뿐이다 — `.friendsGrid`의 기존 `margin-top:20px`는 그 값의
+   근사치였고, 글 목록 쪽(`.postsList`)은 아예 마진이 없어 탭 바에 완전히
+   붙어 있었다. 둘 다 28px로 통일. */
+.postsList {
+  margin-top: 28px;
+}
+
+.friendsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 28px;
+}
+
+/* 🔒 사용자 지시(2026-08, "폰 화면에서 프로필의 팔로워 리스트를 1단으로
+   해줘") — 2열이 phone 폭에서 카드 하나(아바타+이름+메뉴)가 비좁아 보였다. */
+@media (max-width: 767px) {
+  .friendsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Replies 탭 — 원글(PostCard) 아래에 "내 댓글 그룹"만 이어 붙인다. PostCard.module.css의
+   `.card + .card`(카드 사이 여백)는 두 `.card`가 직속 형제일 때만 적용되는데, 여기선
+   각 `.card`가 `.replyGroup` 래퍼에 한 겹 더 감싸여 있어 그 선택자가 안 먹는다 —
+   같은 이유로 그룹 사이 여백을 이 래퍼 자신에게 다시 걸어준다.
+   🔒 사용자 발견(2026-08, "글 그룹간 구분이 잘 안돼") → 후속 지시("리스트
+   디자인에서 벗어나지 않았으면해. 리스트 디자인을 기본으로 다시 구성해줘") —
+   테두리+둥근 모서리로 감싸는 카드형(첫 시도)은 이 앱의 다른 모든 목록(홈·
+   카테고리 피드 등 PostCard 기반)이 쓰는 "얇은 구분선" 관례에서 벗어난
+   새로운 시각 언어였다 — 되돌렸다. 대신 원인을 그대로 살려서: 원래
+   `--divider`(반복되는 목록 구분선 전용, 대비를 일부러 낮춘 톤)를 쓰고
+   있었는데, 이 구분은 PostCard 카드 사이처럼 자주 반복되는 미세한 경계가
+   아니라 "포스트+그 댓글들" 하나의 큼직한 묶음을 가르는 굵은 경계다 —
+   `PostCard.module.css`의 `.card`가 카드와 카드 사이에 실제로 쓰는 그
+   토큰(`--border`, `.card`와 완전히 같은 값)으로 바꿔서, 이 앱의 기존
+   "리스트" 관례(단일 얇은 border-bottom) 안에서 대비만 끌어올렸다. */
+.replyGroup {
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.replyGroup + .replyGroup {
+  margin-top: var(--space-lg);
+}
+.replyGroup:last-child {
+  border-bottom: none;
+}
+
+/* 🔒 사용자 지시(2026-08, "글내용부분과 댓글사이의 구분선을 없애줘") —
+   PostCard.module.css의 `.card`는 "카드와 카드 사이"를 나누려고 항상
+   자기 자신에 `border-bottom`을 갖고 있다(다른 목록에서 PostCard 여러
+   개가 나란히 있을 때를 위한 구분선) — 여기선 PostCard 하나 바로 뒤에
+   댓글 목록이 이어지는 구조라 그 선이 "포스트 본문↔댓글" 사이의 어색한
+   구분선으로 보였다. PostCard.tsx/module.css는 다른 리스트(홈·카테고리
+   피드 등)의 카드-카드 구분을 그대로 써야 해서 안 건드리고, `.replyGroup`
+   의 첫 자식(항상 PostCard)만 구조 선택자로 되돌린다 — PostCard의
+   해시 클래스 이름을 몰라도 되는, 순서에만 의존하는 선택자라 안전하다.
+   PostCard 자신의 padding-bottom(간격)은 그대로 남아 있어 선만 없어지고
+   여백은 유지된다. */
+.replyGroup > :first-child {
+  border-bottom: none;
+}
+
+/* 🔒 사용자 지시(2026-08, "프로필 페이지의 replies의 댓글 부분 디자인을
+   글 내용보기 댓글 디자인을 적용해줘") — 이전엔 아바타도 없이 배지+텍스트+
+   시각을 한 줄에 욱여넣고 연한 배경 박스로 가두는 자체 디자인이었다.
+   이제 각 댓글 항목 자체는 CommentSection.module.css의 `.comment`/
+   `.avatar`/`.commentBody`/`.commentMeta`/`.commentAuthor`/`.commentTime`/
+   `.commentText`를 그대로 재사용한다(PostActionButton.module.css를 여러
+   컴포넌트가 공유하는 것과 같은 패턴 — ProfileTabs.tsx에서 직접 import) —
+   포스트 상세에서 이 스타일이 바뀌면 여기도 자동으로 같이 바뀐다. 배경
+   박스·왼쪽 세로선은 그 디자인에 없어서 뺐다 — 순수 flex-column 목록만 남긴다. */
+.replyComments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  /* PostCard.module.css의 `.bodyContent { padding-left: 20px }`와 같은 값 —
+     위 원글 카드의 본문 들여쓰기 기준선에 맞춘다. */
+  margin: var(--space-md) 0 0 20px;
+}
+
+.friendCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.03);
+  position: relative;
+}
+
+/* 🔒 사용자 지시(2026-08-26, "팔로워리스트의 아바타 사이즈를 글리스트의
+   아바타 사이즈로") — PostCard.module.css .avatar와 같은 값(42px, 배경
+   #dee0e1+이니셜, object-fit:cover는 실제 사진 <img>일 때만 의미가 있다). */
+.friendPhoto {
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: #dee0e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5c5f60;
+  object-fit: cover;
+}
+
+/* 🔒 사용자 지시(2026-08-26, "닉네임과 유저아이디 간격을 줄여서... 아바타랑
+   높이가 비슷하게") — PostCard.module.css .headerText와 같은 gap(4px). */
+.friendInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 🔒 사용자 발견(2026-08-26, 스크린샷 — "빨간색 공간을 줄여달라") — 줄
+   높이를 지정 안 해두면 브라우저 기본값(폰트 실제 높이보다 훨씬 큼)이
+   적용돼 flex gap(4px)과 별개로 글자 위아래에 여백이 더 생긴다. --text-label-md
+   (15px/20px, styles/tokens.css)와 같은 값으로 눌러서 실제 글자 높이에
+   맞춘다. */
+.friendName {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.friendName:hover {
+  color: var(--accent);
+}
+
+.friendMutual {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+
+.friendMenuWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.friendMenuTrigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--text-tertiary);
+  padding: 0;
+  flex-shrink: 0;
+}
+.friendMenuTrigger:hover {
+  background: #f0f0f5;
+}
+.friendMenuTrigger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 🔒 사용자 지시(2026-08-26, "메세지 아이콘 대신 삼점메뉴를 넣고... 메세지,
+   팔로잉 취소 메뉴를 띄우게") — PostCard.module.css .menuOverlay/.menuPopover/
+   .menuItem과 같은 시각 언어(투명 오버레이 클릭 캐처, 흰 배경 팝오버,
+   왼쪽 정렬 아이콘+텍스트 항목)를 이 컴포넌트 전용 이름으로 그대로 복제. */
+.friendMenuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown);
+}
+
+.friendMenuPopover {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: var(--z-dropdown);
+  min-width: 150px;
+  background: var(--raised);
+  border-radius: var(--radius-md);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.friendMenuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  font: var(--text-label-md);
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 3px 14px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.friendMenuItem:hover {
+  color: var(--accent);
+}
+.friendMenuItem:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

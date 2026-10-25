@@ -158,7 +158,7 @@ describe('모더레이터 플로우', () => {
       [postPublicId],
     );
     expect(postRow.rows[0].author_username).toBe('ai_digest_bot');
-    expect(postRow.rows[0].category_slug).toBe('ai-topics');
+    expect(postRow.rows[0].category_slug).toBe('news'); // 0054 — DIGEST_CATEGORY_SLUG가 News로 합쳐짐
     expect(postRow.rows[0].title).toBe('DGRHTTP::확정 제목');
 
     // 재발행 → 409 ALREADY_PUBLISHED

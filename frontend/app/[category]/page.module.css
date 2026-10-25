@@ -1,0 +1,192 @@
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업 — pc/pad/phone 3단 반응형) —
+   phone(<768px) 기본 padding-bottom을 84px로 늘렸다: Gnb.tsx 하단 탭바
+   (64px, fixed)가 화면 아래에 항상 떠 있어 그만큼 본문 마지막 줄을 가리지
+   않게 여백을 준다(64+20, artifact `shellPadding` phone 값) — app/page.module.css
+   의 같은 수정 참고(전체 설명). */
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.center {
+  min-width: 0;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.left,
+.right {
+  display: none;
+}
+
+/* 🔒 사용자 발견(2026-08, 스크린샷 — 홈에서 "스크롤하면 gnb의 삼점메뉴
+   부분을 가려") — app/page.module.css `.pageTitle`과 같은 원인·같은 수정
+   (`.topRow`도 phone `.gnbMobile`과 top:0으로 겹친다). */
+@media (max-width: 767px) {
+  .topRow {
+    top: var(--gnb-height);
+    /* 🔒 사용자 지시(2026-08, "phone화면 Home 타이틀 상단 여백을 줄여줘") —
+       app/page.module.css `.pageTitle`과 같은 이유·같은 수정. */
+    padding-top: var(--space-sm);
+  }
+}
+
+/* 🔒 사용자 지시(2026-08, 새 interactive 목업) — pad(768~1279px) 신설 —
+   app/page.module.css의 같은 수정 참고(전체 설명, artifact 실측 출처). */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 208px minmax(0, 1fr);
+    padding: 32px 24px 40px;
+    gap: 28px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 32px;
+    height: calc(100vh - 32px - 40px);
+    overflow-y: auto;
+    /* 🔒 실측 발견(2026-09, "리눅스 크롬은 스크롤바가 생기는데 맥은 괜찮다") —
+       app/page.module.css의 같은 수정 참고(전체 설명). */
+    scrollbar-width: none;
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  /* 🔒 사용자 발견(2026-08, "스타일 시트가 하나도 안맞잖아. 메뉴 간격이라던가")
+     — artifact 최상위 그리드 컨테이너 실측(디코딩 원본 line 240):
+     `padding:40px 0px; gap:40px`(기존 var(--space-xl)=24px에서 정정) —
+     app/page.module.css의 같은 수정 참고(모바일은 여전히 24px 유지하는
+     이유도 그쪽 주석에 있음). */
+  .layout {
+    grid-template-columns: 240px 680px 280px;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  /* 🔒 사용자 지시(2026-08) — "스크롤은 모든 페이지에 동일하게 적용해야해".
+     포스트 상세에서 먼저 적용한 좌/우 사이드바 고정을 그대로 가져왔다 —
+     app/[category]/[postId]/page.module.css 헤더 주석 참고. 🔒 GNB 제거
+     후속(2026-08) — 이 오프셋은 원래 상단에 늘 떠 있던 데스크톱 GNB(56px)
+     바로 아래에 붙이려고 계산한 값이었다. 그 GNB 자체가 데스크톱에서
+     완전히 사라지면서(Gnb.tsx가 모바일 전용으로 축소) `.center`도 이제
+     `.layout`의 padding(space-xl)만큼만 내려와서 시작한다 — gnb-height를
+     그대로 남겨두면 사이드바만 본문보다 56px 아래에서 시작해 어긋난다.
+     🔒 위 40px 그리드 패딩 정정에 맞춰 top/max-height도 40px 기준으로
+     재계산. */
+  .right {
+    display: block;
+    position: sticky;
+    top: 40px;
+    max-height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+  }
+  /* 🔒 사용자 지시(2026-08, "좌측 하단 사이트맵 메뉴들 목업처럼 아래로
+     이동시켜줘") — `.left`만 `max-height`(콘텐츠 크기로 줄어듦)에서
+     `height`(항상 이 값)로, `display:block`에서
+     `display:flex; flex-direction:column`으로 바꿔 안의 `.sidebarStack`이
+     `flex:1`로 이 높이를 채우고 footerBlock의 margin-top:auto가 바닥까지
+     밀어낼 수 있게 한다 — app/page.module.css의 같은 수정 참고(전체 설명).
+     `.right`는 대상 아님. */
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 40px;
+    height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+    scrollbar-width: none; /* 🔒 리눅스 Chrome 스크롤바 숨김 — app/page.module.css 주석 참고 */
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    margin: 0;
+  }
+}
+
+/* 🔒 사용자 발견(2026-08) — 이 화면만 Breadcrumb를 구독 버튼과 같은 줄로
+   묶는 .topRow(display:flex) 안에 넣고 있어서, Breadcrumb.module.css에
+   새로 넣은 sticky가 무력화됐다 — .topRow 자신의 높이가 그 안의 콘텐츠
+   (breadcrumb+버튼) 높이와 정확히 같아, GNB를 고쳤던 것과 똑같은 이유로
+   눌러 붙을 여유 공간이 없었다. .topRow 자체를 sticky로 만들어 Breadcrumb
+   와 구독 버튼이 한 줄로 같이 고정되게 한다(Breadcrumb 자신의 sticky는
+   이제 안쪽에서는 사실상 무해하게 겹칠 뿐 — 바깥이 이미 고정되고 나면
+   안쪽 오프셋은 의미가 없어진다).
+   🔒 사용자 발견(2026-08) — "스크롤 할때 타이틀도 조금 올라가는데 이것은
+   안움직이게해줘". `top:0`이면 자연 위치(`.layout`의 padding=space-xl
+   만큼 아래)에서 sticky 임계값(0)까지 24px를 실제로 스크롤해야 붙어서,
+   그 구간엔 본문과 같이 위로 딸려 올라가는 게 보였다 — `top`을
+   `var(--space-xl)`로 맞추는 시도를 했었지만, 그러면 뷰포트 맨 위
+   0~24px 구간을 아무것도 안 덮어서 그 틈으로 스크롤되는 본문이 비쳐
+   보이는 새 버그가 생겼다(사용자 재발견). 🔒 최종 수정 — `top:0`은
+   유지(항상 뷰포트 맨 위부터 확실히 덮어 비침을 원천 차단)하고, 박스를
+   음수 margin-top으로 `.layout` padding만큼 끌어올린 뒤 그만큼을
+   padding-top으로 되돌린다 — 박스의 자연 위치가 y:0이 되어 sticky
+   임계값과 일치(캐치업 없음)하면서, 박스 자체가 y:0부터 배경을 깔고
+   있어 비침도 없다. app/page.module.css의 `.pageTitle`과 같은 수정.
+   🔒 사용자 발견(2026-08) — "홈 리스트의 타이틀 위치(top)과 커뮤니티
+   리스트의 위치(top)이 조금 어긋나 있네". `getBoundingClientRect()`로
+   재보니 홈의 `.pageTitle`은 원래부터 있던 `padding: var(--space-sm) 0`
+   (구 Breadcrumb에서 물려받은 값)까지 합쳐 텍스트가 y:32에서 시작하는데,
+   이 `.topRow`는 그 space-sm 없이 space-xl(24)만 보정해서 텍스트가
+   y:24에서 시작했다 — 8px 차이가 그 "어긋남"이었다. 홈 기준으로
+   맞추기 위해 padding-top에 space-sm을 더했다(아래 다른 리스트
+   페이지들도 같은 값으로 통일 — HomeFeed.module.css `.pageTitle`(저장한
+   글)·MessagesView.module.css `.header`·market/page.module.css
+   `.pageTitle` 참고). */
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: calc(-1 * var(--space-xl)) 0 var(--space-xl) 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding-top: calc(var(--space-xl) + var(--space-sm));
+  z-index: var(--z-sticky);
+}
+
+/* 🔒 실전 버그(2026-08) — 위 40px 그리드 패딩 override를 처음엔 파일 앞쪽의
+   `@media (min-width:1280px)` 블록(.layout 정의 바로 아래)에 넣었더니
+   효과가 없었다 — `.topRow`의 base 규칙(바로 위, margin shorthand)이
+   파일에서 그 media 블록보다 "나중"에 나와서, 같은 우선순위(동일 클래스
+   선택자)일 땐 소스 순서가 이기는 CSS 캐스케이드 규칙상 base 규칙의
+   shorthand `margin`이 media 블록의 longhand `margin-top`을 덮어써
+   버렸다(shorthand는 그 안의 모든 하위 속성을 통째로 리셋한다). 이
+   override를 base 규칙 "뒤"로 옮겨야 실제로 이긴다 — `getBoundingClientRect()`
+   로 스크롤 0/10/40/100에서 top이 16→6→0→0으로 캐치업하는 걸 직접 보고
+   원인을 확정했다.
+   🔒 사용자 발견(2026-08, "구독중 버튼 시작 위치가 오른쪽 검색창의
+   시작위치가 같아야해... 약 5~10px정도 올려야") — `+ var(--space-sm)`
+   (8px)는 24px 그리드 시절 물려받은 값이라 40px 그리드에선 `.left`/
+   `.right`의 y:40과 8px 어긋났다 — 제거해서 정확히 y:40에 맞춘다. */
+@media (min-width: 1280px) {
+  .topRow {
+    margin-top: -40px;
+    padding-top: 40px;
+  }
+}
+
+/* 🔒 artifact 실측(showList, 디코딩 원본 line 141) — 카테고리명 하나뿐인
+   타이틀, 20px/600. */
+.listTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

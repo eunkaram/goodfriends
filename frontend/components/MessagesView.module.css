@@ -1,0 +1,574 @@
+/* 🔒 goodfriends-ui 실측값(디코딩 원본 line 473-600) — reafy_backend 라인업의
+   같은 Claude Design 계보라 토큰만 이 프로젝트 것(styles/tokens.css)으로 그대로 맞는다. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  height: 100%;
+  min-height: 500px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding-top: var(--space-sm);
+  min-height: 40px;
+}
+@media (min-width: 1280px) {
+  .header {
+    padding-top: 0;
+  }
+}
+
+.pageTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.composeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.composeBtn:hover {
+  background: var(--chip-bg);
+}
+.composeBtn svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* 🔒 사용자 발견(2026-10, "오른쪽 스크롤바때문에 라운드처리가 안돼") —
+   overflow-y:auto+border-radius를 같은 요소에 두면 스크롤바가 둥근 모서리
+   클리핑 밖에서 그려져 각져 보인다. 이 요소는 radius+overflow:hidden으로
+   모서리만 담당하고, 실제 스크롤은 안쪽 `.composePopoverScroll`로 옮긴다. */
+.composePopover {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  width: 260px;
+  max-height: 320px;
+  overflow: hidden;
+  background: var(--raised);
+  border-radius: var(--radius-md);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: var(--z-dropdown);
+}
+.composePopoverScroll {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+}
+
+.composePopoverTitle {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.composeFriendRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm);
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font: var(--text-body-sm);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.composeFriendRow:hover {
+  background: var(--chip-bg);
+}
+
+.split {
+  display: flex;
+  gap: 40px;
+  flex: 1;
+  min-height: 0; /* flex 자식은 기본 min-height:auto라 overflow가 부모를 밀어낸다 — 0으로 풀어야 내부가 실제로 스크롤된다 */
+}
+
+.threadPanel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.threadHeader {
+  display: flex;
+  align-items: center;
+  padding: 0 0 14px;
+}
+
+/* phone(<768px)만 `data-active`(activeThread 유무로 MessagesView.tsx가 붙인다)로
+   목록↔대화 1단씩 전환한다 — pc·pad는 좌우 2단 그대로. */
+.backBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.backBtn:hover {
+  color: var(--accent);
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 14px 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.messages,
+.listPanel {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.messages::-webkit-scrollbar,
+.listPanel::-webkit-scrollbar {
+  width: 8px;
+}
+.messages::-webkit-scrollbar-thumb,
+.listPanel::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: var(--radius-full);
+}
+.messages.scrolling,
+.listPanel.scrolling {
+  scrollbar-color: var(--border) transparent;
+}
+.messages.scrolling::-webkit-scrollbar-thumb,
+.listPanel.scrolling::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.dateDivider {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-xs) 0;
+}
+.dateDivider span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--chip-bg);
+  padding: 3px 12px;
+  border-radius: var(--radius-full);
+}
+
+.requestNotice {
+  text-align: center;
+  padding: var(--space-lg) 0;
+}
+.requestNoticeTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.requestNoticeSub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.bubbleRowMine {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.theirsRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+.theirsAvatarCol {
+  width: 40px;
+  flex-shrink: 0;
+}
+.theirsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 70%;
+}
+.theirsName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.bubbleRowTheirs {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.bubbleMine {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 19px;
+  overflow-wrap: break-word;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.bubbleTheirs {
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 19px;
+  overflow-wrap: break-word;
+  background: var(--chip-bg);
+  color: var(--text-primary);
+}
+
+.messageTime {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+.limitNotice {
+  font: var(--text-label-sm);
+  color: var(--danger);
+  text-align: center;
+  margin: 0 0 var(--space-sm);
+}
+
+.composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--search-bg);
+  border-radius: var(--radius-full);
+  padding: 6px 8px 6px var(--space-lg);
+  margin-top: 14px;
+}
+.composer input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.sendBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sendBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.listPanel {
+  width: 280px;
+  flex-shrink: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--space-xl);
+}
+
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabBarChat {
+  flex: 1;
+  min-width: 0;
+}
+
+.tabBarSide {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.tabList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.tab,
+.tabActive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 0 14px;
+  margin-bottom: -1px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.tabLabel {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.tab {
+  color: var(--text-tertiary);
+}
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+}
+
+.tabCountBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.threadRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-xs);
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.threadRow:hover {
+  background: var(--chip-bg);
+}
+.threadRowActive {
+  background: var(--chip-bg);
+}
+
+.avatarSm {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.threadRowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.threadRowName {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.threadRowPreview {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.threadRowTime {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.empty,
+.emptySmall {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--space-3xl) 0;
+  font: var(--text-body-sm);
+}
+.emptySmall {
+  padding: var(--space-lg) var(--space-sm);
+  font-size: 13px;
+}
+
+/* Notification 탭은 threadPanel/listPanel 2단 분할이 아니라 페이지 전체
+   폭을 쓰는 단일 리스트다(.split과 형제, tab==='notification'일 때 교체). */
+.notificationList {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.notificationRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-lg) 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.notificationRow:hover {
+  background: var(--chip-bg);
+}
+
+.notificationBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationText {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+.notificationText strong {
+  font-weight: 700;
+}
+
+.notificationActor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: inherit;
+  text-decoration: none;
+}
+.notificationActor:hover {
+  color: var(--accent);
+}
+
+.notificationTime {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.newBadge {
+  flex-shrink: 0;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 767px) {
+  .split {
+    flex-direction: column;
+    gap: 0;
+  }
+  .listPanel {
+    width: 100%;
+  }
+  .threadPanel {
+    display: none;
+  }
+  .tabBar {
+    gap: var(--space-sm);
+  }
+  .tabBarSide {
+    width: auto;
+  }
+  .tab,
+  .tabActive {
+    font-size: 14px;
+  }
+  .page[data-active='true'] .header {
+    display: none;
+  }
+  .page[data-active='true'] .tabBar {
+    display: none;
+  }
+  .page[data-active='true'] .threadPanel {
+    display: flex;
+  }
+  .page[data-active='true'] .listPanel {
+    display: none;
+  }
+  .backBtn {
+    display: flex;
+  }
+}

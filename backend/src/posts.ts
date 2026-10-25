@@ -12,6 +12,8 @@
  */
 import { randomBytes } from 'node:crypto';
 import { appPool, withRelationCtx, queryRaw } from './db.ts';
+import { NEWS_CATEGORY_SLUG } from './categories.ts';
+import { isModeratorOrAgent } from './moderation.ts';
 
 /** 로그 전용 글에서만 의미가 있다 — 사용자가 명시한 두 옵션만("전체", "follower"). */
 export type LogPostVisibility = 'public' | 'followers';
@@ -25,7 +27,9 @@ export type CreatePostInput = {
   visibility?: LogPostVisibility;
 };
 
-export type CreatePostResult = { ok: true; id: string; publicId: string } | { ok: false; error: 'INVALID_INPUT' | 'NOT_AUTHENTICATED' };
+export type CreatePostResult =
+  | { ok: true; id: string; publicId: string }
+  | { ok: false; error: 'INVALID_INPUT' | 'NOT_AUTHENTICATED' | 'FORBIDDEN' };
 
 const pool = appPool('exists');
 
@@ -57,16 +61,32 @@ export async function resolvePostId(maybePublicId: string): Promise<string | nul
   return r.rows[0]?.id ?? null;
 }
 
-async function validateCommunityCategory(categoryId: string): Promise<boolean> {
-  // 🔒 /review 발견 — categoryId를 존재·타입·공개 여부 확인 없이 그대로 꽂아 넣고
-  // 있었다. FK(0018)는 "존재하지 않는 카테고리"만 막는다 — 마켓 카테고리나
-  // 아직 안 켠(is_public=false) 카테고리를 커뮤니티 글에 넣는 건 못 막는다.
-  const category = await queryRaw<{ type: string; is_public: boolean }>(
+type CategoryCheck = { ok: true } | { ok: false; error: 'INVALID_INPUT' | 'FORBIDDEN' };
+
+/**
+ * 🔒 /review 발견 — categoryId를 존재·타입·공개 여부 확인 없이 그대로 꽂아 넣고
+ * 있었다. FK(0018)는 "존재하지 않는 카테고리"만 막는다 — 마켓 카테고리나
+ * 아직 안 켠(is_public=false) 카테고리를 커뮤니티 글에 넣는 건 못 막는다.
+ *
+ * 🔒 사용자 지시(2026-10, "news메뉴는 시스템또는 어드민만 올릴수 있게...
+ * 일반 유저는 읽기/댓글만") — News(`NEWS_CATEGORY_SLUG`)는 뉴스봇(is_agent)과
+ * 운영진(is_moderator)만 쓸 수 있다. createCommunityPost/updatePost 둘 다
+ * 이 함수 하나를 거치므로(글 생성·글을 News로 옮기는 수정 둘 다) 여기 한
+ * 곳에서만 막으면 충분하다 — 프론트의 글쓰기 카테고리 선택지에서도 News를
+ * 숨기지만(web/lib/categories.ts), 그건 UX일 뿐 실제 경계는 여기다.
+ */
+async function validateCommunityCategory(userId: string, categoryId: string): Promise<CategoryCheck> {
+  const category = await queryRaw<{ slug: string; type: string; is_public: boolean }>(
     pool,
-    `SELECT type, is_public FROM categories WHERE id = $1`,
+    `SELECT slug, type, is_public FROM categories WHERE id = $1`,
     [categoryId],
   );
-  return category.rows[0]?.type === 'community' && !!category.rows[0]?.is_public;
+  const row = category.rows[0];
+  if (!row || row.type !== 'community' || !row.is_public) return { ok: false, error: 'INVALID_INPUT' };
+  if (row.slug === NEWS_CATEGORY_SLUG && !(await isModeratorOrAgent(userId))) {
+    return { ok: false, error: 'FORBIDDEN' };
+  }
+  return { ok: true };
 }
 
 /** 🔒 사용자 발견(2026-08, "글쓰기시에 내용을 줄바꿈만 넣어도 저장이 돼.
@@ -78,7 +98,8 @@ export async function createCommunityPost(userId: string, input: { categoryId: s
   const title = input.title?.trim();
   const body = input.body?.trim() ?? '';
   if (!title || !body || !input.categoryId) return { ok: false, error: 'INVALID_INPUT' };
-  if (!(await validateCommunityCategory(input.categoryId))) return { ok: false, error: 'INVALID_INPUT' };
+  const categoryCheck = await validateCommunityCategory(userId, input.categoryId);
+  if (!categoryCheck.ok) return categoryCheck;
 
   const result = await withRelationCtx(pool, { userId }, (client) =>
     client.query<{ id: string; public_id: string }>(
@@ -149,7 +170,7 @@ export type UpdatePostInput = {
   categoryId?: string;
   visibility?: LogPostVisibility;
 };
-export type UpdatePostResult = { ok: true } | { ok: false; error: 'INVALID_INPUT' | 'NOT_FOUND' };
+export type UpdatePostResult = { ok: true } | { ok: false; error: 'INVALID_INPUT' | 'NOT_FOUND' | 'FORBIDDEN' };
 
 /**
  * 사용자 발견(2026-08) — "내글에 대해 수정기능이 없어. 수정할수 있게 만들어줘."
@@ -170,7 +191,8 @@ export async function updatePost(userId: string, postId: string, input: UpdatePo
   if (!title || !body) return { ok: false, error: 'INVALID_INPUT' };
 
   if (input.categoryId !== undefined) {
-    if (!(await validateCommunityCategory(input.categoryId))) return { ok: false, error: 'INVALID_INPUT' };
+    const categoryCheck = await validateCommunityCategory(userId, input.categoryId);
+    if (!categoryCheck.ok) return categoryCheck;
     const updated = await withRelationCtx(pool, { userId }, async (client) => {
       const res = await client.query(
         `UPDATE posts SET category_id = $1, log_id = NULL, visibility = 'public', title = $2, body = $3, updated_at = now() WHERE id = $4`,

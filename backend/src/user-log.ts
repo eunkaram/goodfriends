@@ -18,6 +18,10 @@ function isPgError(err: unknown, code: string): boolean {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === code;
 }
 
+export type ActivityDay = { date: string; level: number; count: number };
+export type ActivityWeek = { days: ActivityDay[] };
+export type ActivityHeatmap = { recentWeeks: ActivityWeek[]; recentTotal: number };
+
 export type UserLogProfile = {
   userId: string;
   username: string;
@@ -40,6 +44,17 @@ export type UserLogProfile = {
   likeCount: number;
   /** likeCount와 같은 패턴 — 뷰어가 볼 수 있는 내 글들이 받은 댓글 총합. */
   commentCount: number;
+  /** goodfriends 우측 프로필 위젯(2026-10, "오른쪽영역을 디자인 시안대로") —
+   * PROFILE_INTEREST_CATEGORIES 중 최대 MAX_INTERESTS개의 category slug
+   * (표시 이름 아님 — 위 PROFILE_INTEREST_CATEGORIES 주석 참고). profile_fields
+   * (key='interests')에 JSON 배열로 저장 — 이 테이블은 0006부터 있었지만
+   * 지금까지 아무 기능도 안 썼다. */
+  interests: string[];
+  /** 같은 위젯 — PROFILE_STACK_GROUPS 3개 고정 그룹, 그룹별 자유 텍스트 목록.
+   * profile_fields(key='stack')에 JSON 객체로 저장. */
+  stack: Record<string, string[]>;
+  /** 같은 위젯 — 최근 20주(140일) 글+댓글 활동 히트맵. */
+  activity: ActivityHeatmap;
 };
 
 export type RelationshipStatus = 'self' | 'none' | 'pending_sent' | 'pending_received' | 'friends';
@@ -51,6 +66,152 @@ export async function createDefaultUserLog(userId: string): Promise<void> {
   await withRelationCtx(pool, { userId }, (client) =>
     client.query(`INSERT INTO user_logs (user_id) VALUES ($1) ON CONFLICT DO NOTHING`, [userId]),
   );
+}
+
+/**
+ * goodfriends 우측 프로필 위젯 "관심 분야" — 디코딩 원본 line 1723 `allCats`와
+ * 같은 범위(11개 카테고리 중 News·Q&A·자유게시판 3개만 뺀 8개)를 slug로
+ * 저장한다. 🔒 실전 발견(2026-10) — 처음엔 표시 이름("AI Coding" 등)을
+ * 그대로 저장했는데, 카테고리 이름은 i18n(src/i18n/ko.ts)이 바뀌면 같이
+ * 바뀐다(실측 — 'category.ai_coding'의 한글 표시가 "Vibe Coding"으로 이미
+ * 바뀌어 있었다) — 이름으로 저장하면 과거에 고른 관심사가 "목록에 없는
+ * 값"으로 깨진다. slug는 categories.slug(고유 제약, 거의 안 바뀜)라 더
+ * 안전하다 — components/PostCard.tsx의 카테고리 배지 그룹색도 같은 이유로
+ * 이름 대신 slug 기준으로 돼 있다(lib/category-group-colors.ts).
+ */
+export const PROFILE_INTEREST_CATEGORIES = ['idea', 'frontier', 'local', 'agents', 'aiservice', 'coding', 'automation', 'creative'] as const;
+const MAX_INTERESTS = 5;
+
+/** 같은 위젯 "사용 중인 스택" — 디코딩 원본 line 1318 editStack 초기값의 그룹
+ * 3개가 고정이다(그룹을 추가하는 UI 자체가 없다, line 1217-1231 — 그룹 안
+ * 항목만 자유 텍스트로 추가/삭제). */
+export const PROFILE_STACK_GROUPS = ['모델', '도구', '장비'] as const;
+// 🔒 사용자 지시(2026-10, "모델, 도구, 장비는 각각 최대 5개씩만") — 12 → 5.
+const MAX_STACK_ITEMS_PER_GROUP = 5;
+const MAX_STACK_ITEM_LENGTH = 24;
+
+function emptyStack(): Record<string, string[]> {
+  return Object.fromEntries(PROFILE_STACK_GROUPS.map((g) => [g, []]));
+}
+
+/** profile_fields(0006)는 지금까지 테이블만 있고 실제로 쓰인 적이 없던
+ * EAV 싱글턴 — 사용자당 key 하나에 값 하나라 "관심 분야 목록 전체"·"스택
+ * 전체"처럼 한 사람당 값이 딱 하나뿐인 구조에 정확히 들어맞는다(JSON 직렬화
+ * 텍스트로 저장). RLS(app_can_view_tier)가 user_logs와 같은 함수를 쓰지만,
+ * fetchUserLogByUsername이 이미 그 상위 게이트(프로필 자체의 공개범위)를
+ * 통과해야만 이 함수까지 호출되므로 행 자체는 항상 visibility='public'로
+ * 저장한다 — user_logs.visibility와 별도로 동기화할 값을 안 늘린다(이 둘이
+ * 어긋나 "본문은 막혔는데 관심사만 샌다"가 될 일이 없다, 바깥 게이트가 이미
+ * 전부 막는다).
+ */
+async function fetchProfileField(viewerId: string | null, userId: string, key: string): Promise<string | null> {
+  const r = await withRelationCtx(pool, { userId: viewerId }, (client) =>
+    client.query<{ value: string }>(`SELECT value FROM profile_fields WHERE user_id = $1 AND key = $2`, [userId, key]),
+  );
+  return r.rows[0]?.value ?? null;
+}
+
+async function upsertProfileField(userId: string, key: string, value: string): Promise<void> {
+  await withRelationCtx(pool, { userId }, (client) =>
+    client.query(
+      `INSERT INTO profile_fields (user_id, key, value, visibility) VALUES ($1, $2, $3, 'public')
+       ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value`,
+      [userId, key, value],
+    ),
+  );
+}
+
+export async function fetchProfileInterests(viewerId: string | null, userId: string): Promise<string[]> {
+  const raw = await fetchProfileField(viewerId, userId, 'interests');
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchProfileStack(viewerId: string | null, userId: string): Promise<Record<string, string[]>> {
+  const raw = await fetchProfileField(viewerId, userId, 'stack');
+  const base = emptyStack();
+  if (!raw) return base;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    for (const group of PROFILE_STACK_GROUPS) {
+      const items = parsed[group];
+      if (Array.isArray(items)) base[group] = items.filter((v): v is string => typeof v === 'string');
+    }
+    return base;
+  } catch {
+    return base;
+  }
+}
+
+export function validateInterests(interests: string[]): boolean {
+  if (interests.length > MAX_INTERESTS) return false;
+  return interests.every((name) => (PROFILE_INTEREST_CATEGORIES as readonly string[]).includes(name));
+}
+
+export function validateStack(stack: Record<string, string[]>): boolean {
+  for (const key of Object.keys(stack)) {
+    if (!(PROFILE_STACK_GROUPS as readonly string[]).includes(key)) return false;
+  }
+  for (const group of PROFILE_STACK_GROUPS) {
+    const items = stack[group] ?? [];
+    if (items.length > MAX_STACK_ITEMS_PER_GROUP) return false;
+    if (items.some((v) => typeof v !== 'string' || v.trim().length === 0 || v.length > MAX_STACK_ITEM_LENGTH)) return false;
+  }
+  return true;
+}
+
+/** GitHub 기여 잔디와 같은 시각 언어 — 디코딩 원본 line 1674-1687 레벨 5단계를
+ * 그대로 옮기되, 난수 대신 실제 글+댓글 작성일을 센다. 소프트 삭제된 글(posts.
+ * deleted_at)은 "작성 활동"으로 안 친다 — 삭제해도 지워지지 않는 흔적이 되면
+ * §10.2(사유 비공개) 취지와 어긋난다. posts/comments 둘 다 이미 RLS가 있어
+ * (postCount·likeCount와 같은 철학) 뷰어가 볼 수 있는 활동만 집계된다 —
+ * 본인이 보면 전체, 타인이 보면 그 타인 눈에 보이는 활동만.
+ */
+const ACTIVITY_DAYS = 140; // 20주 × 7일
+const ACTIVITY_LEVEL_COLORS_BY_COUNT = (count: number): number => {
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count <= 3) return 2;
+  if (count <= 6) return 3;
+  return 4;
+};
+
+export async function fetchActivityHeatmap(viewerId: string | null, userId: string): Promise<ActivityHeatmap> {
+  const r = await withRelationCtx(pool, { userId: viewerId }, (client) =>
+    client.query<{ d: string; cnt: string }>(
+      `SELECT d::date::text AS d, count(*) AS cnt FROM (
+         SELECT created_at AS d FROM posts WHERE author_id = $1 AND deleted_at IS NULL
+         UNION ALL
+         SELECT created_at AS d FROM comments WHERE author_id = $1
+       ) activity
+       WHERE d >= now() - ($2 || ' days')::interval
+       GROUP BY d::date`,
+      [userId, ACTIVITY_DAYS],
+    ),
+  );
+  const countByDate = new Map(r.rows.map((row) => [row.d, Number(row.cnt)]));
+
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const days: ActivityDay[] = [];
+  for (let i = ACTIVITY_DAYS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const count = countByDate.get(dateStr) ?? 0;
+    days.push({ date: dateStr, count, level: ACTIVITY_LEVEL_COLORS_BY_COUNT(count) });
+  }
+  const recentWeeks: ActivityWeek[] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    recentWeeks.push({ days: days.slice(i, i + 7) });
+  }
+  const recentTotal = days.filter((d) => d.count > 0).length;
+  return { recentWeeks, recentTotal };
 }
 
 /**
@@ -100,7 +261,13 @@ export async function fetchUserLogByUsername(viewerId: string | null, username: 
   // 0025의 자유 텍스트 오버라이드(user_logs.location)를 이 라운드에서
   // 완전히 대체했다(0028이 컬럼 자체를 드롭) — 이제 위치는 항상
   // users.country/postal_code에서 자동 계산된다.
-  const [location, profileLinks] = await Promise.all([fetchUserLocationLabel(row.user_id), fetchProfileLinks(viewerId, row.user_id)]);
+  const [location, profileLinks, interests, stack, activity] = await Promise.all([
+    fetchUserLocationLabel(row.user_id),
+    fetchProfileLinks(viewerId, row.user_id),
+    fetchProfileInterests(viewerId, row.user_id),
+    fetchProfileStack(viewerId, row.user_id),
+    fetchActivityHeatmap(viewerId, row.user_id),
+  ]);
   return {
     userId: row.user_id,
     username,
@@ -116,6 +283,9 @@ export async function fetchUserLogByUsername(viewerId: string | null, username: 
     followerCount: Number(row.follower_count),
     likeCount: Number(row.like_count),
     commentCount: Number(row.comment_count),
+    interests,
+    stack,
+    activity,
   };
 }
 
@@ -147,6 +317,10 @@ export type UpdateProfileInput = {
   postalCode?: string;
   /** POST /api/media/upload가 돌려준 공개 URL을 그대로 받는다. 빈 문자열이면 이니셜로 되돌린다. */
   avatarUrl?: string;
+  /** goodfriends 우측 프로필 위젯(2026-10) — PROFILE_INTEREST_CATEGORIES 중 최대 5개. */
+  interests?: string[];
+  /** 같은 위젯 — PROFILE_STACK_GROUPS 3개 고정 키만 허용. */
+  stack?: Record<string, string[]>;
 };
 export type UpdateProfileResult = { ok: true } | { ok: false; error: 'INVALID_INPUT' | 'USERNAME_TAKEN' | 'INVALID_LOCATION' };
 
@@ -261,6 +435,12 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
   if (avatarUrl !== undefined && avatarUrl.length > 0 && (avatarUrl.length > MAX_URL_LENGTH || !URL_RE.test(avatarUrl))) {
     return { ok: false, error: 'INVALID_INPUT' };
   }
+  if (input.interests !== undefined && !validateInterests(input.interests)) {
+    return { ok: false, error: 'INVALID_INPUT' };
+  }
+  if (input.stack !== undefined && !validateStack(input.stack)) {
+    return { ok: false, error: 'INVALID_INPUT' };
+  }
 
   if (username !== undefined) {
     if (!(await isUsernameAvailable(username, userId))) return { ok: false, error: 'USERNAME_TAKEN' };
@@ -327,6 +507,13 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
   });
 
   if (usernameRace) return { ok: false, error: 'USERNAME_TAKEN' };
+
+  // 🔒 profile_fields는 user_logs/users와 별도 PRIMARY KEY(user_id, key)라
+  // 위 트랜잭션에 자연스럽게 묶이지 않는다(묶으려면 SET 조립 로직을 또
+  // 하나 늘려야 한다) — username 경합처럼 되돌릴 값이 아니라(interests/
+  // stack은 다른 필드와 상호 의존이 없다) 별도 호출로 둬도 안전하다.
+  if (input.interests !== undefined) await upsertProfileField(userId, 'interests', JSON.stringify(input.interests));
+  if (input.stack !== undefined) await upsertProfileField(userId, 'stack', JSON.stringify(input.stack));
   return { ok: true };
 }
 

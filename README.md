@@ -4,7 +4,7 @@
 
 Reafy를 포크해 **완전 독립**(코드·DB·세션 공유 없음)으로 만든 프로젝트의 1차 개발 출발점입니다.
 
-**현재 상태 (2026-10-19)**: 마일스톤 M0~M4 완료 — 인증·카테고리·글/댓글/반응(Q&A 채택, 시리즈, 조회수, 검색)· 뉴스봇+다이제스트 엔진·라운지 채팅·모더레이션(신고→숨김). 테스트 560(backend)/21(web). 다음: M5(론칭 준비).
+**현재 상태 (2026-10-19)**: 마일스톤 M0~M4 완료 — 인증·카테고리·글/댓글/반응(Q&A 채택, 시리즈, 조회수, 검색)· 뉴스봇+다이제스트 엔진·라운지 채팅·모더레이션(신고→숨김). 테스트 628(backend)/21(web). 다음: M5(론칭 준비).
 
 ## 저장소 구조
 
@@ -12,7 +12,7 @@ Reafy를 포크해 **완전 독립**(코드·DB·세션 공유 없음)으로 만
 backend/    Node 20+ · TS 커스텀 http-server (API + WebSocket 단일 프로세스)
             PostgreSQL(+PgBouncer) + Redis — docker-compose는 backend/에
 backend/worker/  뉴스봇 파이프라인 CLI (npm run worker:news, --loop 상주)
-web/        Next.js 16 · React 19 · Tiptap 에디터
+frontend/   Next.js 16 · React 19 · Tiptap 에디터
 PLAN.md     개발 플랜 (마일스톤 M0~M6) — 마일스톤 상태·완료 근거는 여기
 docs/       세션별 작업 문서 (결함/교훈/잔여 과제)
 ```
@@ -20,7 +20,7 @@ docs/       세션별 작업 문서 (결함/교훈/잔여 과제)
 ## 주요 화면·API (1차 구현분)
 
 - 인증: 이메일 가입(인증 메일 없으면 서버 로그 `[email:stub]`에서 토큰 확인)·로그인·비밀번호 재설정, 쿠키 세션 `aic_session`
-- 카테고리 9개 중 5개 오픈 + 홈 피드(최신/인기)·검색(`/api/posts/search`, prefix 계약)
+- 카테고리 9개 중 5개 오픈 + 홈 피드(최신/인기)·검색(`/api/search`, 글 제목/본문 통합 목록)
 - Q&A: 글 채택(용자 배지)·조회수(Redis dedup)·개발 로그 시리즈
 - 콘텐츠 엔진: 뉴스봇(8 RSS 소스 → 중복 제거 → 한국어 요약 → 발행, OpenAI 호환 LLM — 미설정 시 결정적 stub) + `/admin/digests` 다이제스트 반수동 발행
 - 라운지: `/lounge` 전체방 실시간 채팅(`ws://<backend>:3010/ws/lounge`, 분당 10발 레이트리밋)
@@ -43,12 +43,12 @@ npm run db:migrate
 npm run dev          # :3010 (http + ws)
 
 # 2) 웹
-cd ../web
+cd ../frontend
 npm run dev          # :3011, /api/* 프록시 → :3010 (WS는 프록시 안 됨 — /lounge가 :3010 직결)
 ```
 
 테스트: `backend` — `npm test`(DB 필요) · `npx tsc --noEmit`(DB 불필요)
-`web` — `npm test`(DB 불필요) · `npm run build`(DB 불필요, sitemap/llms.txt는 dynamic)
+`frontend` — `npm test`(DB 불필요) · `npm run build`(DB 불필요, sitemap/llms.txt는 dynamic)
 
 ## 다음 단계
 

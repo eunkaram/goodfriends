@@ -2,7 +2,7 @@
  * 뉴스봇 사이클 — M3(§3)의 심장. 하루에 한 번(worker/news-bot.ts가 호출):
  *
  *   RSS 8개 수집 → 중복 제거(URL UNIQUE + 제목 유사도) → news_articles 기록
- *   → LLM 한국어 요약 → ai-news 카테고리에 봇 계정으로 발행(원문 링크 포함)
+ *   → LLM 한국어 요약 → news 카테고리에 봇 계정으로 발행(원문 링크 포함)
  *
  * 실패 정책(§17.3 계열): 소스 하나가 죽어도 사이클 전체는 계쏙 돈다 — 죽은
  * 소스만 error-alert로 알린다. LLM 실패도 마찬가지: 해당 기사만 status='failed'
@@ -14,8 +14,9 @@ import { NEWS_SOURCES, fetchFeed, type FeedItem } from './rss.ts';
 import { summarizeNewsKorean } from './llm.ts';
 import { alertAdminOfError } from './error-alert.ts';
 import { createCommunityPost } from './posts.ts';
+import { NEWS_CATEGORY_SLUG } from './categories.ts';
 
-export const NEWS_CATEGORY_SLUG = 'ai-news';
+export { NEWS_CATEGORY_SLUG };
 export const NEWS_BOT_USERNAME = 'ai_news_bot';
 
 /** no-default 모듈 관례(posts.ts와 같다) — 커넥션은 풀 팩토리에서 받는다. */
@@ -211,7 +212,7 @@ export async function runNewsCycle(options: {
 
   const endpoints = await resolveBotAndCategory();
   if (!endpoints) {
-    await alertAdminOfError(new Error('봇 계정 또는 ai-news 카테고리가 없다(마이그레이션 0051 확인)'), 'news-bot-setup');
+    await alertAdminOfError(new Error('봇 계정 또는 news 카테고리가 없다(마이그레이션 0051/0054 확인)'), 'news-bot-setup');
     return result;
   }
 

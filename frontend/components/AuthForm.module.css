@@ -1,0 +1,316 @@
+/* 🔒 사용자 지시(2026-08-24, top 300px → 같은 날 120px로 재조정) —
+   signin/signup/reset-password 등 이 클래스를 쓰는 모든 독립 페이지 공통.
+   gap 32px(로고↔카드). */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 32px;
+  padding: 120px 24px 60px;
+  background: var(--bg);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logoMark {
+  height: 46px;
+  width: auto;
+  display: block;
+}
+
+.logoWordmark {
+  font: var(--font-logo);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--logo);
+  line-height: 1;
+}
+
+/* 🔒 goodfriends-ui 실측(디코딩 원본 line 965-1061) — 카드는 padding 40px
+   32px, flex column gap 20px. 보더는 #e4e7f2, 그림자는 실측값 그대로. */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--raised);
+  border: 1px solid #e4e7f2;
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.social {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 🔒 goodfriends-ui 실측(디코딩 원본 line 976-982, 1030-1036) — Google·GitHub
+   만 쓴다(CLAUDE.md 3. "소셜 로그인은 Google과 GitHub만"). pill(9999px),
+   height 48px, font-size 14px/weight 700, gap 10px, 아이콘 20px 이미지.
+   🔒 이전 Kakao·X 버튼(.socialBtnKakao/.socialBtnX)은 이 프로젝트 어디서도
+   렌더되지 않던 죽은 CSS였다 — goodfriends 리브랜딩(2026-10)에서 제거. */
+.socialBtnGoogle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: 1px solid #dadce0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  background: #ffffff;
+  color: #1f1f1f;
+}
+.socialBtnGoogle:hover {
+  background: #f8f8f8;
+}
+
+.socialBtnGithub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  background: #24292f;
+  color: #ffffff;
+}
+.socialBtnGithub:hover {
+  opacity: 0.92;
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.socialNotice {
+  font: var(--text-label-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+  margin: -4px 0 0;
+}
+
+/* 🔒 사용자 지시(2026-08) — artifact 실측: gap 12px, 카드 전체가 이제
+   gap:20px 스택이라 이 요소 자체의 margin은 0(중복 여백 방지). */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* 🔒 artifact엔 보이는 라벨이 없다 — placeholder만 있는 pill 입력창.
+   접근성용 라벨은 <input aria-label>로 시각적으로 숨겨서 유지한다
+   (페이지 쪽에서 처리, 이 클래스는 순수 레이아웃 wrapper). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 🔒 <form>이 .card의 gap:20px 스택 안에서 실제 박스를 남기지 않아야
+   필드들이 카드의 다른 항목(소셜 버튼, 구분선)과 같은 간격으로 정렬된다 —
+   Gnb.module.css의 .desktopOnly와 같은 display:contents 패턴. */
+.formContents {
+  display: contents;
+}
+
+/* 🔒 goodfriends-ui 실측: height 44px, border-radius 9999px(pill), 배경
+   --search-bg(#f0f3ff), padding 0 18px, font-size 15px, 포커스 보더
+   --accent-light. */
+.field input,
+.field select {
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid transparent;
+  background: var(--search-bg);
+  padding: 0 18px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--accent-light);
+}
+
+/* 🔒 사용자 지시(2026-08-24, "국가 선택창 오른쪽 아이콘을 커스텀 화살표로
+   교체") — 네이티브 select의 브라우저 기본 화살표는 appearance:none으로
+   지우고, PostComposerModal.tsx의 ChevronDownIcon과 같은 path를 오른쪽에
+   직접 배치한다. */
+.selectWrap {
+  position: relative;
+}
+
+.selectWrap select {
+  appearance: none;
+  width: 100%;
+  padding-right: 40px;
+}
+
+.selectChevron {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-tertiary);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.row > .field {
+  flex: 1;
+}
+
+/* 🔒 artifact 실측: align-self:flex-end, 13px/600, accent 색 — 카드의
+   gap:20px 스택 안에 직접 놓이는 독립 항목(더 이상 .footer 재사용 안 함). */
+.forgotLink {
+  align-self: flex-end;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* 🔒 <button>뿐 아니라 <a>로도 쓰인다(예: verify-email 안내 페이지의
+   "홈으로 가기") — display:flex 중앙정렬 + text-decoration:none을 클래스
+   자체에 둬서, 쓰는 쪽마다 인라인 스타일로 다시 맞출 필요가 없게 한다
+   (.socialBtn·Gnb·HomeSidebars에서 반복된 세로 중앙정렬 버그와 같은 원인,
+   처음부터 기본값으로 막는다).
+   🔒 사용자 지시(2026-08) — artifact 실측: height 48px, radius 9999px(pill),
+   font-size 15px/weight 700. 카드가 gap:20px 스택이라 margin-top 제거. */
+.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.submit:hover {
+  background: var(--accent-hover);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  font: var(--text-body-sm);
+  color: var(--danger);
+  margin: 0;
+}
+
+.footer {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.footer a {
+  color: var(--logo);
+  font-weight: 700; /* 🔒 artifact 실측 */
+  text-decoration: none;
+}
+
+/* 파괴적 액션 — §11.2.4 "채움 = 진행, 외곽선 = 주의". 절대 채우지 않는다. */
+.destructiveBtn {
+  width: 100%;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--danger);
+  background: none;
+  color: var(--danger);
+  font: var(--text-label-md);
+  cursor: pointer;
+  margin-top: var(--space-sm);
+}
+
+.destructiveBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.secondaryBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--raised);
+  color: var(--text-primary);
+  font: var(--text-label-md);
+  text-decoration: none;
+  cursor: pointer;
+}

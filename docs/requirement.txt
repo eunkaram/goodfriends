@@ -1,0 +1,51 @@
+Requirements
+
+메뉴/카테고리  - 최종
+
+커뮤니티
+  공지
+  News
+  Q&amp;A
+  자유게시판
+
+공유
+  활용사례
+  노하우·강좌 
+  라이브러리
+
+메이커
+  피드백 요청
+  런칭·자랑
+
+모델·도구
+  Frontier Models
+  Local LLM
+  Agents &amp; Harness
+  RAG &amp; Fine-tuning
+  AI Apps
+
+활용 분야
+  AI Coding
+  Automation
+  Creative
+  Biz / Marketing
+  Data / Analysis
+
+
+메뉴/카테고리  - 초기버전
+
+커뮤니티
+  News
+  Q&amp;A
+  자유게시판
+
+모델·도구
+  Frontier Models
+  Local LLM
+  Agents &amp; Harness
+  AI Services
+
+활용 분야
+  AI Coding
+  Automation
+  Creative

@@ -40,7 +40,7 @@ jobs:
             git clean -fd
             npm ci
             npm run db:migrate
-            sudo systemctl restart ai-community-backend
+            sudo systemctl restart goodfriends-backend
             sleep 2
             curl -sf --max-time 10 http://localhost:3010/api/health
           '

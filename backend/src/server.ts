@@ -9,6 +9,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { handleHealthRoutes } from './health-http.ts';
 import { handleAuthRoutes } from './auth-http.ts';
 import { handlePostsRoutes } from './posts-http.ts';
+import { handleSearchRoutes } from './search-http.ts';
 import { handleCategoriesRoutes } from './categories-http.ts';
 import { handlePopularityRoutes } from './popularity-http.ts';
 import { handleRelationshipsRoutes } from './relationships-http.ts';
@@ -19,6 +20,8 @@ import { handleReportsRoutes } from './reports-http.ts';
 import { handleUserLogRoutes } from './user-log-http.ts';
 import { handleProfileLinksRoutes } from './profile-links-http.ts';
 import { handleSavedPostsRoutes } from './saved-posts-http.ts';
+import { handleMessagesRoutes } from './messages-http.ts';
+import { handleMediaRoutes } from './media-http.ts';
 import { handleNotificationsRoutes } from './notifications-http.ts';
 import { handleAdminRoutes } from './admin-http.ts';
 import { handleDigestAdminRoutes } from './admin-digest-http.ts';
@@ -60,6 +63,7 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   try {
     if (await handleHealthRoutes(req, res)) return;
     if (await handleAuthRoutes(req, res)) return;
+    if (await handleSearchRoutes(req, res)) return;
     if (await handlePostsRoutes(req, res)) return;
     if (await handleCategoriesRoutes(req, res)) return;
     if (await handlePopularityRoutes(req, res)) return;
@@ -71,6 +75,8 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
     if (await handleUserLogRoutes(req, res)) return;
     if (await handleProfileLinksRoutes(req, res)) return;
     if (await handleSavedPostsRoutes(req, res)) return;
+    if (await handleMessagesRoutes(req, res)) return;
+    if (await handleMediaRoutes(req, res)) return;
     if (await handleLoungeRoutes(req, res)) return;
     if (await handleNotificationsRoutes(req, res)) return;
     // 🔒 순서 — /api/admin/*는 admin-http.ts가 마지막에 catch-all 404로 닫기
@@ -113,6 +119,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   attachWsServer(server);
 
   server.listen(PORT, () => {
-    console.log(`ai-community-backend ${dev ? 'dev' : 'prod'} server on :${PORT} (http + ws)`);
+    console.log(`goodfriends-backend ${dev ? 'dev' : 'prod'} server on :${PORT} (http + ws)`);
   });
 }

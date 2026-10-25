@@ -28,9 +28,9 @@
 backend/   Node 20+ · TypeScript · 커스텀 http-server (Reafy 패턴)
            PostgreSQL(pg) + Redis(ioredis) + WebSocket(ws)
            마이그레이션: scripts/migrate.ts 방식 계승
-web/       Next.js 16 · React 19 · Tiptap 에디터 (Reafy 패턴)
+frontend/  Next.js 16 · React 19 · Tiptap 에디터 (Reafy 패턴)
 worker/    뉴스봇 파이프라인 (RSS 수집 → 중복제거 → AI 요약 → 발행) — 🔒 실제로는 backend/worker에 구현(M3 결정, 위 목록의 루트 worker/ 계획은 흡수됨)
-test/      vitest (단위) + Playwright (E2E, 론칭 전 핵심 플로우만) — 실제로는 backend/tests(web 21건은 web/)
+test/      vitest (단위) + Playwright (E2E, 론칭 전 핵심 플로우만) — 실제로는 backend/tests(frontend 21건은 frontend/)
 deploy/    docker-compose (Postgres · Redis · backend · worker) — 실제로는 backend/docker-compose.yml
 ```
 
@@ -121,10 +121,10 @@ chat_messages(room, user_id, body, created_at) -- 라운지 채팅
 - [x] 댓글(대댓글), 추천, 신고 — Reafy 유산(0021 답글·reactions·reports). 단, M0에서 잘못 제외한 intent 모듈(intent-session/execution/http, `aic_intent` 쿠키로 리네임)을 재작성해 복구 — 추천·저장·팔로우·비로그인 댓글초안 게이트가 프론트(`/api/intent*`)와 다시 연결됨. 푸시(dispatchPush)는 1차 스코프 밖이라 알림은 in-app만.
 - [x] **Q&A 채택** (답변 채택 → FAQ 후보) — 0050 `posts.adopted_comment_id` + `qna.ts` + `PATCH /api/posts/:id/adoption`(답글도 채택 가능, 작성자만, qna 카테고리 한정) + 댓글 채택 배지/버튼 UI
 - [x] **개발 로그 시리즈** (연재로 묶기) — 0050 `series` 테이블 + `series.ts/series-http.ts` + `/api/series*` (시리즈 소유자 = 글 작성자 조건, 시리즈 삭제 시 글 유지) + 상세 페이지 시리즈 배지. `/series/[id]` 상세 페이지는 M4 UX 단계로 미룸
-- [x] Postgres FTS 검색 — §6.8 bigm(pg_trgm GIN) prefix 계약대로 `GET /api/posts/search?q=&category=` + 우측 사이드바 전체검색 폼 + `/search` 페이지(tsvector·한국어 형태소는 2차)
+- [x] Postgres 부분일치 검색 — §6.8 pg_bigm GIN 계약(`lower(col) LIKE ... ESCAPE`)대로 `GET /api/search?q=&category=`가 글 제목/본문을 합친 목록을 반환 + 우측 사이드바 라이브 검색 + `/search` 페이지(한국어 형태소·오타 허용은 2차)
 - **완료 기준**: "글 작성 → 댓글 → 추천 → Q&A 채택" 핵심 플로우 E2E 통과 ✅ (실서버 curl: 가입 2계정(이메일 인증) → Q&A 글 작성 publicId `xqCyUYYFXd8` → 답변 댓글 → intent로 공감 → 채택 → 상세에서 adoptedCommentId·조회수 확인)
-- 비고: backend `npm test` 536건 통과 / web tsc 0에러·빌드 성공·21 테스트 통과
-- 보고 남김(1차 남기는 것): 검색 접두어만 검색됨(bigm 계약 유지), views 정확 카운트가 아니라 dedup된 통계, 시리즈 전용 페이지 미구현
+- 비고: backend `npm test` 628건 통과 / web tsc 0에러·빌드 성공·21 테스트 통과
+- 보고 남김(1차 남기는 것): 검색은 부분일치(형태소 분석 아님), views 정확 카운트가 아니라 dedup된 통계, 시리즈 전용 페이지 미구현
 
 ### M3 — 콘텐츠 엔진: 뉴스봇 + 화제 다이제스트 (Week 3~5, M2와 병행) — ✅ 2026-10-19 완료
 

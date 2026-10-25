@@ -21,6 +21,10 @@ export type CategoryGroup = Category & { children: Category[] };
 
 const pool = appPool('exists');
 
+/** news-bot.ts(발행)·posts.ts(작성 권한 제한) 양쪽이 같은 값을 써야 해서 여기 하나만 둔다
+ * — news-bot.ts가 posts.ts를 import하므로 반대 방향(posts.ts → news-bot.ts)은 순환참조. */
+export const NEWS_CATEGORY_SLUG = 'news';
+
 function toCategory(row: { id: string; parent_id?: string | null; name_key: string; slug: string; type: string; sort: number }): Category {
   return {
     id: row.id,

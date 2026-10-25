@@ -1,5 +1,5 @@
 /**
- * §11.9.2 의도 보존 라우트 — ai_community 이관본.
+ * §11.9.2 의도 보존 라우트 — goodfriends 이관본.
  * 원본 Reafy에선 http-server.ts에 있었지만, 그 파일은 커스텀 Next 합성 서버라
  * 1차 이관에서 제외했다 — 라우트 3개만 뽑아 별도 모듈로 재작성했다.
  * 두 파일(intent-session.ts·intent-execution.ts)과 한 트리오.

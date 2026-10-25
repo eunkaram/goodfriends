@@ -44,10 +44,10 @@ jobs:
         run: npx vitest run --no-file-parallelism
 
       - name: Restart service
-        run: sudo systemctl restart ai-community-backend
+        run: sudo systemctl restart goodfriends-backend
 
       - name: Verify service is active
-        run: sudo systemctl is-active --quiet ai-community-backend
+        run: sudo systemctl is-active --quiet goodfriends-backend
 
       - name: Verify health endpoint
         run: |

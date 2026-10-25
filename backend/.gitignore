@@ -26,3 +26,7 @@ graphify-out/
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# 로컬 이미지 업로드 저장소(src/media.ts) — R2 등 실제 오브젝트 스토리지로
+# 바꾸기 전까지의 임시 디스크 저장 위치, 커밋 대상 아님.
+uploads/

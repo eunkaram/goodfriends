@@ -561,13 +561,18 @@ export type AccountSummary = {
   /** 소셜 전용 계정(비밀번호 없음)일 때만 채워진다 — 탈퇴 확인 단계가 재입력을
    * 요구할 문구. 클라이언트가 이 문구를 직접 알 필요 없이 서버가 알려준다. */
   deleteConfirmationPhrase: string | null;
+  /** 🔒 사용자 지시(2026-10, "news메뉴는 시스템또는 어드민만") — 프론트
+   * 글쓰기 모달이 News를 선택지에서 숨길지 판단하는 데 쓴다(web/lib/categories.ts
+   * writableCommunityCategories). 실제 경계는 posts.ts가 서버에서 다시 막는다. */
+  isModerator: boolean;
+  isAgent: boolean;
 };
 
 /** §6.1 탈퇴 "안내" 단계 — 삭제 전 계정 기본정보를 보여준다. */
 export async function getAccountSummary(userId: string): Promise<AccountSummary | null> {
   const [userRow, email, withPassword] = await Promise.all([
-    pool.query<{ username: string; nickname: string; avatar_url: string; created_at: Date }>(
-      `SELECT username, nickname, avatar_url, created_at FROM users WHERE id = $1`,
+    pool.query<{ username: string; nickname: string; avatar_url: string; created_at: Date; is_moderator: boolean; is_agent: boolean }>(
+      `SELECT username, nickname, avatar_url, created_at, is_moderator, is_agent FROM users WHERE id = $1`,
       [userId],
     ),
     getUserEmail(userId),
@@ -583,6 +588,8 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary 
     joinedAt: row.created_at.toISOString(),
     hasPassword: withPassword,
     deleteConfirmationPhrase: withPassword ? null : DELETE_CONFIRMATION_PHRASE,
+    isModerator: row.is_moderator,
+    isAgent: row.is_agent,
   };
 }
 

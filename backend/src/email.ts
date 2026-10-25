@@ -15,14 +15,21 @@
  *      (일반 로그인 비밀번호가 아니다 — Claude가 대신 할 수 없다)
  *   2. `.env`에 `ZOHO_EMAIL_USER`(전체 이메일 주소)와
  *      `ZOHO_EMAIL_PASSWORD`(그 앱 비밀번호)를 채운다
- *   3. reafy.com 도메인을 Zoho에 연결해뒀다면 `EMAIL_FROM`을
- *      `Reafy <no-reply@reafy.com>`처럼 커스텀 도메인 주소로 바꿀 수 있다
+ *   3. goodfriends.co 도메인을 Zoho에 연결해뒀다면 `EMAIL_FROM`을
+ *      `goodfriends <no-reply@goodfriends.co>`처럼 커스텀 도메인 주소로 바꿀 수 있다
  *      (연결 안 했으면 ZOHO_EMAIL_USER 그대로 발신 주소로 쓴다)
  *
  * 호출부(auth.ts)는 이 함수의 성패와 무관하게 동작해야 한다 — 이메일 발송
  * 실패가 회원가입 자체를 막아선 안 된다.
  */
 import { createTransport } from 'nodemailer';
+
+// 🔒 web/lib/site.ts와 같은 값 — backend·web이 별도 배포 단위(서로 import
+// 불가)라 이 리터럴 하나만 따로 둔다. web 쪽을 고치면 여기도 같이 고쳐야
+// 한다(사용자 발견, 2026-10 — "인증 이메일도 UI설정에 맞게 수정해줘": 2026년
+// 10월 goodfriends 리브랜딩 때 이 파일만 "AI Community"·크림슨 배색으로
+// 남아있었다).
+const SITE_NAME = 'goodfriends';
 
 export type EmailMessage = {
   to: string;
@@ -42,7 +49,7 @@ function emailFrom(zohoUser: string): string {
   // 🔒 `??`가 아니라 `||`다 — `.env`에 `EMAIL_FROM=`(빈 문자열)로 남겨두는 게
   // 기본 안내(.env.example)라, `??`는 빈 문자열을 "설정됨"으로 보고 폴백을
   // 안 타서 발신 주소가 빈 값이 될 뻔했다.
-  return process.env.EMAIL_FROM || `AI Community <${zohoUser}>`;
+  return process.env.EMAIL_FROM || `${SITE_NAME} <${zohoUser}>`;
 }
 
 // 🔒 요청마다 새로 만들지 않는다 — SMTP 커넥션 풀을 nodemailer가 내부에서
@@ -83,49 +90,63 @@ export async function sendEmail(message: EmailMessage): Promise<void> {
   }
 }
 
+// 🔒 이메일 속 링크(인증·비밀번호 재설정 등)는 전부 Next.js 프론트(web)의
+// 라우트다(/verify-email, /reset-password, ...) — 백엔드(3010)가 아니라
+// web 기본 포트(3011)가 맞는 폴백이다. .env의 APP_BASE_URL(보통 web 주소)이
+// 항상 우선하므로 이 폴백은 그 값이 비어있을 때만 쓰인다.
 function appBaseUrl(): string {
-  return process.env.APP_BASE_URL || 'http://localhost:3010';
+  return process.env.APP_BASE_URL || 'http://localhost:3011';
 }
 
 /**
- * 공용 레이아웃 — §11.2 디자인 토큰의 실제 값(styles/tokens.css)을 이메일
- * 클라이언트 호환을 위해 인라인 스타일로 그대로 박아 넣는다(외부 CSS·
- * flexbox/grid는 Outlook 등에서 깨진다 — 테이블 기반 레이아웃 + 인라인
- * 스타일만 쓴다). 크림슨 2단(#950026 로고 / #be1437 CTA 채움), 핑크빛
- * 웜톤 보더(#e3bdbe) — GNB와 같은 브랜드 표현.
+ * 공용 레이아웃 — web/styles/tokens.css 실제 값을 이메일 클라이언트 호환을
+ * 위해 인라인 스타일로 그대로 박아 넣는다(외부 CSS·flexbox/grid는 Outlook
+ * 등에서 깨진다 — 테이블 기반 레이아웃 + 인라인 스타일만 쓴다).
+ *
+ * 🔒 사용자 발견(2026-10, "인증 이메일도 UI설정에 맞게 수정해줘") — 2026년
+ * 10월 goodfriends 리브랜딩(인디고 #3F4C86, tokens.css 주석 참고) 때 사이트
+ * 전체가 크림슨에서 인디고로 바뀌었는데, 이 템플릿만 옛 크림슨 배색
+ * (#950026 로고 / #be1437 CTA / #e3bdbe 보더)으로 남아 있었다 — 아래로
+ * 교체: --logo(#313e84) 브랜드명, --accent(#3f4c86) CTA, --border(#e0e8fb)
+ * 보더, --text-primary/--text-secondary/--text-tertiary 본문 톤.
  */
 function emailLayout(opts: { preheader: string; heading: string; body: string; ctaLabel: string; ctaUrl: string; footnote: string }): string {
+  // 🔒 메일 클라이언트 중 일부(구버전 Outlook 등)는 nodemailer가 붙이는
+  // MIME charset 헤더를 무시하고 <meta charset>만 본다 — 없으면 한글이
+  // 깨질 수 있다(로컬 미리보기로 직접 확인, python http.server가 MIME
+  // 헤더 없이 서빙했을 때 재현됨).
   return `<!doctype html>
 <html lang="ko">
-  <body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;">
+  <head><meta charset="utf-8" /></head>
+  <body style="margin:0;padding:0;background:#f5f5fa;font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;">
     <span style="display:none;max-height:0;overflow:hidden;opacity:0;">${opts.preheader}</span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;padding:40px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5fa;padding:40px 16px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e3bdbe;border-radius:16px;">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e0e8fb;border-radius:16px;">
             <tr>
               <td style="padding:32px 32px 0;">
-                <span style="font-size:24px;font-weight:700;color:#950026;">AI Community</span>
+                <span style="font-size:24px;font-weight:700;color:#313e84;">${SITE_NAME}</span>
               </td>
             </tr>
             <tr>
               <td style="padding:24px 32px 8px;">
-                <span style="font-size:20px;font-weight:600;color:#1a1b23;">${opts.heading}</span>
+                <span style="font-size:20px;font-weight:600;color:#111c2d;">${opts.heading}</span>
               </td>
             </tr>
             <tr>
               <td style="padding:0 32px 24px;">
-                <p style="margin:0;font-size:16px;line-height:1.7;color:#5b4040;">${opts.body}</p>
+                <p style="margin:0;font-size:16px;line-height:1.7;color:#475569;">${opts.body}</p>
               </td>
             </tr>
             <tr>
               <td style="padding:0 32px 32px;">
-                <a href="${opts.ctaUrl}" style="display:inline-block;background:#be1437;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;">${opts.ctaLabel}</a>
+                <a href="${opts.ctaUrl}" style="display:inline-block;background:#3f4c86;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;">${opts.ctaLabel}</a>
               </td>
             </tr>
             <tr>
-              <td style="padding:16px 32px 32px;border-top:1px solid #e9e7f2;">
-                <p style="margin:0;padding-top:16px;font-size:12px;line-height:1.6;color:#8a8a92;word-break:break-all;">${opts.footnote}</p>
+              <td style="padding:16px 32px 32px;border-top:1px solid #e0e8fb;">
+                <p style="margin:0;padding-top:16px;font-size:12px;line-height:1.6;color:#64748b;word-break:break-all;">${opts.footnote}</p>
               </td>
             </tr>
           </table>
@@ -140,10 +161,10 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
   const link = `${appBaseUrl()}/verify-email?token=${token}`;
   await sendEmail({
     to,
-    subject: 'AI Community 이메일 인증',
+    subject: `${SITE_NAME} 이메일 인증`,
     text: `가입해주셔서 감사해요. 아래 링크를 눌러 이메일 인증을 완료해주세요 (24시간 유효):\n${link}`,
     html: emailLayout({
-      preheader: '이메일 인증을 완료하고 AI Community를 시작하세요.',
+      preheader: `이메일 인증을 완료하고 ${SITE_NAME}를 시작하세요.`,
       heading: '이메일 인증',
       body: '가입해주셔서 감사해요. 아래 버튼을 눌러 이메일 인증을 완료해주세요.',
       ctaLabel: '이메일 인증하기',
@@ -163,7 +184,7 @@ export async function sendEmailChangedNotice(to: string, newEmail: string): Prom
   const link = `${appBaseUrl()}/forgot-password`;
   await sendEmail({
     to,
-    subject: 'AI Community 계정 이메일이 변경됐어요',
+    subject: `${SITE_NAME} 계정 이메일이 변경됐어요`,
     text: `이 계정(${to})의 로그인 이메일이 ${newEmail}(으)로 변경됐어요. 본인이 한 게 맞다면 무시하셔도 됩니다. 본인이 아니라면 지금 바로 비밀번호를 재설정해주세요:\n${link}`,
     html: emailLayout({
       preheader: '계정 이메일이 변경됐어요 — 본인이 아니라면 확인해주세요.',
@@ -180,7 +201,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   const link = `${appBaseUrl()}/reset-password?token=${token}`;
   await sendEmail({
     to,
-    subject: 'AI Community 비밀번호 재설정',
+    subject: `${SITE_NAME} 비밀번호 재설정`,
     text: `아래 링크에서 새 비밀번호를 설정해주세요 (1시간 유효):\n${link}`,
     html: emailLayout({
       preheader: '비밀번호를 재설정하세요.',

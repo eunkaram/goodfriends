@@ -1,0 +1,33 @@
+# systemd unit — 오라클 클라우드 운영 서버(129.159.47.244, Reafy와 같은 박스)용.
+# Reafy의 reafy-frontend.service와 같은 패턴. next start는 npm 스크립트의
+# `${PORT:-3011}` 셸 확장을 systemd ExecStart(셸 없음)가 못 풀어주므로, Reafy처럼
+# node_modules/.bin/next를 직접 호출하고 포트를 -p로 리터럴로 박는다.
+#
+# 설치:
+#   sudo cp goodfriends-frontend.service.example /etc/systemd/system/goodfriends-frontend.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now goodfriends-frontend
+#
+# 전제: /opt/goodfriends/frontend에 이 repo의 frontend/가 배치, npm ci && npm run build
+#   완료 상태(standalone 빌드 아님 — node_modules를 프로덕션에도 유지해야 next start가 됨,
+#   Reafy 프론트와 동일). .env.local에 API_BASE_URL=https://api.goodfriends.co,
+#   NEXT_PUBLIC_API_BASE_URL=https://api.goodfriends.co, APP_BASE_URL=https://www.goodfriends.co.
+
+[Unit]
+Description=goodfriends Frontend (Next.js)
+After=network.target goodfriends-backend.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/goodfriends/frontend
+Environment=NODE_ENV=production
+Environment=PORT=3021
+ExecStart=/opt/goodfriends/frontend/node_modules/.bin/next start -p 3021
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

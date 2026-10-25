@@ -50,6 +50,18 @@ export async function isActiveModerator(userId: string | null): Promise<boolean>
   return row !== undefined && row.is_moderator && !row.is_banned;
 }
 
+/** 어드민(is_moderator) 또는 시스템 계정(is_agent, 예: ai_news_bot) — News처럼
+ * 운영진·봇만 글을 쓸 수 있는 카테고리의 게이트(posts.ts)가 쓴다. */
+export async function isModeratorOrAgent(userId: string | null): Promise<boolean> {
+  if (!userId) return false;
+  const r = await pool.query<{ is_moderator: boolean; is_agent: boolean; is_banned: boolean }>(
+    `SELECT is_moderator, is_agent, is_banned FROM users WHERE id = $1`,
+    [userId],
+  );
+  const row = r.rows[0];
+  return row !== undefined && !row.is_banned && (row.is_moderator || row.is_agent);
+}
+
 export type ModerationActionResult =
   | { ok: true }
   | { ok: false; error: 'NOT_FOUND' | 'INVALID_INPUT' | 'SELF_LOCKOUT' | 'ALREADY_BANNED' };

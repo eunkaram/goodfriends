@@ -62,7 +62,7 @@ export async function handlePostsRoutes(req: IncomingMessage, res: ServerRespons
       }
       const result = await createCommunityPost(userId, { categoryId: input.categoryId, title: input.title, body: input.body });
       if (!result.ok) {
-        json(res, 400, { error: result.error });
+        json(res, result.error === 'FORBIDDEN' ? 403 : 400, { error: result.error });
         return true;
       }
       json(res, 201, { id: result.id, publicId: result.publicId });
@@ -203,7 +203,9 @@ export async function handlePostsRoutes(req: IncomingMessage, res: ServerRespons
     }
     const result = await updatePost(userId, postId, input);
     if (!result.ok) {
-      const status = result.error === 'NOT_FOUND' ? 404 : 400; // §10.2 — 본인 글이 아닌지 존재 안 하는지 구분해서 알려주지 않는다
+      // §10.2 — 본인 글이 아닌지 존재 안 하는지 구분해서 알려주지 않는다. FORBIDDEN(News 등
+      // 어드민·시스템 전용 카테고리로의 이동)만 그 원칙 밖 — 카테고리 자체는 공개 정보다.
+      const status = result.error === 'NOT_FOUND' ? 404 : result.error === 'FORBIDDEN' ? 403 : 400;
       json(res, status, { error: result.error });
       return true;
     }

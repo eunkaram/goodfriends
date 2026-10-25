@@ -26,12 +26,12 @@ try {
 
   const { stdout } = await execFileAsync(
     'docker',
-    ['compose', 'exec', '-T', 'postgres', 'pg_dump', '-U', DB_USER, '-Fc', 'ai_community'],
+    ['compose', 'exec', '-T', 'postgres', 'pg_dump', '-U', DB_USER, '-Fc', 'goodfriends'],
     { maxBuffer: 1024 * 1024 * 500, encoding: 'buffer' },
   );
 
   const date = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
-  const file = `${BACKUP_DIR}/ai-community-${date}.dump`;
+  const file = `${BACKUP_DIR}/goodfriends-${date}.dump`;
   const { writeFile } = await import('node:fs/promises');
   await writeFile(file, stdout);
   console.log(`backup written: ${file} (${stdout.length} bytes)`);
@@ -40,7 +40,7 @@ try {
   if (KEEP_DAYS > 0) {
     const cutoff = Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000;
     for (const name of await readdir(BACKUP_DIR)) {
-      if (!name.startsWith('ai-community-') || !name.endsWith('.dump')) continue;
+      if (!name.startsWith('goodfriends-') || !name.endsWith('.dump')) continue;
       const { mtimeMs } = await stat(`${BACKUP_DIR}/${name}`);
       if (mtimeMs < cutoff) {
         await unlink(`${BACKUP_DIR}/${name}`);

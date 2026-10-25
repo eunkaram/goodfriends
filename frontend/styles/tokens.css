@@ -1,0 +1,163 @@
+/**
+ * 디자인 토큰 (T1 — §11.2 → CSS 변수 변환)
+ *
+ * 🔒 2026-10 goodfriends 리브랜딩 — Claude Design으로 만든 두 번째 Artifact
+ * ("AI 커뮤니티 디자인" 캔버스 → goodfriends-ui.zip, CLAUDE.md 2. 디자인 기준)를
+ * 최종 디자인으로 지정 — 인디고 브랜드(#3F4C86)로 전면 교체. 이전 크림슨
+ * (#af2746, 2026-08 라운드) 값을 이 토큰에서 직접 덮어쓴다 — 컴포넌트 코드는
+ * 전부 이 변수만 참조하므로 색상 자체는 이 파일 밖을 건드릴 필요가 없다.
+ *
+ * 🔒 폰트 — goodfriends-ui/assets/fonts에 Pretendard Variable·Nunito-Variable
+ * 실물 woff2가 포함돼 있어(이전엔 이름만 쓰고 실제로 서빙하지 않아 시스템
+ * 폰트로 폴백되고 있었다) `public/gf/fonts/`에 복사해 self-host로 바꿨다.
+ * 로고 워드마크(Nunito 800)는 --font-logo로 분리.
+ *
+ * 🔒 컴포넌트에서 헥스값을 직접 쓰지 않는다 — 반드시 이 변수를 참조한다.
+ * 🔒 다크 모드(.dark) — goodfriends 시안엔 다크모드가 없다. 기존 다크모드
+ * 유도 원칙(배경 대비 accent를 밝게, 순수 검정 금지)을 새 인디고 팔레트로
+ * 그대로 파생했다 — accent는 시안이 제공하는 "연하게" 틴트(#B6BEDB)를 그대로 쓴다.
+ */
+
+@font-face {
+  font-family: 'Pretendard Variable';
+  src: url('/gf/fonts/PretendardVariable.woff2') format('woff2-variations');
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GF Nunito';
+  src: url('/gf/fonts/Nunito-Variable.woff2') format('woff2-variations');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* 배경·표면 */
+  --bg: #ffffff;
+  --raised: #ffffff;
+  --chip-bg: #f0f0f5;
+  --segment-bg: #f5f5fa;
+  --search-bg: #f0f3ff;
+  --border: #e0e8fb;
+  --divider: #e0e8fb;
+
+  /* 브랜드 — goodfriends CLAUDE.md 2. 디자인 기준 */
+  --logo: #313e84;
+  --logo-accent: #5b69f5;
+  --accent: #3f4c86;
+  --accent-hover: #323d6e;
+  --accent-light: #b6bedb;
+  --on-accent: #ffffff;
+  --secondary: #3d6b66;
+
+  /* 좌측 메뉴 그룹 아이콘 색 */
+  --icon-community: #5b69f5;
+  --icon-tools: #2f8f83;
+  --icon-usecase: #e07a5f;
+
+  /* 홈 리스트 카테고리 배지 배경 — 위 그룹 아이콘 색의 옅은 틴트(14% on bg). */
+  --badge-community-bg: #e8eafe;
+  --badge-tools-bg: #e2efee;
+  --badge-usecase-bg: #fbece9;
+
+  /* 텍스트 */
+  --text-primary: #111c2d;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+
+  /* 시맨틱 */
+  --danger: #e0483e;
+  --warning: #a16207;
+  --success: #15803d;
+  --info: #1d4ed8;
+
+  /* 서체 */
+  --font-sans: 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', -apple-system, sans-serif;
+  --font-logo: 'GF Nunito', 'Pretendard Variable', sans-serif;
+
+  /* 타이포 스케일 */
+  --text-display-lg: 700 32px/40px var(--font-sans);
+  --text-display-md: 700 24px/32px var(--font-sans);
+  --text-title-lg: 600 20px/28px var(--font-sans);
+  --text-title-md: 700 16px/20px var(--font-sans);
+  --text-label-md: 600 15px/20px var(--font-sans);
+  --text-label-sm: 400 13px/16px var(--font-sans);
+  --text-body-lg: 400 16px/1.7 var(--font-sans);
+  --text-body-sm: 400 15px/1.6 var(--font-sans);
+
+  /* 간격 — §11.2.6 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+
+  /* 라운드 — goodfriends 실측(메뉴 팝오버 12px, 모달/인증 카드 20px, 버튼·칩 pill) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* 모션 — §11.2.6 */
+  --motion-fast: 150ms;
+  --motion-layer: 200ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* z-index — §11.2.6 */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-drawer: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* GNB 실측 높이(Gnb.module.css `.gnb`) */
+  --gnb-height: 56px;
+}
+
+.dark {
+  --bg: #14161c;
+  --raised: #1c1f27;
+  --chip-bg: #262a33;
+  --segment-bg: #262a33;
+  --search-bg: #20242e;
+  --border: #333a4a;
+  --divider: #333a4a;
+
+  --logo: #b6bedb;
+  --logo-accent: #8f9bf0;
+  --accent: #b6bedb;
+  --accent-hover: #cdd4e8;
+  --accent-light: #3f4c86;
+  --on-accent: #14161c;
+  --secondary: #7fb0a9;
+
+  --icon-community: #8f9bf0;
+  --icon-tools: #5bbcae;
+  --icon-usecase: #f0a687;
+
+  --badge-community-bg: #33384f;
+  --badge-tools-bg: #293e42;
+  --badge-usecase-bg: #463a3a;
+
+  --text-primary: #f2f0ee;
+  --text-secondary: #c9cedd;
+  --text-tertiary: #959db0;
+
+  --danger: #ff8a75;
+  --warning: #fbbf24;
+  --success: #4ade80;
+  --info: #93c5fd;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-layer: 0ms;
+  }
+}

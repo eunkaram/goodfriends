@@ -55,12 +55,12 @@ afterAll(async () => {
 describe('카테고리 트리 (§11.8 메가메뉴)', () => {
   it('공개된 하위가 있는 대분류만 포함한다(§11.8 — 빈 대분류 헤더 금지)', async () => {
     const tree = await fetchCategoryTree();
-    // 0049 — 배우고·만들고·나누는 3그룹(기획 기준 ai-board-phase1.pdf §2).
-    expect(tree.map((g) => g.slug).sort()).toEqual(['build', 'learn', 'share']);
-    const learn = tree.find((g) => g.slug === 'learn')!;
-    expect(learn.name).toBe('배우고');
-    expect(learn.children.map((c) => c.slug)).toContain('ai-news');
-    expect(learn.children.map((c) => c.slug)).not.toContain('cat-test-hidden'); // is_public=false
+    // 0053 — 커뮤니티·모델·도구·활용 분야 3그룹(goodfriends-ui/CLAUDE.md 4. 메뉴 구조).
+    expect(tree.map((g) => g.slug).sort()).toEqual(['community', 'tools', 'usecase']);
+    const community = tree.find((g) => g.slug === 'community')!;
+    expect(community.name).toBe('커뮤니티');
+    expect(community.children.map((c) => c.slug)).toContain('news');
+    expect(community.children.map((c) => c.slug)).not.toContain('cat-test-hidden'); // is_public=false
   });
 
   it('인기 카테고리 5개를 반환한다(§11.7.2)', async () => {
@@ -125,17 +125,17 @@ describe('카테고리 트리 (§11.8 메가메뉴)', () => {
   });
 
   it('형제 카테고리만 반환한다(§11.7.3 — 전체 트리 아님, 본인 제외)', async () => {
-    const tips = await fetchCategoryBySlug('ai-tips');
-    const siblings = await fetchSiblingCategories(tips!);
+    const qna = await fetchCategoryBySlug('qna');
+    const siblings = await fetchSiblingCategories(qna!);
     const slugs = siblings.map((c) => c.slug).sort();
-    expect(slugs).toEqual(['ai-news', 'ai-topics', 'qna']); // 배우고의 공개 하위 중 ai-tips 제외(research은 비공개라 안 보임)
-    expect(slugs).not.toContain('ai-tips');
-    expect(slugs).not.toContain('dev-log'); // 다른 대분류(만들고)는 형제가 아니다
+    expect(slugs).toEqual(['free', 'idea', 'news']); // 커뮤니티의 공개 하위 중 qna 제외
+    expect(slugs).not.toContain('qna');
+    expect(slugs).not.toContain('frontier'); // 다른 대분류(모델·도구)는 형제가 아니다
   });
 
   it('대분류(부모)는 형제가 없다', async () => {
-    const learn = (await fetchCategoryTree()).find((g) => g.slug === 'learn')!;
-    expect(await fetchSiblingCategories(learn)).toEqual([]);
+    const community = (await fetchCategoryTree()).find((g) => g.slug === 'community')!;
+    expect(await fetchSiblingCategories(community)).toEqual([]);
   });
 });
 

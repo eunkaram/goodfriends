@@ -128,7 +128,7 @@ export async function fetchFeed(url: string): Promise<FetchFeedResult> {
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'ai-community-bot/1.0 (+news fetcher)' },
+      headers: { 'User-Agent': 'goodfriends-bot/1.0 (+news fetcher)' },
     });
     if (!res.ok) return { ok: false, status: res.status, message: `HTTP ${res.status} for ${url}` };
     const xml = await res.text();

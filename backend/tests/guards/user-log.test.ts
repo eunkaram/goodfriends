@@ -272,6 +272,88 @@ describe('updateProfile — Claude Design 확정안 프로필 편집 모달(신�
 });
 
 /**
+ * 🔒 사용자 지시(2026-10, "프로필 페이지의... 오른쪽영역을 디자인 시안대로
+ * 처리해줘") — goodfriends 우측 프로필 위젯(관심 분야·스택·활동 히트맵).
+ * profile_fields(0006)는 지금까지 테이블만 있고 아무 기능도 안 썼다 —
+ * RLS 자체는 profile-field.test.ts가 이미 범용으로 검증했으므로, 여기선
+ * 이 두 키(interests/stack)에 특화된 검증(허용 목록·개수 제한)과 활동
+ * 히트맵 집계만 확인한다.
+ */
+describe('updateProfile — 관심 분야/스택/활동(신규)', () => {
+  it('허용된 카테고리 slug로 관심 분야를 저장하고 그대로 읽힌다', async () => {
+    const result = await updateProfile(alice, { interests: ['local', 'coding'] });
+    expect(result).toEqual({ ok: true });
+    const log = await fetchUserLogByUsername(alice, 'ulog_alice');
+    expect(log?.interests.sort()).toEqual(['coding', 'local']);
+  });
+
+  it('목록에 없는 slug(news·qna·free 포함)는 거부한다', async () => {
+    expect(await updateProfile(alice, { interests: ['news'] })).toEqual({ ok: false, error: 'INVALID_INPUT' });
+    expect(await updateProfile(alice, { interests: ['존재하지않는카테고리'] })).toEqual({ ok: false, error: 'INVALID_INPUT' });
+  });
+
+  it('6개 이상(최대 5개)은 거부한다', async () => {
+    const result = await updateProfile(alice, {
+      interests: ['local', 'coding', 'automation', 'creative', 'aiservice', 'frontier'],
+    });
+    expect(result).toEqual({ ok: false, error: 'INVALID_INPUT' });
+  });
+
+  it('빈 배열로 저장하면 관심 분야가 비워진다', async () => {
+    await updateProfile(alice, { interests: [] });
+    const log = await fetchUserLogByUsername(alice, 'ulog_alice');
+    expect(log?.interests).toEqual([]);
+  });
+
+  it('고정된 3그룹(모델/도구/장비)에 자유 텍스트 스택을 저장하고 그대로 읽힌다', async () => {
+    const result = await updateProfile(bob, { stack: { 모델: ['Claude', 'Qwen'], 도구: ['Ollama'], 장비: [] } });
+    expect(result).toEqual({ ok: true });
+    const log = await fetchUserLogByUsername(bob, 'ulog_bob');
+    expect(log?.stack).toEqual({ 모델: ['Claude', 'Qwen'], 도구: ['Ollama'], 장비: [] });
+  });
+
+  it('고정 3그룹에 없는 키는 거부한다', async () => {
+    const result = await updateProfile(bob, { stack: { 프레임워크: ['React'] } });
+    expect(result).toEqual({ ok: false, error: 'INVALID_INPUT' });
+  });
+
+  // 🔒 사용자 지시(2026-10, "모델, 도구, 장비는 각각 최대 5개씩만") — 12 → 5.
+  it('그룹당 5개를 넘는 항목은 거부한다', async () => {
+    const result = await updateProfile(bob, { stack: { 모델: Array.from({ length: 6 }, (_, i) => `m${i}`), 도구: [], 장비: [] } });
+    expect(result).toEqual({ ok: false, error: 'INVALID_INPUT' });
+  });
+
+  it('그룹당 정확히 5개는 허용한다', async () => {
+    const result = await updateProfile(bob, { stack: { 모델: Array.from({ length: 5 }, (_, i) => `m${i}`), 도구: [], 장비: [] } });
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('24자를 넘는 항목 이름은 거부한다', async () => {
+    const result = await updateProfile(bob, { stack: { 모델: ['a'.repeat(25)], 도구: [], 장비: [] } });
+    expect(result).toEqual({ ok: false, error: 'INVALID_INPUT' });
+  });
+
+  it('activity — 최근 20주(140일)를 주 단위로 묶어 돌려준다', async () => {
+    const log = await fetchUserLogByUsername(alice, 'ulog_alice');
+    expect(log?.activity.recentWeeks).toHaveLength(20);
+    expect(log?.activity.recentWeeks.every((w) => w.days.length === 7)).toBe(true);
+  });
+
+  it('activity — 오늘 쓴 글이 오늘 칸의 카운트에 즉시 반영된다', async () => {
+    const before = await fetchUserLogByUsername(alice, 'ulog_alice');
+    const todayBefore = before!.activity.recentWeeks.at(-1)!.days.at(-1)!;
+    await owner.query(`INSERT INTO posts (author_id, category_id, title, visibility) VALUES ($1, $2, 'ULOG::activity post', 'public')`, [
+      alice,
+      dailyChatId,
+    ]);
+    const after = await fetchUserLogByUsername(alice, 'ulog_alice');
+    const todayAfter = after!.activity.recentWeeks.at(-1)!.days.at(-1)!;
+    expect(todayAfter.date).toBe(todayBefore.date);
+    expect(todayAfter.count).toBe(todayBefore.count + 1);
+  });
+});
+
+/**
  * 🔒 사용자 지시(2026-08, "profile페이지를... 목업UI와 완벽하게 싱크되어야해") —
  * 이전 라운드가 "URL 정체성이라 편집 UI 자체를 안 넣었다"고 뺐던 아이디가
  * 이번에 처음 편집 가능해졌다. alice/bob 픽스처를 건드리면 앞선 테스트들이

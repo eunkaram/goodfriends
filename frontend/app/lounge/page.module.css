@@ -1,0 +1,113 @@
+/**
+ * /lounge 전용 레이아웃 — app/page.module.css(홈)의 3단 그리드와 같은 뼈대를
+ * 쓰지만(좌/센터/우 240·680·280 등 같은 값), 센터 칸만 다르다: 홈은 피드가
+ * 페이지와 함께 스크롤돼도 되지만, 라운지는 채팅방이라 이 칸 자체를
+ * 뷰포트 높이에 맞춰 고정하고 내부(Lounge.module.css `.listWrap`/`.list`)가
+ * 스스로 스크롤해야 한다 — app/messages/page.module.css의 `.center`
+ * (height: calc(100vh - ...); overflow: hidden)와 정확히 같은 패턴.
+ *
+ * 🔒 사용자 지시(2026-10, "높이를 다이내믹하게... 화면높이에 따라서
+ * 가변적으로") — Lounge.tsx가 이전엔 홈의 app/page.module.css를 그대로
+ * 재사용했는데, 거기 `.center`엔 이 높이 제약이 없어(피드 전용 설계)
+ * 채팅창(`.listWrap`)이 고정 480px일 수밖에 없었다 — 전용 파일로 분리해
+ * messages와 같은 "뷰포트에 맞춰 자르고 안에서 스크롤" 방식으로 바꾼다.
+ */
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.center {
+  min-width: 0;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.left,
+.right {
+  display: none;
+}
+
+/* pad(768~1279px) — app/page.module.css와 같은 좌측 폭(208px), 우측은
+   여전히 숨김(home과 달리 이 폭에서 우측 유틸이 나온 적이 없다는 원칙은
+   같되, 라운지는 1280px+에서만 접속자 목록을 보여준다 — 아래 참고). */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 208px minmax(0, 1fr);
+    padding: 32px 24px 40px;
+    gap: 28px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 32px;
+    height: calc(100vh - 32px - 40px);
+    overflow-y: auto;
+    scrollbar-width: none; /* 🔒 리눅스 Chrome 스크롤바 숨김 — app/page.module.css와 같은 이유 */
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  /* 🔒 채팅 칸 자체를 뷰포트 높이로 잘라낸다 — Lounge.tsx가 내부에서
+     flex-direction:column(제목·상태줄은 자기 높이, `.listWrap`만 flex:1)으로
+     이 높이를 나눠 쓴다. overflow:hidden이 없으면 메시지가 쌓일 때
+     페이지 전체가 늘어나며 스크롤된다(messages/page.module.css와 같은 이유). */
+  .center {
+    margin: 0;
+    height: calc(100vh - 32px - 40px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 1280px) {
+  .layout {
+    grid-template-columns: 240px 680px 280px;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 40px;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 40px;
+    height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .left::-webkit-scrollbar {
+    display: none;
+  }
+  .center {
+    margin: 0;
+    height: calc(100vh - 40px * 2);
+  }
+  /* 접속자 목록도 길어질 수 있어 .left와 같은 "뷰포트에 맞춰 자르고 안에서
+     스크롤" — app/page.module.css(홈)의 `.right`와 같은 값. */
+  .right {
+    display: block;
+    position: sticky;
+    top: 40px;
+    max-height: calc(100vh - 40px * 2);
+    overflow-y: auto;
+  }
+}
+
+/* phone(<768px) 하단 고정 탭바가 본문을 가리지 않게 여백 — messages/
+   page.module.css와 같다. 이 폭은 .left/.right가 애초에 숨어있어(위
+   기본 규칙) 채팅창 자체 높이는 Lounge.module.css `.listWrap`이
+   뷰포트 비율(vh)로 직접 처리한다 — GNB·탭바 높이를 여기서 정확히
+   빼는 계산은 모바일 헤더가 sticky라 복잡해지는 데 비해 득이 적다. */
+@media (max-width: 767px) {
+  .layout {
+    padding-bottom: 84px;
+  }
+}
