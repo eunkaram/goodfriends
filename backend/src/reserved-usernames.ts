@@ -12,8 +12,8 @@ export const RESERVED_USERNAMES = new Set([
   'reafy', 'reafyofficial', 'reafy_official', 'reafyteam', 'gomissy',
   // 이메일 시스템 계정
   'noreply', 'postmaster', 'webmaster', 'hostmaster', 'abuse', 'mailerdaemon', 'info', 'contact',
-  // 본 시스템 봇 계정(0051) — 사람이 가지면 소식 발행 주체를 사칭하게 된다
-  'ai_news_bot', 'ai_digest_bot',
+  // 본 시스템 봇 계정(0051, 0058) — 사람이 가지면 소식 발행 주체를 사칭하게 된다
+  'ai_news_bot', 'ai_digest_bot', 'ai_bot',
   // 라우트/기술 예약어
   'api', 'www', 'static', 'assets', 'login', 'logout', 'signup', 'signin', 'register', 'settings', 'profile', 'search', 'notifications', 'messages', 'feed', 'market', 'about', 'terms', 'privacy', 'blog', 'docs', 'next', 'favicon', 'robots', 'sitemap',
   // 의미 혼동/시스템 값

@@ -8,7 +8,8 @@ import { readBody, json, isUuid, parsePageParam } from './http-utils.ts';
 import { resolveSessionToken, getSessionUserId } from './session.ts';
 import { createCommunityPost, createLogPost, deletePost, updatePost, resolvePostId, type CreatePostInput, type UpdatePostInput } from './posts.ts';
 import { fetchHomeFeed, fetchCategoryFeed, type FeedSort } from './feed.ts';
-import { fetchCategoryBySlug } from './categories.ts';
+import { fetchCategoryBySlug, fetchCategoryById } from './categories.ts';
+import { maybeAddBotFirstComment } from './post-bot-comment.ts';
 import { createComment, deleteComment, toggleCommentReaction, fetchComments } from './comments.ts';
 import { fetchUserLogByUsername, fetchLogPosts } from './user-log.ts';
 import { isEmailVerified } from './auth.ts';
@@ -64,6 +65,19 @@ export async function handlePostsRoutes(req: IncomingMessage, res: ServerRespons
       if (!result.ok) {
         json(res, result.error === 'FORBIDDEN' ? 403 : 400, { error: result.error });
         return true;
+      }
+      // 🔒 사용자 지시(2026-10-26, "글 작성시 news를 제외한 나머지 카테고리에서
+      // ai_bot이 첫 댓글") — post-bot-comment.ts가 내부에서 전부 삼켜서 실패해도
+      // 글 작성 응답을 막지 않는다(auth.ts의 sendVerificationEmail과 같은 원칙).
+      const category = await fetchCategoryById(input.categoryId);
+      if (category) {
+        await maybeAddBotFirstComment({
+          categorySlug: category.slug,
+          categoryName: category.name,
+          postId: result.id,
+          title: input.title,
+          body: input.body,
+        });
       }
       json(res, 201, { id: result.id, publicId: result.publicId });
       return true;

@@ -211,8 +211,10 @@ describe('GET /api/posts/:publicId — 글 상세 + 댓글 (신규, 모바일용
     const body = await res.json();
     expect(body.post.publicId).toBe(publicId);
     expect(body.post.title).toBe('FEED::detail target');
-    expect(body.comments).toHaveLength(1);
-    expect(body.comments[0].body).toBe('FEED::detail comment');
+    // 🔒 news 제외 카테고리는 ai_bot이 첫 댓글을 자동으로 단다(post-bot-comment.ts,
+    // 2026-10-26) — 'free' 카테고리라 여기도 해당. bob의 댓글 하나 + 봇 댓글 하나.
+    expect(body.comments).toHaveLength(2);
+    expect(body.comments.map((c: { body: string }) => c.body)).toContain('FEED::detail comment');
   });
 
   it('존재하지 않는 publicId는 404', async () => {

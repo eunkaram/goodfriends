@@ -163,6 +163,49 @@ export async function summarizeNewsKorean(input: {
   }
 }
 
+/** 개발/테스트용 결정 댓글 — LLM_API_KEY 없을 때 폴백(summarizeNewsStub과 같은 원칙). */
+export function firstCommentStub(input: { title: string }): string {
+  return `"${input.title}" 글 잘 봤어요. 좋은 이야기 공유해주셔서 감사해요!`;
+}
+
+/** 새 글 첫 댓글(post-bot-comment.ts) — 실패 시 null 대신 ok:false로, 호출자가
+ * 조용히 건너뛰도록 한다(댓글 하나 없다고 글 작성이 실패하면 안 된다). */
+export async function generateFirstComment(input: {
+  categoryName: string;
+  title: string;
+  body: string;
+}): Promise<{ ok: true; value: string } | { ok: false; error: string }> {
+  const config = llmConfig();
+  if (!config) {
+    return { ok: true, value: firstCommentStub(input) };
+  }
+  try {
+    const text = await callLlm(
+      [
+        {
+          role: 'system',
+          content:
+            '너는 AI 커뮤니티의 활발한 멤버다. 방금 올라온 글에 첫 댓글을 단다. ' +
+            '글쓴이를 환영하고 글 내용에 실제로 반응하는 1~2문장 댓글을 써라. ' +
+            '글에 없는 사실을 지어내거나 단정하지 마라. 경어체로 쓰고 이모지·해시태그는 쓰지 마라. ' +
+            '/no_think — 추론 과정은 출력하지 말고 바로 댓글 본문만 써라.',
+        },
+        {
+          role: 'user',
+          content: `카테고리: ${input.categoryName}\n제목: ${input.title}\n본문: ${input.body.slice(0, 1500)}`,
+        },
+      ],
+      500,
+      300,
+    );
+    return { ok: true, value: text };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await alertAdminOfError(err, 'first-comment-generate');
+    return { ok: false, error: message };
+  }
+}
+
 export type DigestDraftInput = {
   dateLabel: string; // 예: 2026-10-18
   activities: Array<{

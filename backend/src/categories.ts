@@ -149,6 +149,16 @@ export async function fetchCategoryBySlug(slug: string): Promise<Category | null
   return r.rows[0] ? toCategory(r.rows[0]) : null;
 }
 
+/** post-bot-comment.ts가 글쓰기 응답(categoryId만 있음)에서 slug/name을 되짚는 데 쓴다. */
+export async function fetchCategoryById(id: string): Promise<Category | null> {
+  const r = await queryRaw<{ id: string; parent_id: string | null; name_key: string; slug: string; type: string; sort: number }>(
+    pool,
+    `SELECT id, parent_id, name_key, slug, type, sort FROM categories WHERE id = $1 AND is_public = true`,
+    [id],
+  );
+  return r.rows[0] ? toCategory(r.rows[0]) : null;
+}
+
 /** §11.7.3 좌내비 "형제 카테고리만" — 현재 카테고리와 같은 대분류의 다른 공개 하위들(본인 제외). */
 export async function fetchSiblingCategories(category: Category): Promise<Category[]> {
   if (!category.parentId) return [];
