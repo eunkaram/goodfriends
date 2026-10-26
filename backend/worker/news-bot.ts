@@ -15,6 +15,7 @@
  */
 import { runNewsCycle } from '../src/news-bot.ts';
 import { ownerPool } from '../src/db.ts';
+import { closeRedis } from '../src/redis.ts';
 
 async function main(): Promise<void> {
   const loop = process.argv.includes('--loop');
@@ -43,7 +44,12 @@ async function main(): Promise<void> {
   } else {
     // 🔒 결함 교훈(53300, db.ts ownerPool 주석) — 단발 실행은 풀을 풀어줘야
     // node 프로세스가 열린 소켓 때문에 끝나지 않고 매달리지 않는다.
+    // 🔒 실전 발견(2026-10-26, 오라클 배포 첫 실행) — Postgres 풀만 닫고 redis.ts
+    // 의 싱글턴 커넥션은 그대로 둬서, 사이클이 끝나고도 프로세스가 영원히
+    // 안 끝났다(이벤트루프를 그 커넥션이 붙잡고 있음). cron이 매일 돌리므로
+    // 안 고치면 하루에 하나씩 좀비 프로세스가 쌓인다.
     await ownerPool().end();
+    await closeRedis();
   }
 }
 
