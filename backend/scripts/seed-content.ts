@@ -56,7 +56,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'dev1',
     author: 'kiryun',
-    categorySlug: 'dev-log',
+    categorySlug: 'coding',
     title: '(1) 무에서 다시 서비스까지 — 4년 묵은 포크를 새로 심는 결정',
     body:
       '시작은 "어차피 고쳐 쓸 텐데?"였다. 이전에 운영하던 커뮤니티 프레임웍(Reafy)은 4년 동안 운영과 패치가 쌓여 있었고, fork를 뜯어보는 30분이면 결론이 나왔다 — 거기서 바꿔 쓰는 것보다 벗겨내는 게 노력이 덜 든다.\n\n' +
@@ -67,7 +67,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'dev2',
     author: 'kiryun',
-    categorySlug: 'dev-log',
+    categorySlug: 'coding',
     title: '(2) RLS부터 심는다 — 권한이 화면 뒤에서 일어나려면',
     body:
       '커뮤니티 서비스는 게시글 하나에 조회 권한이 얽힌다 — 팔로우/친구/차단/모더레이터 등. 이걸 화면 코드에 분기로 심으면 사고 대열이 무한하다. 이 프로젝트는 Postgres RLS를 제일 먼저 심었다 — 화면은 권한을 몰라도 조회 자체가 필터된 채 돌아온다. 화면이 실수하면 침묵으로 막힌다. "화면이 맞는데 권한이 뚫리는" 실수가 더 큰 사고다.\n\n' +
@@ -78,7 +78,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'dev3',
     author: 'kiryun',
-    categorySlug: 'dev-log',
+    categorySlug: 'coding',
     title: '(3) RSS → 중복제거 → 요약 → 발행: 하루 한 번의 자기복구 파이프라인',
     body:
       '커뮤니티의 제일 뿌리는 고민은 "빈 페이지에 글을 쓸 글러리를 모으는 것"이다 — 그래서 자동 콘텐츠로 뉴스봇을 심었다. 파이프라인: 8개 RSS 소스 수집 → 중복 제거(URL UNIQUE + 제목 trigram 유사도 문턱 0.85) → 7일 오래 원문 스킵 → 한국어 요약(LLM) → 봇 계정 발행.\n\n' +
@@ -89,7 +89,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'dev4',
     author: 'kiryun',
-    categorySlug: 'dev-log',
+    categorySlug: 'coding',
     title: '(4) 설정 하나가 프로세스를 죽인다 — 실전 크래시 3건의 해부',
     body:
       '이번 편은 실제 크래시 3건의 정리 — 전부 논리 버그가 아니라 설정/라이프사이클 문제였다.\n\n' +
@@ -100,7 +100,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'dev5',
     author: 'kiryun',
-    categorySlug: 'dev-log',
+    categorySlug: 'coding',
     title: '(5) 씨앗을 심는 순간 — 시드 콘텐츠와 운영 전략',
     body:
       '개발은 "완성"에서 끝나지 않는다. 서비스가 처음 열릴 때 가장 중요한 건 빈 페이지를 보여주지 않는 것 — 그래서 이번 라운드는 시드 콘텐츠였다: 개발 일지 시리즈 5편, 쇼케이스 2편, 꿀팁 4편, Q&A 마중물 4건.\n\n' +
@@ -111,7 +111,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'show1',
     author: 'kiryun',
-    categorySlug: 'showcase',
+    categorySlug: 'local',
     title: '서버 한 대로 돌리는 AI 뉴스 에디터 — 로컬 vLLM 붙인 파이프라인',
     body:
       'RSS 8개 소스를 수집 → 중복 제거(trigram 유사도 0.85) → 로컬 LLM 한국어 요약 → 커뮤니티에 자동 발행하는 파이프라인을 서버 한 대 위에서 돌리고 있습니다.\n\n' +
@@ -122,7 +122,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'show2',
     author: 'noah',
-    categorySlug: 'showcase',
+    categorySlug: 'idea',
     title: 'Reafy 포크해서 소모임 커뮤니티 3주 운영한 회고',
     body:
       '저는 3주 전부터 Reafy 포크를 기반으로 스터디 소모임 커뮤니티를 운영하고 있습니다. 3주는 짧지만 운영만으로도 배울 점이 많았습니다.\n\n' +
@@ -134,7 +134,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'tip1',
     author: 'kiryun',
-    categorySlug: 'ai-tips',
+    categorySlug: 'coding',
     title: 'Postgres RLS 실전 꿀팁 5가지 — 대부분은 FORCE 하나로 잡힌다',
     body:
       '멀티테넌 커뮤니티에서 RLS를 실제로 심어보며 얻은 것들, 다섯 개다.\n\n' +
@@ -147,7 +147,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'tip2',
     author: 'noah',
-    categorySlug: 'ai-tips',
+    categorySlug: 'coding',
     title: 'next rewrites가 WebSocket upgrade를 프록시하지 못하는 이유와 해결',
     body:
       'Next.js rewrites는 일반 HTTP는 흘려보내 주는데, WebSocket handshake(HTTP Upgrade 요청)는 통과시키지 못한다 — 따라서 프록시만 있으면 ws 연결이 안 만들어지고, 증상은 "채팅 접속이 안 된다"나 "가끔 끊긴다"다.\n\n' +
@@ -157,7 +157,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'tip3',
     author: 'dawn',
-    categorySlug: 'ai-tips',
+    categorySlug: 'automation',
     title: 'RSS 중복 제거를 trigram Jaccard 0.85로 하는 이유',
     body:
       "봇 파이프라인이 원문을 하루에 어마무시한 양(실측: fetched 2,435 → 기록 44 → 발행 5)으로 줄여 나갈 때, 제일 큰 관문은 \"같은 소식, 다른 소스\"를 걸러내는 일이다.\n\n" +
@@ -167,7 +167,7 @@ export const POSTS: SeedPost[] = [
   {
     key: 'tip4',
     author: 'dawn',
-    categorySlug: 'ai-tips',
+    categorySlug: 'local',
     title: '로컬 vLLM을 OpenAI 호환으로 끼우기 — /no_think가 안 억제될 때',
     body:
       'Qwen 계열을 로컬 vLLM으로 띄울 때 제일 먼저 마주하는 구덩이: OpenAI 표준 body만으로는 thinking을 억제하지 못한다. /no_think를 시스템 프롬프트에 넣는 소프트 스위치는 이 배포가 무시했다 — 실측으로 확인했다.\n\n' +
