@@ -23,6 +23,7 @@ import {
 } from './verification-tokens.ts';
 import { sendVerificationEmail, sendPasswordResetEmail, sendEmailChangedNotice } from './email.ts';
 import { createDefaultUserLog } from './user-log.ts';
+import { addProfileLink } from './profile-links.ts';
 import { RESERVED_USERNAMES } from './reserved-usernames.ts';
 import { isReservedNickname } from './reserved-nicknames.ts';
 
@@ -255,6 +256,10 @@ export type OAuthProfile = {
   emailVerified: boolean;
   nickname: string | null;
   avatarUrl?: string | null;
+  /** 🔒 사용자 지시(2026-10-26, "github로 회원가입하면 프로필 링크에 자동으로
+   * github링크가") — github만 제공(oauth.ts의 html_url), google은 공개
+   * 프로필 URL 개념이 없어 안 채운다. */
+  profileUrl?: string | null;
 };
 
 async function stashSuggestedEmail(userId: string, email: string): Promise<void> {
@@ -345,6 +350,13 @@ export async function findOrCreateOAuthUser(profile: OAuthProfile): Promise<Auth
 
     await client.query('COMMIT');
     await createDefaultUserLog(userId).catch((err) => console.error('default user_logs row creation failed:', err));
+    // 신규 가입일 때만 — 기존 계정에 소셜을 나중에 연결하는 두 분기(위)는
+    // 이미 사용자가 자기 프로필을 꾸며놨을 수 있어 건드리지 않는다.
+    if (profile.profileUrl) {
+      await addProfileLink(userId, profile.provider === 'github' ? 'GitHub' : profile.provider, profile.profileUrl).catch((err) =>
+        console.error('oauth profile link creation failed (non-fatal):', err),
+      );
+    }
     const { token, setCookie } = await createSession(userId);
     return { ok: true, userId, setCookie, token };
   } catch (err) {

@@ -131,7 +131,14 @@ async function exchangeGithubCode(code: string): Promise<OAuthProfile> {
   const headers = { Authorization: `Bearer ${access_token}`, 'User-Agent': 'goodfriends-oauth' };
   const profileRes = await fetch('https://api.github.com/user', { headers });
   if (!profileRes.ok) throw new Error(`github userinfo failed: ${profileRes.status}`);
-  const profile = (await profileRes.json()) as { id: number; login: string; name?: string | null; avatar_url?: string; email?: string | null };
+  const profile = (await profileRes.json()) as {
+    id: number;
+    login: string;
+    name?: string | null;
+    avatar_url?: string;
+    email?: string | null;
+    html_url?: string;
+  };
 
   // 🔒 프로필의 email은 유저가 "Keep my email private"를 켜두면 null이다 —
   // /user/emails(scope: user:email)로 검증된 primary 이메일을 따로 받는다.
@@ -154,6 +161,7 @@ async function exchangeGithubCode(code: string): Promise<OAuthProfile> {
     emailVerified,
     nickname: profile.name ?? profile.login ?? null,
     avatarUrl: profile.avatar_url ?? null,
+    profileUrl: profile.html_url ?? `https://github.com/${profile.login}`,
   };
 }
 
