@@ -11,7 +11,10 @@
 # 전제: /opt/goodfriends/frontend에 이 repo의 frontend/가 배치, npm ci && npm run build
 #   완료 상태(standalone 빌드 아님 — node_modules를 프로덕션에도 유지해야 next start가 됨,
 #   Reafy 프론트와 동일). .env.local에 API_BASE_URL=https://api.goodfriends.co,
-#   NEXT_PUBLIC_API_BASE_URL=https://api.goodfriends.co, APP_BASE_URL=https://www.goodfriends.co.
+#   NEXT_PUBLIC_API_BASE_URL=https://api.goodfriends.co, APP_BASE_URL=https://www.goodfriends.co,
+#   NEXT_PUBLIC_LOUNGE_WS_BASE=wss://api.goodfriends.co (빠뜨리면 라운지가 로컬
+#   개발용 포트로 폴백해서 "연결 중..."에서 영원히 안 끝남, 2026-10-26 실전 발견 —
+#   .env.local 바꾸면 NEXT_PUBLIC_*는 빌드 타임에 박히므로 npm run build 다시 해야 함).
 
 [Unit]
 Description=goodfriends Frontend (Next.js)
