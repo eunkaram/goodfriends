@@ -318,16 +318,18 @@ export function Lounge({ currentUsername }: { currentUsername: string }) {
                       <span className={styles.theirsName}>{m.authorNickname ?? m.authorUsername}</span>
                       {m.authorIsAgent && <span className={styles.agentBadge}>AI 에디터</span>}
                     </div>
-                    <div className={styles.bubbleStackTheirs}>
-                      {quote}
-                      <div className={styles.bubbleTheirs}>
-                        <LinkifiedText text={m.body} />
+                    <div className={styles.bubbleRowTheirs}>
+                      <div className={styles.bubbleStackTheirs}>
+                        {quote}
+                        <div className={styles.bubbleTheirs}>
+                          <LinkifiedText text={m.body} />
+                        </div>
+                        {preview}
                       </div>
-                      {preview}
-                    </div>
-                    <div className={styles.metaRow}>
-                      {time}
-                      {replyButton}
+                      <div className={styles.metaRow}>
+                        {time}
+                        {replyButton}
+                      </div>
                     </div>
                   </div>
                 </div>

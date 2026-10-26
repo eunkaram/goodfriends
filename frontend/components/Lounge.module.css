@@ -116,11 +116,20 @@
    LinkPreviewCard가 이미 쓰는 "카드 최대 폭" 관례와 맞춤, 카드와 말풍선
    폭이 비슷해 보이는 부수 효과도 있다)으로 바꿔 이 순환 참조 자체를
    없앤다 — 고정값은 조상의 폭이 얼마든 상관없이 그대로 적용된다. */
+/* 🔒 사용자 지시(2026-10-26, "라운지에 글 옆에 시간이 붙어야 해. 아래로
+   줄바꿈이 되어있네") — time을 메세지 아래 별도 줄(세로 스택)이 아니라
+   말풍선 옆(가로)에 붙인다. row-reverse라 DOM 순서(bubbleStackMine,
+   metaRow)가 시각적으로는 [metaRow, bubbleStackMine] 왼→오로 뒤집혀 time이
+   말풍선 왼쪽에 붙고, 기본 justify-content:flex-start가 row-reverse에서는
+   "메인축 시작 = 오른쪽"이라 그룹 전체가 오른쪽 끝에 붙는다(justify-content
+   명시 불필요). bubbleStackMine/Theirs의 고정 px max-width(위 주석,
+   "max-width:70%가 auto의 70%로 순환 참조"로 접히던 버그 수정)는 그대로라
+   가로 배치로 돌아가도 그 버그는 재현 안 된다. */
 .messageMine {
   display: flex;
-  flex-direction: column;
+  flex-direction: row-reverse;
   align-items: flex-end;
-  gap: 2px;
+  gap: 6px;
 }
 .bubbleStackMine {
   display: flex;
@@ -164,6 +173,15 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--text-tertiary);
+}
+/* 🔒 messageMine과 같은 이유(2026-10-26, time을 말풍선 옆으로) — theirsContent는
+   theirsHead(이름 줄)까지 같이 세로로 쌓아야 해서 messageMine처럼 바로
+   row-reverse로 못 바꾼다(이름까지 옆으로 밀려남). bubbleStackTheirs+metaRow만
+   따로 감싸는 가로 줄. */
+.bubbleRowTheirs {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
 }
 .bubbleStackTheirs {
   display: flex;
