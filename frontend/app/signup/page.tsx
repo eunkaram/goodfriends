@@ -18,10 +18,8 @@ export default function SignUpPage() {
   const [submitting, setSubmitting] = useState(false);
   const [emailValue, setEmailValue] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
-  // 🔒 goodfriends CLAUDE.md 3. "소셜 로그인은 Google과 GitHub만" — app/signin과
-  // 같은 이유로 버튼만 보여주고 실제 연동은 하지 않는다(PROMPT.md "로그인
-  // 연동은 하지마").
-  const [oauthNotice, setOauthNotice] = useState<'google' | 'github' | null>(null);
+  // 🔒 2026-10-26 — app/signin과 같은 소셜 로그인 연동(Google/GitHub).
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3010';
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,15 +63,14 @@ export default function SignUpPage() {
         </div>
 
         <div className={styles.social}>
-          <button type="button" className={styles.socialBtnGoogle} onClick={() => setOauthNotice('google')}>
+          <a className={styles.socialBtnGoogle} href={`${apiBase}/api/auth/google`}>
             <img src="/gf/images/google-g.png" alt="" className={styles.socialIcon} />
             Google로 계속하기
-          </button>
-          <button type="button" className={styles.socialBtnGithub} onClick={() => setOauthNotice('github')}>
+          </a>
+          <a className={styles.socialBtnGithub} href={`${apiBase}/api/auth/github`}>
             <img src="/gf/images/github-mark-white.png" alt="" className={styles.socialIcon} />
             GitHub로 계속하기
-          </button>
-          {oauthNotice && <p className={styles.socialNotice}>{oauthNotice === 'google' ? 'Google' : 'GitHub'} 로그인은 곧 지원할 예정이에요.</p>}
+          </a>
         </div>
 
         <div className={styles.divider}>이메일 가입</div>

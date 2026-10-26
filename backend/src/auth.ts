@@ -247,6 +247,22 @@ export async function getSuggestedEmail(userId: string): Promise<string | null> 
     .catch(() => null);
 }
 
+export type OAuthProfile = {
+  provider: 'google' | 'github';
+  providerUserId: string;
+  email: string | null;
+  /** 제공자가 이 이메일의 소유권을 검증했는지 — 이게 true일 때만 기존 계정 자동 연결을 허용한다. */
+  emailVerified: boolean;
+  nickname: string | null;
+  avatarUrl?: string | null;
+};
+
+async function stashSuggestedEmail(userId: string, email: string): Promise<void> {
+  await redis()
+    .set(suggestedEmailKey(userId), email, 'EX', SUGGESTED_EMAIL_TTL_SECONDS)
+    .catch((err) => console.error('suggested email stash failed (non-fatal):', err));
+}
+
 /**
  * 소셜 로그인 — 기존 연결이 있으면 로그인, 없으면 새 계정을 만든다.
  *
@@ -258,14 +274,86 @@ export async function getSuggestedEmail(userId: string): Promise<string | null> 
  * 탈취 경로가 될 수 있다. 이 경우 새 계정을 만들되 그 이메일은 기록하지
  * 않는다(auth_credentials.email은 UNIQUE라 겹치는 값을 넣을 수 없다).
  *
- * ⚠️ §6.1의 생년월일·거주 국가는 소셜 프로필이 안 준다 — 연령 게이팅(국가별
- * 최소연령이라 국가도 필요하다, age-gate.ts)을 여기서 할 수 없다. 대신 계정을
- * 일단 만들고(또는 연결하고), HTTP 레이어(auth-http.ts)가 `needsOnboarding()`
- * 으로 확인해 `/onboarding`으로 보낸다. 거기서 미달로 밝혀지면
- * `completeOnboarding`이 이미 만들어진 계정을 사후에 삭제한다 — 이메일
- * 가입이 "계정 생성 자체를 막는" 것과 결과적으로 같은 정책을, 순서만
- * 바꿔서(선가입-후검증) 적용하는 것.
+ * 이 서비스는 가입 폼 자체에 생년월일·거주 국가가 없다(연령 게이트 1차
+ * 스코프 제외, PLAN.md) — 그래서 이메일 가입과 마찬가지로 소셜 로그인도
+ * 추가 온보딩 없이 로그인이 바로 끝난다. needsOnboarding/completeOnboarding은
+ * 이 경로를 타지 않는다(다른 용도로 남겨둔 기존 함수).
  */
+export async function findOrCreateOAuthUser(profile: OAuthProfile): Promise<AuthResult> {
+  const email = profile.email ? normalizeEmail(profile.email) : null;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const existingIdentity = await client.query<{ user_id: string }>(
+      `SELECT user_id FROM oauth_identities WHERE provider = $1 AND provider_user_id = $2`,
+      [profile.provider, profile.providerUserId],
+    );
+    if (existingIdentity.rowCount && existingIdentity.rowCount > 0) {
+      await client.query('COMMIT');
+      const userId = existingIdentity.rows[0].user_id;
+      if (await isBanned(userId)) return { ok: false, error: 'ACCOUNT_BANNED' };
+      if (email && !profile.emailVerified) await stashSuggestedEmail(userId, email);
+      const { token, setCookie } = await createSession(userId);
+      return { ok: true, userId, setCookie, token };
+    }
+
+    if (email && profile.emailVerified) {
+      const existingAccount = await client.query<{ user_id: string }>(
+        `SELECT user_id FROM auth_credentials WHERE email = $1`,
+        [email],
+      );
+      if ((existingAccount.rowCount ?? 0) > 0) {
+        const userId = existingAccount.rows[0].user_id;
+        await client.query(
+          `INSERT INTO oauth_identities (user_id, provider, provider_user_id) VALUES ($1, $2, $3)`,
+          [userId, profile.provider, profile.providerUserId],
+        );
+        await client.query('COMMIT');
+        if (await isBanned(userId)) return { ok: false, error: 'ACCOUNT_BANNED' };
+        await createDefaultUserLog(userId).catch((err) => console.error('default user_logs row creation failed:', err));
+        const { token, setCookie } = await createSession(userId);
+        return { ok: true, userId, setCookie, token };
+      }
+    }
+
+    const emailBase = email ?? `${profile.provider}.${profile.providerUserId}@goodfriends.local`;
+    const username = await uniqueUsernameFrom(client, emailBase);
+    // 제공자가 닉네임을 안 주면(빈 값 포함) username으로 대체한다 — users.nickname은 NOT NULL이다.
+    const rawNickname = profile.nickname?.trim();
+    const nickname = rawNickname && !isReservedNickname(rawNickname) ? rawNickname : username;
+    const userRow = await client.query<{ id: string }>(
+      `INSERT INTO users (username, nickname, avatar_url) VALUES ($1, $2, $3) RETURNING id`,
+      [username, nickname, profile.avatarUrl ?? ''],
+    );
+    const userId = userRow.rows[0].id;
+
+    await client.query(
+      `INSERT INTO oauth_identities (user_id, provider, provider_user_id) VALUES ($1, $2, $3)`,
+      [userId, profile.provider, profile.providerUserId],
+    );
+
+    // 검증된 이메일이고 겹치지 않을 때만 auth_credentials에 기록한다(비밀번호 없이).
+    if (email && profile.emailVerified) {
+      await client.query(
+        `INSERT INTO auth_credentials (user_id, email) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
+        [userId, email],
+      );
+    } else if (email) {
+      await stashSuggestedEmail(userId, email);
+    }
+
+    await client.query('COMMIT');
+    await createDefaultUserLog(userId).catch((err) => console.error('default user_logs row creation failed:', err));
+    const { token, setCookie } = await createSession(userId);
+    return { ok: true, userId, setCookie, token };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // 소셜 가입 온보딩 — 생년월일·거주 국가·(카카오 무이메일이면) 이메일 뒤늦게

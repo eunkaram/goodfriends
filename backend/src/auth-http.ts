@@ -23,8 +23,10 @@ import {
   isEmailAvailable,
   updateEmail,
   type SignUpInput,
+  findOrCreateOAuthUser,
 } from './auth.ts';
 import { checkRateLimit, clientIp, isRateLimitExempt } from './rate-limit.ts';
+import { getAuthorizationUrl, consumeOAuthState, exchangeCodeForProfile, type Provider } from './oauth.ts';
 
 function authResultStatus(error: string): number {
   switch (error) {
@@ -262,6 +264,45 @@ export async function handleAuthRoutes(req: IncomingMessage, res: ServerResponse
     return true;
   }
 
+  // 소셜 로그인(Google/GitHub) — 2026-10-26 추가. oauth.ts 헤더 주석 참고.
+  const oauthStart = url.pathname.match(/^\/api\/auth\/(google|github)$/);
+  if (req.method === 'GET' && oauthStart) {
+    const provider = oauthStart[1] as Provider;
+    const authorizationUrl = await getAuthorizationUrl(provider);
+    res.writeHead(302, { Location: authorizationUrl });
+    res.end();
+    return true;
+  }
+
+  const oauthCallback = url.pathname.match(/^\/api\/auth\/(google|github)\/callback$/);
+  if (req.method === 'GET' && oauthCallback) {
+    const provider = oauthCallback[1] as Provider;
+    const code = url.searchParams.get('code');
+    const stateOk = await consumeOAuthState(url.searchParams.get('state'));
+    if (!stateOk || !code) {
+      json(res, 400, { error: 'INVALID_OAUTH_CALLBACK' });
+      return true;
+    }
+    const frontendBase = process.env.APP_BASE_URL || 'http://localhost:3011';
+    try {
+      const profile = await exchangeCodeForProfile(provider, code);
+      const result = await findOrCreateOAuthUser(profile);
+      if (!result.ok) {
+        res.writeHead(302, { Location: `${frontendBase}/signin?error=${result.error}` });
+        res.end();
+        return true;
+      }
+      // 이 서비스는 생년월일·국가를 안 걷으므로(findOrCreateOAuthUser 주석
+      // 참고) 온보딩 리다이렉트 없이 바로 홈으로 — 이메일 가입과 동일한 완료 지점.
+      res.writeHead(302, { 'Set-Cookie': result.setCookie, Location: frontendBase });
+      res.end();
+    } catch (err) {
+      console.error(`[oauth] ${provider} 콜백 실패:`, err);
+      res.writeHead(302, { Location: `${frontendBase}/signin?error=OAUTH_FAILED` });
+      res.end();
+    }
+    return true;
+  }
 
   if (req.method === 'GET' && url.pathname === '/api/auth/onboarding/status') {
     const sessionToken = resolveSessionToken(req);

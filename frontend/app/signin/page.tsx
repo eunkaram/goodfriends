@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import styles from '../../components/AuthForm.module.css';
 import { SITE_NAME, SITE_TAGLINE } from '../../lib/site.ts';
 import { stripNonAscii } from '../../components/input-filters.ts';
@@ -10,20 +10,36 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: '이메일 또는 비밀번호가 올바르지 않아요.',
   INVALID_INPUT: '이메일과 비밀번호를 입력해주세요.',
   ACCOUNT_BANNED: '정지된 계정이에요.',
+  OAUTH_FAILED: '소셜 로그인에 실패했어요. 다시 시도해주세요.',
 };
 
 export default function SignInPage() {
+  // 🔒 useSearchParams()는 정적 프리렌더 중 Suspense 경계가 필요하다
+  // (next build가 "missing-suspense-with-csr-bailout"로 바로 터짐).
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
+  );
+}
+
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  // 🔒 OAuth 콜백 실패 시 백엔드가 /signin?error=CODE로 돌려보낸다(auth-http.ts).
+  useEffect(() => {
+    const code = searchParams.get('error');
+    if (code) setError(ERROR_MESSAGES[code] ?? '로그인에 실패했어요.');
+  }, [searchParams]);
   const [submitting, setSubmitting] = useState(false);
   const [emailValue, setEmailValue] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
-  // 🔒 goodfriends CLAUDE.md 3. "소셜 로그인은 Google과 GitHub만" — 시안엔
-  // 버튼이 있지만, 이 프로젝트 백엔드는 oauth를 아직 구현하지 않았다
-  // (src/auth-http.ts "소셜 로그인(oauth)은 이 프로젝트에서 제외했다").
-  // PROMPT.md "로그인 연동은 하지마" 범위를 지키면서 시안 그대로 버튼은
-  // 보여주되, 클릭하면 실제 연동 대신 안내만 띄운다.
-  const [oauthNotice, setOauthNotice] = useState<'google' | 'github' | null>(null);
+  // 🔒 2026-10-26 — 소셜 로그인 연동(Google/GitHub). 백엔드가 302로 각
+  // 제공자 인가 URL로 보내고 콜백이 세션 쿠키를 심어 홈으로 돌려보낸다
+  // (use-thread-socket.ts의 WS 직결과 같은 이유로 NEXT_PUBLIC_API_BASE_URL
+  // 오리진에 바로 건다 — Next rewrite는 거칠 필요 없는 전체 페이지 이동).
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3010';
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,15 +78,14 @@ export default function SignInPage() {
         </div>
 
         <div className={styles.social}>
-          <button type="button" className={styles.socialBtnGoogle} onClick={() => setOauthNotice('google')}>
+          <a className={styles.socialBtnGoogle} href={`${apiBase}/api/auth/google`}>
             <img src="/gf/images/google-g.png" alt="" className={styles.socialIcon} />
             Google로 계속하기
-          </button>
-          <button type="button" className={styles.socialBtnGithub} onClick={() => setOauthNotice('github')}>
+          </a>
+          <a className={styles.socialBtnGithub} href={`${apiBase}/api/auth/github`}>
             <img src="/gf/images/github-mark-white.png" alt="" className={styles.socialIcon} />
             GitHub로 계속하기
-          </button>
-          {oauthNotice && <p className={styles.socialNotice}>{oauthNotice === 'google' ? 'Google' : 'GitHub'} 로그인은 곧 지원할 예정이에요.</p>}
+          </a>
         </div>
 
         <div className={styles.divider}>이메일로 로그인</div>
