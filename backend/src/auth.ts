@@ -339,9 +339,14 @@ export async function findOrCreateOAuthUser(profile: OAuthProfile): Promise<Auth
     );
 
     // 검증된 이메일이고 겹치지 않을 때만 auth_credentials에 기록한다(비밀번호 없이).
+    // 🔒 사용자 지시(2026-10-26, "소셜 회원가입시 이메일 인증을 거쳐야 할까?")
+    // — provider(Google/GitHub)가 이미 소유권을 검증했으므로 email_verified_at을
+    // 바로 채운다. 안 채우면 isEmailVerified()가 false로 보여 가입 직후부터
+    // 인증 배너가 뜨는데, 막 거친 OAuth 로그인 자체가 그 증명이라 또 메일을
+    // 보내는 건 불필요한 마찰이다.
     if (email && profile.emailVerified) {
       await client.query(
-        `INSERT INTO auth_credentials (user_id, email) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
+        `INSERT INTO auth_credentials (user_id, email, email_verified_at) VALUES ($1, $2, now()) ON CONFLICT (email) DO NOTHING`,
         [userId, email],
       );
     } else if (email) {

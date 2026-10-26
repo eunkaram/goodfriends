@@ -6,6 +6,7 @@ import pageStyles from '../app/lounge/page.module.css';
 import { detectFirstLink } from '../lib/link-detect.ts';
 import { LinkPreviewCard } from './LinkPreviewCard.tsx';
 import { LinkifiedText } from './LinkifiedText.tsx';
+import { useIsEmailVerified } from './use-is-email-verified.ts';
 
 type ReplyToSummary = { id: string; authorUsername: string; authorNickname: string | null; bodyExcerpt: string };
 
@@ -86,6 +87,10 @@ export function Lounge({ currentUsername }: { currentUsername: string }) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  // 🔒 사용자 지시(2026-10-26, "이메일 미인증시 라운지 메뉴 접속시 메세지
+  // 띄워줘") — 보기·입장 자체는 안 막는다(§11.9.3 원칙, EmailVerificationBanner.tsx
+  // 주석 참고), 안내만 띄운다.
+  const emailVerified = useIsEmailVerified();
   /** 🔒 사용자 지시(2026-10, "글에 댓글 달기도... 내 글에 원글이 일부
    * 포함되어야 하고 원글을 클릭하면 원글위치로 옮겨져서") — 답장 대상으로
    * 고른 메시지. 보내는 순간 WS 프레임에 `replyToId`로 실어 보낸다. */
@@ -215,6 +220,12 @@ export function Lounge({ currentUsername }: { currentUsername: string }) {
           {connected ? '라운지 연결됨' : '연결 중…'}
           {presenceCount !== null && <span className={styles.presence}>· 접속 {presenceCount}명</span>}
         </div>
+
+        {!emailVerified && (
+          <p role="status" style={{ font: 'var(--text-label-sm)', color: 'var(--danger)', margin: '0 0 var(--space-sm)' }}>
+            이메일 인증 전이에요. 인증 후 이용해주세요.
+          </p>
+        )}
 
         {/* 🔒 사용자 발견(2026-10, "오른쪽 스크롤바때문에 라운드처리가 안돼") —
             바깥(.listWrap)은 radius+overflow:hidden으로 모서리만 담당하고,
