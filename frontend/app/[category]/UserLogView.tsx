@@ -46,13 +46,14 @@ import styles from './UserLogViewLayout.module.css';
  * "지금 보고 있는 프로필"(log) 기준이다.
  */
 export async function UserLogView({ username, viewerId }: { username: string; viewerId: string | null }) {
-  const { tree: categoryTree } = await fetchCategoryTreeAndPopular(6);
-  const gnbCategoryTree = categoryTree.map((g) => ({
-    name: g.name,
-    children: g.children.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
-  }));
+  const categoryTreePromise = fetchCategoryTreeAndPopular(6);
 
   if (!viewerId) {
+    const { tree: categoryTree } = await categoryTreePromise;
+    const gnbCategoryTree = categoryTree.map((g) => ({
+      name: g.name,
+      children: g.children.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
+    }));
     // 🔒 사용자 지시(2026-08-24, "관련된 페이지 모두 모달을 띄우고 로그인이
     // 필요한 서비스입니다...") — 인라인 안내 카드 대신 공용 게이트로 통일.
     return <LoginRequiredGate categoryTree={gnbCategoryTree} />;
@@ -65,16 +66,9 @@ export async function UserLogView({ username, viewerId }: { username: string; vi
   if (!log) notFound();
 
   const isSelf = log.relationshipStatus === 'self';
-  const [posts, followers, repliedPosts, savedPosts] = await Promise.all([
-    fetchLogPosts(username, { limit: 20, offset: 0 }),
-    fetchFollowers(username),
-    // 🔒 사용자 지시(2026-08, "replies탭의 리스트는 내가 작성한 댓글의
-    // 글리스트를 보여줘야해(원글 + 내 댓글 그룹만 노출)") — 댓글 탭 전용 데이터.
-    fetchRepliedPosts(username, { limit: 20, offset: 0 }),
-    // 🔒 goodfriends 리브랜딩(2026-10) — 저장한 글 탭(기존 Media 탭 교체).
-    // fetchSavedPosts는 항상 세션 본인 기준이라 본인 프로필에서만 조회한다.
-    isSelf ? fetchSavedPosts({ limit: 20, offset: 0 }) : Promise.resolve([]),
-  ]);
+  // 🔒 goodfriends 리브랜딩(2026-10) — 저장한 글 탭(기존 Media 탭 교체).
+  // fetchSavedPosts는 항상 세션 본인 기준이라 본인 프로필에서만 조회한다.
+  const savedPostsPromise = isSelf ? fetchSavedPosts({ limit: 20, offset: 0 }) : Promise.resolve([]);
 
   // 🔒 좌 사이드바는 "지금 보고 있는 프로필"이 아니라 "로그인한 뷰어 자신"
   // 기준이다 — Home·카테고리 피드와 완전히 같은 조회 패턴(app/page.tsx,
@@ -85,7 +79,14 @@ export async function UserLogView({ username, viewerId }: { username: string; vi
   // 🔒 성능 점검 발견(2026-08-22) — 서로 결과를 참조하지 않는 조회들을
   // Promise.all로 묶었다. 위젯 실패 격리(§11.5.0)는 각 프로미스 안의
   // try/catch로 그대로 유지한다.
-  const [account, following, unreadMessages] = await Promise.all([
+  const [categoryTreeAndPopular, posts, followers, repliedPosts, savedPosts, account, following, unreadMessages] = await Promise.all([
+    categoryTreePromise,
+    fetchLogPosts(username, { limit: 20, offset: 0 }),
+    fetchFollowers(username),
+    // 🔒 사용자 지시(2026-08, "replies탭의 리스트는 내가 작성한 댓글의
+    // 글리스트를 보여줘야해(원글 + 내 댓글 그룹만 노출)") — 댓글 탭 전용 데이터.
+    fetchRepliedPosts(username, { limit: 20, offset: 0 }),
+    savedPostsPromise,
     fetchAccountSummary(),
     fetchFollowing(5).catch((err) => {
       console.error('following widget failed', err);
@@ -96,6 +97,12 @@ export async function UserLogView({ username, viewerId }: { username: string; vi
       return false;
     }),
   ]);
+
+  const { tree: categoryTree } = categoryTreeAndPopular;
+  const gnbCategoryTree = categoryTree.map((g) => ({
+    name: g.name,
+    children: g.children.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
+  }));
 
   // 🔒 실전 발견(2026-09-04) — 세션(Redis)은 유효한데 계정이 DB에서 지워진
   // 비정상 상태가 있을 수 있다(fetchAccountSummary가 그 경우 null을 준다) —

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { relativeTime } from './relative-time.ts';
 import { ReactionIcon } from './ReactionIcons.tsx';
@@ -23,7 +23,7 @@ type PendingImage = { id: string; previewUrl: string; status: 'uploading' | 'don
  * "이미지 업로드"만이라 댓글에 링크 미리보기까지 넣는 건 범위 밖이고,
  * 볼 때마다 /api/link-preview를 부르는 트래픽도 늘어난다.
  */
-function CommentBody({ body, className }: { body: string; className: string }) {
+const CommentBody = memo(function CommentBody({ body, className }: { body: string; className: string }) {
   if (!hasImageMarkers(body)) return body ? <p className={className}>{body}</p> : null;
   return (
     <>
@@ -38,7 +38,7 @@ function CommentBody({ body, className }: { body: string; className: string }) {
       )}
     </>
   );
-}
+});
 
 export type CommentItem = {
   id: string;
@@ -516,8 +516,20 @@ export function CommentSection({
   // 🔒 사용자 지시(2026-08, 1-depth 답글) — 최상위 댓글마다 자기 답글을
   // 묶어서 렌더링한다("댓글은 thread처럼 그룹으로 묶고"). goodfriends
   // CLAUDE.md 3. "넣지 않기로 한 기능"의 답변 채택이 빠지며 작성 순서 그대로.
-  const topLevelComments = comments.filter((c) => !c.parentCommentId);
-  const repliesOf = (parentId: string) => comments.filter((c) => c.parentCommentId === parentId);
+  const { topLevelComments, repliesByParent } = useMemo(() => {
+    const topLevel: CommentItem[] = [];
+    const replies = new Map<string, CommentItem[]>();
+    for (const c of comments) {
+      if (!c.parentCommentId) {
+        topLevel.push(c);
+        continue;
+      }
+      const list = replies.get(c.parentCommentId);
+      if (list) list.push(c);
+      else replies.set(c.parentCommentId, [c]);
+    }
+    return { topLevelComments: topLevel, repliesByParent: replies };
+  }, [comments]);
 
   // 🔒 사용자 지시(2026-08, 1-depth 답글 후속) — "세로연결선을 원 댓글과
   // 댓글의 댓글 유저아이콘까지 연결하고 들여쓰기를 없애달라는것이야".
@@ -715,7 +727,7 @@ export function CommentSection({
       ) : (
         <div className={styles.list}>
           {topLevelComments.map((c) => {
-            const replies = repliesOf(c.id);
+            const replies = repliesByParent.get(c.id) ?? [];
             const isReplying = replyingToId === c.id;
             return (
               <div key={c.id} className={styles.threadGroup}>

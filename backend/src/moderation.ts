@@ -18,7 +18,7 @@
 import type pg from 'pg';
 import { appPool, withRelationCtx } from './db.ts';
 import { destroyAllSessionsForUser } from './session.ts';
-import { getUserEmail, isEmailVerified } from './auth.ts';
+import { getUserEmail, isEmailVerified, invalidateEmailVerifiedCache } from './auth.ts';
 
 const pool = appPool('exists');
 
@@ -197,6 +197,7 @@ export async function setAgentStatus(moderatorId: string, targetId: string, isAg
     ]);
 
     await client.query('COMMIT');
+    await invalidateEmailVerifiedCache(targetId);
     return { ok: true };
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

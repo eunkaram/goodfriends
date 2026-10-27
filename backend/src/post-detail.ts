@@ -2,9 +2,11 @@
  * 포스트 상세 — §11.7.4. RLS(posts)가 삭제·차단·공개범위를 걸러준다 —
  * 조회 결과가 0행이면 곧 "이 글을 볼 수 없다"는 뜻이고, 라우트가 404로 옮긴다.
  */
+import type pg from 'pg';
 import { appPool, withRelationCtx } from './db.ts';
 export type EmoticonType = 'empathy' | 'cheer' | 'funny' | 'surprise' | 'sad' | 'helpful';
 import type { LogPostVisibility } from './posts.ts';
+import { fetchCommentsWithClient, type Comment } from './comments.ts';
 
 export type PostDetail = {
   /** 내부 PK(uuid) — 댓글/반응/신고 등 내부 조회·API 호출에만 쓴다. URL에는 절대 안 나간다. */
@@ -57,56 +59,53 @@ const pool = appPool('exists');
  * 섞어 쓰면 전부 0행으로 조용히 실패한다.
  */
 export async function fetchPostDetail(userId: string | null, publicId: string): Promise<PostDetail | null> {
-  const row = await withRelationCtx(pool, { userId }, (client) =>
-    client.query<{
-      id: string;
-      public_id: string;
-      title: string;
-      body: string;
-      author_id: string;
-      author_username: string;
-      author_nickname: string;
-      author_avatar_url: string;
-      author_is_agent: boolean;
-      category_id: string | null;
-      category_name_key: string | null;
-      category_slug: string | null;
-      created_at: string;
-      reaction_count: string;
-      comment_count: string;
-      visibility: string;
-      deleted_at: string | null;
-      views: number;
-      adopted_comment_id: string | null;
-      series_id: string | null;
-      series_title: string | null;
-    }>(
-      `SELECT p.id, p.public_id, p.title, p.body, p.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url, u.is_agent AS author_is_agent,
-              p.category_id, c.name_key AS category_name_key, c.slug AS category_slug, p.created_at, p.visibility, p.deleted_at, p.views, p.adopted_comment_id,
-              s.id AS series_id, s.title AS series_title,
-              (SELECT count(*) FROM reactions WHERE target_type = 'post' AND target_id = p.id) AS reaction_count,
-              (SELECT count(*) FROM comments  WHERE target_type = 'post' AND target_id = p.id) AS comment_count
-       FROM posts p
-       JOIN users u ON u.id = p.author_id
-       LEFT JOIN categories c ON c.id = p.category_id
-       LEFT JOIN series s ON s.id = p.series_id
-       WHERE p.public_id = $1`,
-      [publicId],
-    ),
+  return withRelationCtx(pool, { userId }, (client) => fetchPostDetailWithClient(client, userId, publicId));
+}
+
+async function fetchPostDetailWithClient(
+  client: pg.PoolClient,
+  userId: string | null,
+  publicId: string,
+): Promise<PostDetail | null> {
+  const row = await client.query<{
+    id: string;
+    public_id: string;
+    title: string;
+    body: string;
+    author_id: string;
+    author_username: string;
+    author_nickname: string;
+    author_avatar_url: string;
+    author_is_agent: boolean;
+    category_id: string | null;
+    category_name_key: string | null;
+    category_slug: string | null;
+    created_at: string;
+    reaction_count: string;
+    comment_count: string;
+    my_reaction: EmoticonType | null;
+    visibility: string;
+    deleted_at: string | null;
+    views: number;
+    adopted_comment_id: string | null;
+    series_id: string | null;
+    series_title: string | null;
+  }>(
+    `SELECT p.id, p.public_id, p.title, p.body, p.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url, u.is_agent AS author_is_agent,
+            p.category_id, c.name_key AS category_name_key, c.slug AS category_slug, p.created_at, p.visibility, p.deleted_at, p.views, p.adopted_comment_id,
+            s.id AS series_id, s.title AS series_title,
+            (SELECT count(*) FROM reactions WHERE target_type = 'post' AND target_id = p.id) AS reaction_count,
+            (SELECT count(*) FROM comments  WHERE target_type = 'post' AND target_id = p.id) AS comment_count,
+            (SELECT r.emoticon_type FROM reactions r WHERE r.target_type = 'post' AND r.target_id = p.id AND r.user_id = $2) AS my_reaction
+     FROM posts p
+     JOIN users u ON u.id = p.author_id
+     LEFT JOIN categories c ON c.id = p.category_id
+     LEFT JOIN series s ON s.id = p.series_id
+     WHERE p.public_id = $1`,
+    [publicId, userId],
   );
   if (row.rows.length === 0) return null;
   const r = row.rows[0];
-
-  let myReaction: EmoticonType | null = null;
-  if (userId) {
-    const mine = await withRelationCtx(pool, { userId }, (client) =>
-      client.query<{ emoticon_type: EmoticonType }>(
-        `SELECT emoticon_type FROM reactions WHERE target_type = 'post' AND target_id = $1 AND user_id = $2`,
-        [r.id, userId],
-      ),
-    );
-    myReaction = mine.rows[0]?.emoticon_type ?? null;
-  }
 
   const { t } = await import('./i18n/ko.ts');
   return {
@@ -125,7 +124,7 @@ export async function fetchPostDetail(userId: string | null, publicId: string): 
     createdAt: r.created_at,
     reactionCount: Number(r.reaction_count),
     commentCount: Number(r.comment_count),
-    myReaction,
+    myReaction: r.my_reaction,
     // 게시판 글은 항상 'public'이고, 로그 전용 글도 실사용 경로에선 이
     // composer가 노출하는 두 값 중 하나다 — 그 외(friends/private, 이
     // composer로는 만들어질 수 없는 값)는 안전하게 'public'으로 접는다.
@@ -135,4 +134,16 @@ export async function fetchPostDetail(userId: string | null, publicId: string): 
     adoptedCommentId: r.adopted_comment_id,
     series: r.series_id ? { id: r.series_id, title: r.series_title ?? '' } : null,
   };
+}
+
+export async function fetchPostDetailWithComments(
+  userId: string | null,
+  publicId: string,
+): Promise<{ post: PostDetail; comments: Comment[] } | null> {
+  return withRelationCtx(pool, { userId }, async (client) => {
+    const post = await fetchPostDetailWithClient(client, userId, publicId);
+    if (!post) return null;
+    const comments = await fetchCommentsWithClient(client, userId, post.id);
+    return { post, comments };
+  });
 }

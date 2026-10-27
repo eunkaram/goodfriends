@@ -10,10 +10,10 @@ import { createCommunityPost, createLogPost, deletePost, updatePost, resolvePost
 import { fetchHomeFeed, fetchCategoryFeed, type FeedSort } from './feed.ts';
 import { fetchCategoryBySlug, fetchCategoryById } from './categories.ts';
 import { maybeAddBotFirstComment } from './post-bot-comment.ts';
-import { createComment, deleteComment, toggleCommentReaction, fetchComments } from './comments.ts';
+import { createComment, deleteComment, toggleCommentReaction } from './comments.ts';
 import { fetchUserLogByUsername, fetchLogPosts } from './user-log.ts';
 import { isEmailVerified } from './auth.ts';
-import { fetchPostDetail } from './post-detail.ts';
+import { fetchPostDetailWithComments } from './post-detail.ts';
 import { searchPosts } from './feed.ts';
 import { setAdoptedComment, isQnaPost } from './qna.ts';
 import { redis } from './redis.ts';
@@ -121,14 +121,14 @@ export async function handlePostsRoutes(req: IncomingMessage, res: ServerRespons
     const sessionToken = resolveSessionToken(req);
     const userId = await getSessionUserId(sessionToken);
     const publicId = getMatch[1];
-    const post = await fetchPostDetail(userId, publicId);
+    const result = await fetchPostDetailWithComments(userId, publicId);
     // RLS가 삭제·차단·공개범위를 이미 걸러준다 — 0행이면 그대로 404
     // (§10.2와 같은 원칙, "차단당함"과 "존재 안 함"을 구분해 알려주지 않는다).
-    if (!post) {
+    if (!result) {
       json(res, 404, { error: 'NOT_FOUND' });
       return true;
     }
-    const comments = await fetchComments(userId, post.id);
+    const { post, comments } = result;
     // 🔒 M2 — 조회수. 작성자 본인 조회는 세지 않는다, 같은 세션(로그인)
     // 또는 같은 IP(비로그인)는 24시간에 1번만(Redis NX dedup — 실패해도 카운터 자체는 살아있다).
     // posts UPDATE는 RLS가 author=본인으로 제한하므로 남의 글 views 컬럼 증가는

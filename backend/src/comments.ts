@@ -7,6 +7,7 @@
  * posts는 RLS가 있으므로 대상 글이 안 보이면 댓글도 함께 안 보인다/못 쓴다.
  * comments를 단독으로 SELECT하는 코드는 이 보호를 우회하니 절대 추가하지 말 것.
  */
+import type pg from 'pg';
 import { appPool, withRelationCtx } from './db.ts';
 import { checkRateLimit } from './rate-limit.ts';
 import { createNotification } from './notifications.ts';
@@ -36,33 +37,41 @@ const MAX_COMMENTS = 500;
 const MAX_COMMENT_LENGTH = 2000;
 
 export async function fetchComments(userId: string | null, postId: string): Promise<Comment[]> {
+  return withRelationCtx(pool, { userId }, (client) => fetchCommentsWithClient(client, userId, postId));
+}
+
+type CommentRow = {
+  id: string;
+  author_id: string;
+  author_username: string;
+  author_nickname: string;
+  author_avatar_url: string;
+  body: string;
+  created_at: string;
+  reaction_count: number;
+  my_reaction: boolean;
+  parent_comment_id: string | null;
+};
+
+export async function fetchCommentsWithClient(
+  client: pg.PoolClient,
+  userId: string | null,
+  postId: string,
+): Promise<Comment[]> {
   // 🔒 상관 서브쿼리로 반응 수·내 반응 여부를 붙인다 — feed.ts가 §5.1에서
   // GROUP BY 선집계 대신 이 패턴으로 바꿔 약 450배 빨라진 것과 같은 이유
   // (댓글 수는 대개 적어 체감은 작지만, 패턴을 일관되게 유지한다).
-  const rows = await withRelationCtx(pool, { userId }, (client) =>
-    client.query<{
-      id: string;
-      author_id: string;
-      author_username: string;
-      author_nickname: string;
-      author_avatar_url: string;
-      body: string;
-      created_at: string;
-      reaction_count: number;
-      my_reaction: boolean;
-      parent_comment_id: string | null;
-    }>(
-      `SELECT c.id, c.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url, c.body, c.created_at, c.parent_comment_id,
-              (SELECT COUNT(*) FROM reactions r WHERE r.target_type = 'comment' AND r.target_id = c.id)::int AS reaction_count,
-              EXISTS(SELECT 1 FROM reactions r WHERE r.target_type = 'comment' AND r.target_id = c.id AND r.user_id = $3) AS my_reaction
-       FROM comments c
-       JOIN posts p ON p.id = c.target_id AND c.target_type = 'post'  -- RLS가 여기서 걸린다(§13)
-       JOIN users u ON u.id = c.author_id
-       WHERE p.id = $1
-       ORDER BY c.created_at ASC
-       LIMIT $2`,
-      [postId, MAX_COMMENTS, userId],
-    ),
+  const rows = await client.query<CommentRow>(
+    `SELECT c.id, c.author_id, u.username AS author_username, u.nickname AS author_nickname, u.avatar_url AS author_avatar_url, c.body, c.created_at, c.parent_comment_id,
+            (SELECT COUNT(*) FROM reactions r WHERE r.target_type = 'comment' AND r.target_id = c.id)::int AS reaction_count,
+            EXISTS(SELECT 1 FROM reactions r WHERE r.target_type = 'comment' AND r.target_id = c.id AND r.user_id = $3) AS my_reaction
+     FROM comments c
+     JOIN posts p ON p.id = c.target_id AND c.target_type = 'post'  -- RLS가 여기서 걸린다(§13)
+     JOIN users u ON u.id = c.author_id
+     WHERE p.id = $1
+     ORDER BY c.created_at ASC
+     LIMIT $2`,
+    [postId, MAX_COMMENTS, userId],
   );
   return rows.rows.map((r) => ({
     id: r.id,

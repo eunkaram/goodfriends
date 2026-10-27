@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
     return {};
   }
   if (slug.startsWith('@')) return {};
-  const { tree } = await fetchCategoryTreeAndPopular(1);
+  const { tree } = await fetchCategoryTreeAndPopular(6);
   const category = findCategoryBySlug(tree, slug);
   if (!category || category.type !== 'community') return {};
   const title = `${category.name} 게시판`;

@@ -1,4 +1,4 @@
-import { backendFetch, publicBackendFetch } from './backend.ts';
+import { publicBackendFetch } from './backend.ts';
 
 export type Category = {
   id: string;
@@ -13,10 +13,10 @@ export type Category = {
 export type CategoryGroup = Category & { children: Category[] };
 
 export async function fetchCategoryTreeAndPopular(popularLimit = 5): Promise<{ tree: CategoryGroup[]; popular: Category[] }> {
-  return backendFetch(`/api/categories/tree?popularLimit=${popularLimit}`);
+  return publicBackendFetch(`/api/categories/tree?popularLimit=${popularLimit}`, 300);
 }
 
-/** fetchCategoryTreeAndPopular의 쿠키 없는 버전 — llms.txt처럼 로그인 여부와 무관하게 캐시해도 되는 호출부용. */
+/** sitemap.ts/llms.txt처럼 1시간 단위 갱신으로 충분한 호출부용. */
 export async function fetchPublicCategoryTree(popularLimit = 5): Promise<{ tree: CategoryGroup[]; popular: Category[] }> {
   return publicBackendFetch(`/api/categories/tree?popularLimit=${popularLimit}`, 3600);
 }

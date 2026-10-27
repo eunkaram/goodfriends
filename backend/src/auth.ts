@@ -458,6 +458,7 @@ export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
   const userId = await consumeEmailVerificationToken(token);
   if (!userId) return { ok: false, error: 'INVALID_OR_EXPIRED_TOKEN' };
   await pool.query(`UPDATE auth_credentials SET email_verified_at = now() WHERE user_id = $1`, [userId]);
+  await invalidateEmailVerifiedCache(userId);
   return { ok: true };
 }
 
@@ -468,16 +469,34 @@ export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
  * 있고 authPool()은 이미 users에 SELECT 권한이 있어(주석 위 참고) 여기서
  * 바로 조회한다.
  */
-export async function isEmailVerified(userId: string): Promise<boolean> {
-  const agent = await pool.query<{ is_agent: boolean }>(`SELECT is_agent FROM users WHERE id = $1`, [userId]);
-  if (agent.rows[0]?.is_agent) return true;
+const EMAIL_VERIFIED_TTL_SECONDS = 60;
 
-  const r = await pool.query<{ email_verified_at: Date | null }>(
-    `SELECT email_verified_at FROM auth_credentials WHERE user_id = $1`,
-    [userId],
-  );
-  if (r.rowCount === 0) return true;
-  return r.rows[0].email_verified_at !== null;
+function emailVerifiedKey(userId: string): string {
+  return `email_verified:${userId}`;
+}
+
+export async function invalidateEmailVerifiedCache(userId: string): Promise<void> {
+  await redis().del(emailVerifiedKey(userId)).catch(() => {});
+}
+
+export async function isEmailVerified(userId: string): Promise<boolean> {
+  const cached = await redis().get(emailVerifiedKey(userId)).catch(() => null);
+  if (cached !== null) return cached === '1';
+
+  const agent = await pool.query<{ is_agent: boolean }>(`SELECT is_agent FROM users WHERE id = $1`, [userId]);
+  let verified: boolean;
+  if (agent.rows[0]?.is_agent) {
+    verified = true;
+  } else {
+    const r = await pool.query<{ email_verified_at: Date | null }>(
+      `SELECT email_verified_at FROM auth_credentials WHERE user_id = $1`,
+      [userId],
+    );
+    verified = r.rowCount === 0 ? true : r.rows[0].email_verified_at !== null;
+  }
+
+  await redis().set(emailVerifiedKey(userId), verified ? '1' : '0', 'EX', EMAIL_VERIFIED_TTL_SECONDS).catch(() => {});
+  return verified;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -567,6 +586,7 @@ export async function updateEmail(userId: string, newEmail: string, currentPassw
     if (isPgError(err, '23505')) return { ok: false, error: 'EMAIL_TAKEN' };
     throw err;
   }
+  await invalidateEmailVerifiedCache(userId);
 
   // 🔒 인증 메일 발송 실패가 이메일 변경 자체를 막으면 안 된다(signUpWithEmail과
   // 같은 원칙) — 재발송 버튼이 안전망이다.

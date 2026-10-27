@@ -152,24 +152,20 @@ export async function withRelationCtx<T>(
     await client.query('BEGIN');
     // 벤치마크·잘못된 정책이 폭주할 때 커넥션 하나를 영원히 붙잡지 않도록.
     // SET LOCAL 이라 트랜잭션 스코프이며 §4.5 함정1과 같은 안전한 형태다.
-    await client.query("SET LOCAL statement_timeout = '20s'");
-
-    await client.query('SELECT set_config($1, $2, true)', [
-      'app.user_id',
-      ctx.userId ?? '',
-    ]);
+    const settings = [
+      "set_config('statement_timeout', '20s', true)",
+      "set_config('app.user_id', $1, true)",
+    ];
+    const params: string[] = [ctx.userId ?? ''];
     if (ctx.friendIds) {
-      await client.query('SELECT set_config($1, $2, true)', [
-        'app.friend_ids',
-        toUuidArrayLiteral(ctx.friendIds),
-      ]);
+      params.push(toUuidArrayLiteral(ctx.friendIds));
+      settings.push(`set_config('app.friend_ids', $${params.length}, true)`);
     }
     if (ctx.blockedIds) {
-      await client.query('SELECT set_config($1, $2, true)', [
-        'app.blocked_ids',
-        toUuidArrayLiteral(ctx.blockedIds),
-      ]);
+      params.push(toUuidArrayLiteral(ctx.blockedIds));
+      settings.push(`set_config('app.blocked_ids', $${params.length}, true)`);
     }
+    await client.query(`SELECT ${settings.join(', ')}`, params);
 
     const result = await fn(client);
     await client.query('COMMIT');

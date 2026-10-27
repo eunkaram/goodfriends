@@ -150,6 +150,14 @@ describe('GET /api/categories/tree', () => {
     expect(popular.length).toBe(1);
   });
 
+  it('popularLimit=0이면 인기 카테고리 집계를 건너뛴다 — tree만 온다', async () => {
+    const res = await fetch(`${baseUrl}/api/categories/tree?popularLimit=0`);
+    expect(res.status).toBe(200);
+    const { tree, popular } = await res.json();
+    expect(tree.length).toBeGreaterThan(0);
+    expect(popular).toEqual([]);
+  });
+
   it('Set-Cookie가 없다 — 공개 GET, CDN 캐싱 전제(불변식 1)', async () => {
     const res = await fetch(`${baseUrl}/api/categories/tree`);
     expect(res.headers.get('set-cookie')).toBeNull();

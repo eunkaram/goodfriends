@@ -2,7 +2,7 @@
  * 구독 HTTP 라우트 — §11.7.3 "구독 버튼이 이 화면의 유일한 진입점".
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { readBody, json, isUuid, parsePageParam } from './http-utils.ts';
+import { readBody, json, isUuid } from './http-utils.ts';
 import { resolveSessionToken, getSessionUserId } from './session.ts';
 import { subscribe, unsubscribe, fetchAllCategories, fetchSubscribedCategoryIds, fetchCategoryTree, fetchPopularCategories } from './categories.ts';
 
@@ -13,8 +13,13 @@ export async function handleCategoriesRoutes(req: IncomingMessage, res: ServerRe
   // 직접 호출뿐이었다(프론트/백엔드 분리 준비, 2단계 API 갭). 공개 GET —
   // 로그인 여부와 무관하게 항상 같은 데이터(불변식 1, Set-Cookie 금지).
   if (req.method === 'GET' && url.pathname === '/api/categories/tree') {
-    const popularLimit = parsePageParam(url.searchParams.get('popularLimit'), 5, { min: 1, max: 50 });
-    const [tree, popular] = await Promise.all([fetchCategoryTree(), fetchPopularCategories(popularLimit)]);
+    const rawPopularLimit = url.searchParams.get('popularLimit');
+    const parsedPopularLimit = rawPopularLimit === null ? 5 : Number(rawPopularLimit);
+    const popularLimit = Number.isFinite(parsedPopularLimit) ? Math.min(Math.max(parsedPopularLimit, 0), 50) : 5;
+    const [tree, popular] = await Promise.all([
+      fetchCategoryTree(),
+      popularLimit > 0 ? fetchPopularCategories(popularLimit) : Promise.resolve([]),
+    ]);
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
     res.end(JSON.stringify({ tree, popular }));
     return true;

@@ -25,17 +25,6 @@ function isPgError(err: unknown, code: string): boolean {
 }
 
 /**
- * posts는 RLS가 걸려 있다 — 재조회 자체가 곧 재검증이다(삭제·차단·공개범위 전부 반영됨).
- * author_id를 같이 돌려준다 — reaction 알림 수신자를 여기서 바로 얻는다(별도 재조회 없이).
- */
-async function targetPostVisible(userId: string, postId: string): Promise<string | null> {
-  const result = await withRelationCtx(pool, { userId }, (client) =>
-    client.query<{ author_id: string }>('SELECT author_id FROM posts WHERE id = $1', [postId]),
-  );
-  return result.rows[0]?.author_id ?? null;
-}
-
-/**
  * friendships/follows/blocks가 아닌 다른 유저 대상 행동(친구신청·팔로우)의 재검증.
  * friendships는 posts 정책이 참조하므로 자기 자신엔 RLS를 걸지 않는다(불변식 12) —
  * 그래서 차단 여부를 app_is_blocked_with()로 직접 확인한다. follows는 RLS를 걸었으므로
@@ -57,9 +46,13 @@ export async function executeIntent(userId: string, intent: Intent, confirmed = 
   switch (intent.action) {
     case 'reaction': {
       if (!intent.emoticonType) return { status: 'blocked' };
-      const postAuthorId = await targetPostVisible(userId, intent.targetId);
-      if (!postAuthorId) return { status: 'blocked' };
       const reactionResult = await withRelationCtx(pool, { userId }, async (client) => {
+        // posts는 RLS가 걸려 있다 — 재조회 자체가 곧 재검증이다(삭제·차단·공개범위 전부 반영됨).
+        const target = await client.query<{ author_id: string }>('SELECT author_id FROM posts WHERE id = $1', [
+          intent.targetId,
+        ]);
+        const postAuthorId = target.rows[0]?.author_id;
+        if (!postAuthorId) return { status: 'blocked' as const };
         // §11.10.3 "같은 것을 다시 누르면 해제" — 토글이라 먼저 현재 상태를 봐야 한다.
         const current = await client.query<{ emoticon_type: string }>(
           `SELECT emoticon_type FROM reactions WHERE target_type = 'post' AND target_id = $1 AND user_id = $2`,
@@ -83,15 +76,21 @@ export async function executeIntent(userId: string, intent: Intent, confirmed = 
         return { status: 'executed' as const, reaction: intent.emoticonType, notified };
       });
       // 푸시 알림(dispatchPush)은 1차 스코프에서 제외됐다 — in-app 알림만.
-      return { status: reactionResult.status, reaction: reactionResult.reaction };
+      if (reactionResult.status === 'blocked') return { status: 'blocked' };
+      return { status: 'executed', reaction: reactionResult.reaction };
     }
 
     case 'save': {
-      if (!(await targetPostVisible(userId, intent.targetId))) return { status: 'blocked' };
-      await withRelationCtx(pool, { userId }, (client) =>
-        client.query(`INSERT INTO saved_posts (user_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [userId, intent.targetId]),
-      );
-      return { status: 'executed' };
+      const saved = await withRelationCtx(pool, { userId }, async (client) => {
+        const target = await client.query('SELECT 1 FROM posts WHERE id = $1', [intent.targetId]);
+        if (target.rows.length === 0) return false;
+        await client.query(`INSERT INTO saved_posts (user_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [
+          userId,
+          intent.targetId,
+        ]);
+        return true;
+      });
+      return saved ? { status: 'executed' } : { status: 'blocked' };
     }
 
     // §11.9.2 — "본문 복원 + 포커스. 자동 제출 금지." 여기선 DB에 아무것도 쓰지

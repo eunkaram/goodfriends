@@ -48,9 +48,19 @@ function cookieDomainAttr(): string {
 // 공격자는 피해자가 "비밀번호를 바꿨으니 안전하다"고 여긴 뒤에도 그대로
 // 로그인 상태를 유지할 수 있었다. userId → 발급된 토큰 집합을 별도로
 // 인덱싱해서, 필요할 때 그 사람의 세션을 전부 끊을 수 있게 한다.
+const USER_SESSIONS_PREFIX = 'user_sessions:';
+
 function userSessionsKeyFor(userId: string) {
-  return `user_sessions:${userId}`;
+  return `${USER_SESSIONS_PREFIX}${userId}`;
 }
+
+const TOUCH_SESSION_SCRIPT = `
+local v = redis.call('GET', KEYS[1])
+if not v then return nil end
+redis.call('EXPIRE', KEYS[1], ARGV[1])
+redis.call('EXPIRE', ARGV[2] .. v, ARGV[1])
+return v
+`;
 
 /**
  * 🔒 배포 실측(2026-10-19) — Secure가 하드코딩이었다가 워크스테이션 dev 배포에서
@@ -81,17 +91,18 @@ export async function createSession(userId: string): Promise<{ token: string; se
 /** 세션이 살아있는 동안 만료를 밀어준다("sliding" — 활동 중인 사용자가 30일 뒤 갑자기 끊기지 않게). */
 export async function getSessionUserId(token: string | null): Promise<string | null> {
   if (!token) return null;
-  const userId = await redis().get(keyFor(token));
-  if (!userId) return null;
-  // 🔒 성능 점검 발견(2026-08-22) — 이 함수는 29개 파일, 사실상 모든
-  // 인증 라우트/페이지에서 호출된다. 두 EXPIRE는 서로 다른 키라 순서
-  // 의존성이 없는데 순차 await였다 — Redis 왕복이 앱에서 가장 뜨거운
-  // 경로에 불필요하게 하나 더 추가돼 있었다.
-  await Promise.all([
-    redis().expire(keyFor(token), TTL_SECONDS),
-    redis().expire(userSessionsKeyFor(userId), TTL_SECONDS), // 인덱스도 세션과 같은 속도로 밀어준다
-  ]);
-  return userId;
+  try {
+    const userId = await redis().eval(TOUCH_SESSION_SCRIPT, 1, keyFor(token), String(TTL_SECONDS), USER_SESSIONS_PREFIX);
+    return typeof userId === 'string' ? userId : null;
+  } catch {
+    const userId = await redis().get(keyFor(token));
+    if (!userId) return null;
+    await Promise.all([
+      redis().expire(keyFor(token), TTL_SECONDS),
+      redis().expire(userSessionsKeyFor(userId), TTL_SECONDS),
+    ]);
+    return userId;
+  }
 }
 
 export async function destroySession(token: string | null): Promise<void> {
