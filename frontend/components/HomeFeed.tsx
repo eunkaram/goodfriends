@@ -3,10 +3,13 @@
 import { PostCard } from './PostCard.tsx';
 import { usePaginatedFeed, FEED_PAGE_SIZE } from './use-paginated-feed.ts';
 import { useComposerModal } from './composer-modal-context.tsx';
-import { PostComposerModal } from './PostComposerModal.tsx';
+import dynamic from 'next/dynamic';
 import type { FeedPost } from '../lib/feed.ts';
 import type { Category } from '../lib/categories.ts';
 import styles from './HomeFeed.module.css';
+
+// Tiptap(~100KB gz)은 모달을 열 때만 로드 — 피드 첫 번들에서 뺀다.
+const PostComposerModal = dynamic(() => import('./PostComposerModal.tsx').then((m) => m.PostComposerModal), { ssr: false });
 
 export interface HomeFeedProps {
   initialPosts: FeedPost[];

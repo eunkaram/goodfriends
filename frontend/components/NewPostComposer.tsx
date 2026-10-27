@@ -2,8 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { useComposerModal } from './composer-modal-context.tsx';
-import { PostComposerModal } from './PostComposerModal.tsx';
+import dynamic from 'next/dynamic';
 import type { Category } from '../lib/categories.ts';
+
+// Tiptap(~100KB gz)은 모달을 열 때만 로드 — 피드 첫 번들에서 뺀다.
+const PostComposerModal = dynamic(() => import('./PostComposerModal.tsx').then((m) => m.PostComposerModal), { ssr: false });
 
 /**
  * 🔒 사용자 지시(2026-08, "모든페이지에서 new post버튼이 활성화 되어야해.

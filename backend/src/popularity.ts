@@ -20,6 +20,7 @@ export type PopularityWindow = '7d' | '24h';
 
 const WINDOW_HOURS: Record<PopularityWindow, number> = { '7d': 24 * 7, '24h': 24 };
 const RANKING_SIZE = 100; // 캐시에 담아두는 순위 길이 — 여유분 오버페치가 여기서 소비된다
+const MISS_TTL_SECONDS = 5 * 60; // 갱신 잡 주기(§5.1.1)와 같은 신선도
 const SAFETY_TTL_SECONDS = 20 * 60; // 갱신 잡이 멎어도 20분 뒤엔 스스로 사라져 콜드스타트 폴백으로 넘어간다
 
 function cacheKey(categoryId: string | null, window: PopularityWindow) {
@@ -40,16 +41,15 @@ export async function computePopularity(
   const r = await pool.query<{ id: string }>(
     `
     SELECT p.id,
-           (COUNT(DISTINCT r.id) + COUNT(DISTINCT c.id) * 2)
+           -- 스칼라 서브쿼리 — reactions×comments를 JOIN하면 글마다 R×C행이 생겨 DISTINCT로 되접어야 했다
+           ((SELECT COUNT(*) FROM reactions r WHERE r.target_type = 'post' AND r.target_id = p.id)
+            + (SELECT COUNT(*) FROM comments c WHERE c.target_type = 'post' AND c.target_id = p.id) * 2)
              / POWER(EXTRACT(EPOCH FROM (now() - p.created_at)) / 3600 + 2, 1.5) AS score
     FROM posts p
-    LEFT JOIN reactions r ON r.target_type = 'post' AND r.target_id = p.id
-    LEFT JOIN comments  c ON c.target_type = 'post' AND c.target_id = p.id
     WHERE p.deleted_at IS NULL
       AND p.category_id IS NOT NULL  -- 커뮤니티 글만 — §5.1.1 전제
       AND ($1::uuid IS NULL OR p.category_id = $1)
       AND p.created_at > now() - ($2 || ' hours')::interval
-    GROUP BY p.id, p.created_at
     ORDER BY score DESC, p.created_at DESC
     LIMIT ${RANKING_SIZE}
     `,
@@ -58,9 +58,31 @@ export async function computePopularity(
   return r.rows.map((row) => row.id);
 }
 
-export async function cachePopularity(categoryId: string | null, window: PopularityWindow, ids: string[]) {
+export async function cachePopularity(
+  categoryId: string | null,
+  window: PopularityWindow,
+  ids: string[],
+  ttlSeconds = SAFETY_TTL_SECONDS,
+) {
   const key = cacheKey(categoryId, window);
-  await redis().set(key, JSON.stringify({ ids, computedAt: Date.now() }), 'EX', SAFETY_TTL_SECONDS);
+  await redis().set(key, JSON.stringify({ ids, computedAt: Date.now() }), 'EX', ttlSeconds);
+}
+
+/**
+ * 캐시 → 미스면 계산 후 5분 캐시. 🔒 startPopularityRefreshJob이 서버에서
+ * 기동되지 않아 캐시가 한 번도 안 채워졌고, 인기순 요청마다 집계 쿼리가 돌았다.
+ * ponytail: 미스 순간 동시 요청은 각자 계산한다 — 문제되면 SET NX 락.
+ */
+export async function getOrComputePopularity(
+  pool: pg.Pool,
+  categoryId: string | null,
+  window: PopularityWindow,
+): Promise<string[]> {
+  const cached = await getPopularity(categoryId, window);
+  if (cached !== null) return cached;
+  const ids = await computePopularity(pool, categoryId, window);
+  await cachePopularity(categoryId, window, ids, MISS_TTL_SECONDS);
+  return ids;
 }
 
 /** null 반환 = 콜드 스타트. 호출부가 최신순으로 폴백한다(§5.1.1 콜드 스타트 행). */

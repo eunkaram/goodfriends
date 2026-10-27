@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import '../styles/pretendard.css';
 import '../styles/tokens.css';
 import './globals.css';
 import { NavHistoryBoot } from '../components/NavHistoryBoot.tsx';

@@ -14,6 +14,7 @@ import {
   cachePopularity,
   computePopularity,
   fetchPopularPosts,
+  getOrComputePopularity,
   getPopularity,
   overFetchCount,
 } from '../../src/popularity.ts';
@@ -211,5 +212,17 @@ describe('T28 — 캐시 스탬피드 방지 (백그라운드 갱신 잡)', () =
     } finally {
       stop();
     }
+  });
+});
+
+describe('getOrComputePopularity — 캐시 미스면 계산 후 캐시에 넣는다', () => {
+  it('첫 호출 뒤 캐시가 채워지고, 같은 결과를 돌려준다', async () => {
+    const alice = (await owner.query<{ id: string }>(`INSERT INTO users (username) VALUES ('pop_miss_alice') RETURNING id`)).rows[0].id;
+    await seedPost({ title: 'POP::miss-seed', authorId: alice, ageHours: 1, reactions: 2 });
+
+    expect(await getPopularity(CATEGORY, '24h')).toBeNull();
+    const ids = await getOrComputePopularity(owner, CATEGORY, '24h');
+    expect(ids.length).toBeGreaterThan(0);
+    expect(await getPopularity(CATEGORY, '24h')).toEqual(ids);
   });
 });

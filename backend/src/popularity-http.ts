@@ -8,7 +8,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { json, isUuid, parsePageParam } from './http-utils.ts';
 import { resolveSessionToken, getSessionUserId } from './session.ts';
-import { computePopularity, getPopularity, fetchPopularPosts, overFetchCount, type PopularityWindow } from './popularity.ts';
+import { getOrComputePopularity, fetchPopularPosts, overFetchCount, type PopularityWindow } from './popularity.ts';
 import { appPool } from './db.ts';
 
 const pool = appPool('exists'); // 불변식 20 — 모듈 스코프에서 한 번만.
@@ -32,8 +32,7 @@ export async function handlePopularityRoutes(req: IncomingMessage, res: ServerRe
 
     const userId = await getSessionUserId(resolveSessionToken(req));
 
-    let rankedIds = await getPopularity(categoryId, window);
-    if (rankedIds === null) rankedIds = await computePopularity(pool, categoryId, window);
+    const rankedIds = await getOrComputePopularity(pool, categoryId, window);
     const posts = await fetchPopularPosts(userId, rankedIds.slice(0, overFetchCount(limit)), limit);
 
     json(res, 200, { posts });

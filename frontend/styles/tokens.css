@@ -11,20 +11,14 @@
  * 실물 woff2가 포함돼 있어(이전엔 이름만 쓰고 실제로 서빙하지 않아 시스템
  * 폰트로 폴백되고 있었다) `public/gf/fonts/`에 복사해 self-host로 바꿨다.
  * 로고 워드마크(Nunito 800)는 --font-logo로 분리.
+ * Pretendard는 단일 2MB 파일 대신 공식 dynamic subset(92조각, unicode-range)을
+ * 쓴다 — styles/pretendard.css. 페이지에 실제 나온 글자 조각만 받는다.
  *
  * 🔒 컴포넌트에서 헥스값을 직접 쓰지 않는다 — 반드시 이 변수를 참조한다.
  * 🔒 다크 모드(.dark) — goodfriends 시안엔 다크모드가 없다. 기존 다크모드
  * 유도 원칙(배경 대비 accent를 밝게, 순수 검정 금지)을 새 인디고 팔레트로
  * 그대로 파생했다 — accent는 시안이 제공하는 "연하게" 틴트(#B6BEDB)를 그대로 쓴다.
  */
-
-@font-face {
-  font-family: 'Pretendard Variable';
-  src: url('/gf/fonts/PretendardVariable.woff2') format('woff2-variations');
-  font-weight: 45 920;
-  font-style: normal;
-  font-display: swap;
-}
 
 @font-face {
   font-family: 'GF Nunito';

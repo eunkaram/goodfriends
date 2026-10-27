@@ -2,10 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PostComposerModal, type EditingPost } from './PostComposerModal.tsx';
+import dynamic from 'next/dynamic';
+import type { EditingPost } from './PostComposerModal.tsx';
 import { ConfirmDialog } from './ConfirmDialog.tsx';
 import type { Category } from '../lib/categories.ts';
 import styles from './PostCard.module.css';
+
+// Tiptap(~100KB gz)은 모달을 열 때만 로드 — 피드 첫 번들에서 뺀다.
+const PostComposerModal = dynamic(() => import('./PostComposerModal.tsx').then((m) => m.PostComposerModal), { ssr: false });
 
 function DotsIcon() {
   return (

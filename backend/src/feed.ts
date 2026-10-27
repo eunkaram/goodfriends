@@ -174,9 +174,8 @@ export async function fetchHomeFeed(
   const { t } = await import('./i18n/ko.ts');
 
   if (opts.sort === 'popular') {
-    const { computePopularity, getPopularity } = await import('./popularity.ts');
-    let ids = await getPopularity(null, '7d');
-    if (ids === null) ids = await computePopularity(pool, null, '7d'); // 콜드스타트 폴백(§5.1.1) — 캐시가 비어도 화면은 비지 않는다
+    const { getOrComputePopularity } = await import('./popularity.ts');
+    const ids = await getOrComputePopularity(pool, null, '7d'); // 콜드스타트 폴백(§5.1.1) — 캐시가 비어도 화면은 비지 않는다
     const rows = await fetchByRankedIds(userId, ids.slice(opts.offset, opts.offset + opts.limit));
     return rows.map((r) => toFeedPost(r, t));
   }
@@ -241,9 +240,8 @@ export async function fetchCategoryFeed(
   const { t } = await import('./i18n/ko.ts');
 
   if (opts.sort === 'popular') {
-    const { computePopularity, getPopularity } = await import('./popularity.ts');
-    let ids = await getPopularity(categoryId, '7d');
-    if (ids === null) ids = await computePopularity(pool, categoryId, '7d');
+    const { getOrComputePopularity } = await import('./popularity.ts');
+    const ids = await getOrComputePopularity(pool, categoryId, '7d');
     const rows = await fetchByRankedIds(userId, ids.slice(opts.offset, opts.offset + opts.limit));
     return rows.map((r) => toFeedPost(r, t));
   }
