@@ -22,8 +22,8 @@
 - 기존 스타일 유지. 새 의존성 추가는 계획 단계에서 Bryan 승인
 - Reafy에서 포크한 독립 프로젝트 — reafy 저장소 코드·DB와 섞지 않는다
 - 새 함수엔 테스트, 버그 수정엔 회귀 테스트. 기존 테스트를 깨는 커밋 금지
-- ⚠️ `main` push = dev 서버 자동 배포 (`.github/workflows/deploy-dev.yml`) → 에이전트는 push 금지 (오케스트레이터도 커밋까지만). 운영 배포(`deploy-prod`)는 수동
-- 배포 설정(`.github/`, `deploy/`, `docker-compose.yml`) 변경은 계획에 명시
+- push는 Bryan 승인 (에이전트는 push 금지, 오케스트레이터도 커밋까지만). 자동 배포는 아직 없음 — VPS 배포는 `PLAN.md` M5
+- 인프라 설정(`backend/docker-compose.yml`, 추후 생길 `.github/`·배포 스크립트) 변경은 계획에 명시
 - 사용자에게 보이는 문구는 한국어
 
 ## QA(DeepSeek, 외부)에 보내면 안 되는 파일 — 열지 말고, 프롬프트·`--file`에 넣지 않는다
