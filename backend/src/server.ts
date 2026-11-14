@@ -33,7 +33,7 @@ import { json } from './http-utils.ts';
 import { alertAdminOfError } from './error-alert.ts';
 
 // 3000은 이 머신에서 다른 프로젝트가 이미 쓰고 있어 충돌한다 — 3010을 기본값으로 둔다.
-const PORT = Number(process.env.PORT ?? 3010);
+const PORT = Number(process.env.PORT ?? 3011);
 const dev = process.env.NODE_ENV !== 'production';
 
 // 🔒 실전 발견(2026-09-04) — 프론트/백엔드 분리 전엔 같은 오리진이라 CORS가
@@ -42,7 +42,7 @@ const dev = process.env.NODE_ENV !== 'production';
 // 요청이 실제로 발생한다 — 세션 쿠키를 실어야 하니 '*'가 아니라 단일
 // 오리진(APP_BASE_URL, OAuth 리다이렉트와 같은 값)만 명시적으로 허용한다.
 function applyCors(req: IncomingMessage, res: ServerResponse) {
-  const allowedOrigin = process.env.APP_BASE_URL || 'http://localhost:3010';
+  const allowedOrigin = process.env.APP_BASE_URL || 'http://localhost:3012';
   if (req.headers.origin === allowedOrigin) {
     res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');

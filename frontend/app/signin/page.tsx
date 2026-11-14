@@ -39,7 +39,7 @@ function SignInForm() {
   // 제공자 인가 URL로 보내고 콜백이 세션 쿠키를 심어 홈으로 돌려보낸다
   // (use-thread-socket.ts의 WS 직결과 같은 이유로 NEXT_PUBLIC_API_BASE_URL
   // 오리진에 바로 건다 — Next rewrite는 거칠 필요 없는 전체 페이지 이동).
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3010';
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3011';
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

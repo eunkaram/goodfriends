@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next';
 
-const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3010';
+const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3011';
 
 // 환경별로 다른 오리진에서 dev 서버에 접속할 수 있어야 하므로(로컬 네트워크 IP,
 // 사내 dev 도메인 등) 하드코딩 대신 DEV_ALLOWED_ORIGINS(쉼표 구분)로 오버라이드

@@ -29,8 +29,8 @@ export type RelationCtx = {
 
 export type Variant = 'arrays' | 'exists';
 
-const PGBOUNCER_PORT = Number(process.env.PGBOUNCER_PORT ?? 6432);
-const POSTGRES_PORT = Number(process.env.POSTGRES_PORT ?? 5432);
+const PGBOUNCER_PORT = Number(process.env.PGBOUNCER_PORT ?? 6433);
+const POSTGRES_PORT = Number(process.env.POSTGRES_PORT ?? 5433);
 const HOST = process.env.PGHOST ?? '127.0.0.1';
 // 🔒 보안 점검 발견(2026-08-22) — 예전엔 미설정 시 'devpass'(.env.example에
 // 문서화된 공개 값)로 조용히 폴백했다. scripts/migrate.ts는 이 값을 매

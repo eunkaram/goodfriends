@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 
-const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3010';
+const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3011';
 
 export class BackendError extends Error {
   status: number;

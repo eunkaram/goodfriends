@@ -95,7 +95,7 @@ export async function sendEmail(message: EmailMessage): Promise<void> {
 // web 기본 포트(3011)가 맞는 폴백이다. .env의 APP_BASE_URL(보통 web 주소)이
 // 항상 우선하므로 이 폴백은 그 값이 비어있을 때만 쓰인다.
 function appBaseUrl(): string {
-  return process.env.APP_BASE_URL || 'http://localhost:3011';
+  return process.env.APP_BASE_URL || 'http://localhost:3012';
 }
 
 /**

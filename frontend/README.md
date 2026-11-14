@@ -18,12 +18,12 @@ cp .env.example .env.local
 
 ```
 npm install
-npm run dev   # 기본 :3011 — reafy_backend(:3010)와 별도 포트, 로컬에서 둘 다 띄워야 함
+npm run dev   # 기본 :3012 — backend(:3011)와 별도 포트, 로컬에서 둘 다 띄워야 함
 ```
 
 ## 테스트
 
 ```
 npm test          # lib/*.ts 유닛 테스트(vitest) — 백엔드 없이 돔
-npm run test:e2e  # 페이지 E2E(Playwright) — reafy_backend가 :3010에 떠 있어야 함
+npm run test:e2e  # 페이지 E2E(Playwright) — backend가 :3011에 떠 있어야 함
 ```

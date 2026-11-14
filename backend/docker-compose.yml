@@ -1,3 +1,5 @@
+name: goodfriends_backend
+
 # Reafy 로컬 개발 스택 — PRD §17.1
 #
 # 자체 호스팅 결정(§17)의 최소 재현이다. 프로덕션도 같은 구성을 쓴다(§12.2가
@@ -27,7 +29,7 @@ services:
       # 한국어 정렬. lc_collate는 initdb 시점에만 적용된다.
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -71,7 +73,7 @@ services:
       # 실측으로 확인: 이게 없으면 "unsupported startup parameter: statement_timeout"
       IGNORE_STARTUP_PARAMETERS: "extra_float_digits,statement_timeout,idle_in_transaction_session_timeout,search_path"
     ports:
-      - "127.0.0.1:${PGBOUNCER_PORT:-6432}:5432"
+      - "127.0.0.1:${PGBOUNCER_PORT:-6433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U community_owner"]
       interval: 2s
@@ -83,7 +85,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "allkeys-lru", "--requirepass", "${REDIS_PASSWORD:-devpass}"]
     ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
     volumes:
       - redisdata:/data
     healthcheck:

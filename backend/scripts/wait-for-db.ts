@@ -32,5 +32,5 @@ async function probe(port: number, label: string) {
   throw new Error(`${label} not ready: ${String(lastErr)}`);
 }
 
-await probe(Number(process.env.POSTGRES_PORT ?? 5432), 'postgres');
-await probe(Number(process.env.PGBOUNCER_PORT ?? 6432), 'pgbouncer');
+await probe(Number(process.env.POSTGRES_PORT ?? 5433), 'postgres');
+await probe(Number(process.env.PGBOUNCER_PORT ?? 6433), 'pgbouncer');

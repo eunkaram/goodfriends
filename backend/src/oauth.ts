@@ -28,7 +28,7 @@ export type Provider = 'google' | 'github';
 const STATE_TTL_SECONDS = 10 * 60;
 
 function redirectBase(): string {
-  return process.env.OAUTH_REDIRECT_BASE ?? 'http://localhost:3010';
+  return process.env.OAUTH_REDIRECT_BASE ?? 'http://localhost:3011';
 }
 
 function callbackUrl(provider: Provider): string {

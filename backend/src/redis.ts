@@ -7,7 +7,7 @@ let client: Redis | undefined;
 export function redis(): Redis {
   client ??= new Redis({
     host: process.env.REDIS_HOST ?? '127.0.0.1',
-    port: Number(process.env.REDIS_PORT ?? 56379),
+    port: Number(process.env.REDIS_PORT ?? 6380),
     password: process.env.REDIS_PASSWORD || undefined,
     lazyConnect: false,
   });

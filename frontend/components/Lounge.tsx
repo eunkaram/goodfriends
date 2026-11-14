@@ -57,7 +57,7 @@ function DownArrowIcon() {
 /**
  * 라운지 채팅 — M4("두 브라우저에서 실시간"). 전송은 `/ws/lounge`:
  * 🔒 WS는 next rewrites를 타지 않는다(rewrites가 HTTP만 프록시) — next.config.ts
- * 머리말의 같은 결론. 브라우저 같은 머신 다른 포트(:3011 → :3010)는 사이트
+ * 머리말의 같은 결론. 브라우저 같은 머신 다른 포트(:3012 → :3011)는 사이트
  * 기준이 같아 쿠키가 그대로 실린다(쿠키 도메인 매칭은 포트 무시) — 그래서
  * 백엔드 ws 핸드셰이크의 세션 검증이 동작한다. 운영에서는
  * NEXT_PUBLIC_LOUNGE_WS_BASE로 백엔드 wss 오리진을 덮어쓴다.
@@ -65,7 +65,7 @@ function DownArrowIcon() {
 function resolveLoungeWsUrl(): string {
   if (process.env.NEXT_PUBLIC_LOUNGE_WS_BASE) return `${process.env.NEXT_PUBLIC_LOUNGE_WS_BASE}/ws/lounge`;
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${proto}//${window.location.hostname}:3010/ws/lounge`;
+  return `${proto}//${window.location.hostname}:3011/ws/lounge`;
 }
 
 /**

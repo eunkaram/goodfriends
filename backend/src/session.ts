@@ -33,7 +33,7 @@ function keyFor(token: string) {
 function cookieDomainAttr(): string {
   let hostname: string;
   try {
-    hostname = new URL(process.env.APP_BASE_URL || 'http://localhost:3010').hostname;
+    hostname = new URL(process.env.APP_BASE_URL || 'http://localhost:3012').hostname;
   } catch {
     return '';
   }

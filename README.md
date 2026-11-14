@@ -23,7 +23,7 @@ docs/       세션별 작업 문서 (결함/교훈/잔여 과제)
 - 카테고리 9개 중 5개 오픈 + 홈 피드(최신/인기)·검색(`/api/search`, 글 제목/본문 통합 목록)
 - Q&A: 글 채택(용자 배지)·조회수(Redis dedup)·개발 로그 시리즈
 - 콘텐츠 엔진: 뉴스봇(8 RSS 소스 → 중복 제거 → 한국어 요약 → 발행, OpenAI 호환 LLM — 미설정 시 결정적 stub) + `/admin/digests` 다이제스트 반수동 발행
-- 라운지: `/lounge` 전체방 실시간 채팅(`ws://<backend>:3010/ws/lounge`, 분당 10발 레이트리밋)
+- 라운지: `/lounge` 전체방 실시간 채팅(`ws://<backend>:3011/ws/lounge`, 분당 10발 레이트리밋)
 - 관리: `/admin` 대시보드(신고 처리·유저 정지·공지·다이제스트)
 
 ## 1차 스코프에서 제외 (Reafy에서 제거한 것)
@@ -40,11 +40,11 @@ docs/       세션별 작업 문서 (결함/교훈/잔여 과제)
 cd backend
 npm run db:up        # Postgres + PgBouncer + Redis (docker compose)
 npm run db:migrate
-npm run dev          # :3010 (http + ws)
+npm run dev          # :3011 (http + ws)
 
 # 2) 웹
 cd ../frontend
-npm run dev          # :3011, /api/* 프록시 → :3010 (WS는 프록시 안 됨 — /lounge가 :3010 직결)
+npm run dev          # :3012, /api/* 프록시 → :3011 (WS는 프록시 안 됨 — /lounge가 :3011 직결)
 ```
 
 테스트: `backend` — `npm test`(DB 필요) · `npx tsc --noEmit`(DB 불필요)

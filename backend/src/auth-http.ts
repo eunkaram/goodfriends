@@ -283,7 +283,7 @@ export async function handleAuthRoutes(req: IncomingMessage, res: ServerResponse
       json(res, 400, { error: 'INVALID_OAUTH_CALLBACK' });
       return true;
     }
-    const frontendBase = process.env.APP_BASE_URL || 'http://localhost:3011';
+    const frontendBase = process.env.APP_BASE_URL || 'http://localhost:3012';
     try {
       const profile = await exchangeCodeForProfile(provider, code);
       const result = await findOrCreateOAuthUser(profile);

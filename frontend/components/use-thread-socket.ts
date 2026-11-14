@@ -6,8 +6,8 @@ type ThinSignal = { threadId: string; messageId: string; at: string };
 
 /**
  * ws-server.ts가 갖고 있던 얇은 푸시({threadId, messageId, at}뿐, 본문 없음)를
- * 구독한다. web(Next.js)과 backend가 분리된 프로세스라(web 3011 / backend
- * 3010), Lounge.tsx와 같은 이유로 same-origin `/ws`가 아니라 backend 오리진에
+ * 구독한다. web(Next.js)과 backend가 분리된 프로세스라(web 3012 / backend
+ * 3011), Lounge.tsx와 같은 이유로 same-origin `/ws`가 아니라 backend 오리진에
  * 직접 붙는다 — `NEXT_PUBLIC_API_BASE_URL`(.env.example에 이미 문서화된 값,
  * lib/backend.ts의 서버 전용 `API_BASE_URL`의 클라이언트 노출판)에서 프로토콜만
  * http→ws로 바꿔 계산한다.
@@ -32,7 +32,7 @@ export function useThreadSocket(onSignal: (signal: ThinSignal) => void) {
     let attempt = 0;
 
     function connect() {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3010';
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3011';
       const wsUrl = apiBaseUrl.replace(/^http/, 'ws');
       ws = new WebSocket(`${wsUrl}/ws`);
       ws.onopen = () => {

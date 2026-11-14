@@ -19,7 +19,7 @@ export default function SignUpPage() {
   const [emailValue, setEmailValue] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
   // 🔒 2026-10-26 — app/signin과 같은 소셜 로그인 연동(Google/GitHub).
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3010';
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3011';
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
