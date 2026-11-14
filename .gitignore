@@ -33,3 +33,7 @@ backend/docker-compose.override.yml
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# 에이전트 협업 산출물 (커밋 안 함)
+.agents/handoff/
+.agents/qa/
