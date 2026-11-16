@@ -37,7 +37,7 @@ describe('GET /api/health', () => {
   it('DB·Redis 정상이면 200 + ok:true', async () => {
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body).toMatchObject({ ok: true, db: 'ok', redis: 'ok' });
     expect(typeof body.uptimeSeconds).toBe('number');
   });

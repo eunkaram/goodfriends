@@ -72,7 +72,7 @@ describe('POST /api/subscriptions', () => {
       body: JSON.stringify({ categoryId }),
     });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
+    expect(await res.json() as any).toEqual({ ok: true });
 
     const row = await owner.query(`SELECT 1 FROM subscriptions WHERE user_id = $1 AND category_id = $2`, [alice, categoryId]);
     expect(row.rowCount).toBe(1);
@@ -95,7 +95,7 @@ describe('POST /api/subscriptions', () => {
       body: JSON.stringify({ categoryId }),
     });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
+    expect(await res.json() as any).toEqual({ ok: true });
 
     const row = await owner.query(`SELECT 1 FROM subscriptions WHERE user_id = $1 AND category_id = $2`, [alice, categoryId]);
     expect(row.rowCount).toBe(1);
@@ -135,7 +135,7 @@ describe('GET /api/categories/tree', () => {
   it('비로그인도 200 — tree/popular 둘 다 온다', async () => {
     const res = await fetch(`${baseUrl}/api/categories/tree`);
     expect(res.status).toBe(200);
-    const { tree, popular } = await res.json();
+    const { tree, popular } = (await res.json()) as any;
     expect(Array.isArray(tree)).toBe(true);
     expect(Array.isArray(popular)).toBe(true);
     expect(tree.length).toBeGreaterThan(0);
@@ -146,14 +146,14 @@ describe('GET /api/categories/tree', () => {
 
   it('popularLimit 쿼리로 개수가 제한된다', async () => {
     const res = await fetch(`${baseUrl}/api/categories/tree?popularLimit=1`);
-    const { popular } = await res.json();
+    const { popular } = (await res.json()) as any;
     expect(popular.length).toBe(1);
   });
 
   it('popularLimit=0이면 인기 카테고리 집계를 건너뛴다 — tree만 온다', async () => {
     const res = await fetch(`${baseUrl}/api/categories/tree?popularLimit=0`);
     expect(res.status).toBe(200);
-    const { tree, popular } = await res.json();
+    const { tree, popular } = (await res.json()) as any;
     expect(tree.length).toBeGreaterThan(0);
     expect(popular).toEqual([]);
   });
@@ -169,7 +169,7 @@ describe('GET /api/categories', () => {
   it('비로그인도 200 — isSubscribed 필드 없이 카테고리 목록만', async () => {
     const res = await fetch(`${baseUrl}/api/categories`);
     expect(res.status).toBe(200);
-    const { categories } = await res.json();
+    const { categories } = (await res.json()) as any;
     expect(Array.isArray(categories)).toBe(true);
     expect(categories.length).toBeGreaterThan(0);
     const chat = categories.find((c: { slug: string }) => c.slug === 'free');
@@ -181,7 +181,7 @@ describe('GET /api/categories', () => {
   it('로그인 상태면 isSubscribed가 실제 구독 여부를 정확히 반영한다', async () => {
     // 구독 전 — false
     const before = await fetch(`${baseUrl}/api/categories`, { headers: sessionCookieHeader(aliceToken) });
-    const { categories: beforeList } = await before.json();
+    const { categories: beforeList } = (await before.json()) as any;
     expect(beforeList.find((c: { slug: string }) => c.slug === 'free').isSubscribed).toBe(false);
 
     await fetch(`${baseUrl}/api/subscriptions`, {
@@ -192,7 +192,7 @@ describe('GET /api/categories', () => {
 
     // 구독 후 — true, 다른 카테고리는 여전히 false
     const after = await fetch(`${baseUrl}/api/categories`, { headers: sessionCookieHeader(aliceToken) });
-    const { categories: afterList } = await after.json();
+    const { categories: afterList } = (await after.json()) as any;
     const chat = afterList.find((c: { slug: string }) => c.slug === 'free');
     expect(chat.isSubscribed).toBe(true);
     const others = afterList.filter((c: { slug: string }) => c.slug !== 'free');
@@ -209,7 +209,7 @@ describe('GET /api/categories', () => {
   it('Authorization: Bearer 헤더로도 동일하게 동작', async () => {
     const res = await fetch(`${baseUrl}/api/categories`, { headers: { Authorization: `Bearer ${aliceToken}` } });
     expect(res.status).toBe(200);
-    const { categories } = await res.json();
+    const { categories } = (await res.json()) as any;
     expect(categories.find((c: { slug: string }) => c.slug === 'free').isSubscribed).toBe(false);
   });
 });

@@ -114,7 +114,7 @@ describe('POST /api/posts — 커뮤니티 글 작성 (§6.2)', () => {
       body: JSON.stringify({ categoryId: dailyChatId, title: 'FEED::alice post', body: '본문 내용' }),
     });
     expect(res.status).toBe(201);
-    const { id } = await res.json();
+    const { id } = (await res.json()) as any;
     const row = await owner.query(`SELECT visibility, author_id FROM posts WHERE id = $1`, [id]);
     expect(row.rows[0].visibility).toBe('public');
     expect(row.rows[0].author_id).toBe(alice);
@@ -128,7 +128,7 @@ describe('POST /api/posts — 커뮤니티 글 작성 (§6.2)', () => {
       body: JSON.stringify({ categoryId: dailyChatId, title: 'FEED::alice post via bearer', body: '본문 내용' }),
     });
     expect(res.status).toBe(201);
-    const { id } = await res.json();
+    const { id } = (await res.json()) as any;
     const row = await owner.query(`SELECT author_id FROM posts WHERE id = $1`, [id]);
     expect(row.rows[0].author_id).toBe(alice);
   });
@@ -163,7 +163,7 @@ describe('POST /api/posts — 커뮤니티 글 작성 (§6.2)', () => {
       body: JSON.stringify({ categoryId: newsId, title: 'FEED::news by regular user', body: '본문' }),
     });
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: 'FORBIDDEN' });
+    expect(await res.json() as any).toEqual({ error: 'FORBIDDEN' });
   });
 
   it('News 카테고리는 모더레이터가 쓸 수 있다', async () => {
@@ -197,7 +197,7 @@ describe('GET /api/posts/:publicId — 글 상세 + 댓글 (신규, 모바일용
       headers: sessionCookieHeader(aliceToken),
       body: JSON.stringify({ categoryId: dailyChatId, title: 'FEED::detail target', body: '상세 조회 대상' }),
     });
-    ({ publicId } = await res.json());
+    ({ publicId } = (await res.json()) as { publicId: string });
     await fetch(`${baseUrl}/api/comments`, {
       method: 'POST',
       headers: sessionCookieHeader(bobToken),
@@ -208,7 +208,7 @@ describe('GET /api/posts/:publicId — 글 상세 + 댓글 (신규, 모바일용
   it('존재하는 글이면 post+comments를 함께 돌려준다', async () => {
     const res = await fetch(`${baseUrl}/api/posts/${publicId}`, { headers: sessionCookieHeader(aliceToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.post.publicId).toBe(publicId);
     expect(body.post.title).toBe('FEED::detail target');
     // 🔒 news 제외 카테고리는 ai_bot이 첫 댓글을 자동으로 단다(post-bot-comment.ts,
@@ -225,7 +225,7 @@ describe('GET /api/posts/:publicId — 글 상세 + 댓글 (신규, 모바일용
   it('비로그인도 공개 글은 볼 수 있다(§4.3) — myReaction은 null', async () => {
     const res = await fetch(`${baseUrl}/api/posts/${publicId}`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.post.myReaction).toBeNull();
   });
 
@@ -233,7 +233,7 @@ describe('GET /api/posts/:publicId — 글 상세 + 댓글 (신규, 모바일용
   it('Authorization: Bearer 헤더로도 동일하게 동작', async () => {
     const res = await fetch(`${baseUrl}/api/posts/${publicId}`, { headers: { Authorization: `Bearer ${aliceToken}` } });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.post.publicId).toBe(publicId);
   });
 });
@@ -252,7 +252,7 @@ describe('POST /api/posts — 로그 전용 글 작성 (categoryId 없음)', () 
       body: JSON.stringify({ title: 'FEED::log only followers', body: '팔로워 전용', visibility: 'followers' }),
     });
     expect(res.status).toBe(201);
-    const { id } = await res.json();
+    const { id } = (await res.json()) as any;
     const row = await owner.query(`SELECT category_id, log_id, visibility, author_id FROM posts WHERE id = $1`, [id]);
     expect(row.rows[0].category_id).toBeNull();
     expect(row.rows[0].log_id).toBe(alice);
@@ -492,7 +492,7 @@ describe('PATCH /api/posts/:id — 글 수정', () => {
       body: JSON.stringify({ categoryId: newsId, title: '수정', body: '본문' }),
     });
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: 'FORBIDDEN' });
+    expect(await res.json() as any).toEqual({ error: 'FORBIDDEN' });
     const row = await owner.query(`SELECT category_id FROM posts WHERE id = $1`, [post.rows[0].id]);
     expect(row.rows[0].category_id).toBe(post.rows[0].category_id); // 안 바뀌었다
   });
@@ -636,7 +636,7 @@ describe('GET /api/feed — 홈 피드 (§5, §5.1)', () => {
     );
     const res = await fetch(`${baseUrl}/api/feed?sort=latest&limit=50`);
     expect(res.status).toBe(200);
-    const { posts } = await res.json();
+    const { posts } = (await res.json()) as any;
     expect(posts.some((p: { title: string }) => p.title === 'FEED::public readable')).toBe(true);
   });
 

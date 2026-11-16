@@ -74,7 +74,7 @@ describe('GET /api/popularity', () => {
   it('세션 없이도 200 — 공개 랭킹, 콜드 스타트라도 즉시 계산해 응답한다', async () => {
     const res = await fetch(`${baseUrl}/api/popularity?categoryId=${CATEGORY}&window=7d&limit=5`);
     expect(res.status).toBe(200);
-    const { posts } = await res.json();
+    const { posts } = (await res.json()) as any;
     expect(Array.isArray(posts)).toBe(true);
     expect(posts.map((p: { id: string }) => p.id)).toContain(post);
   });
@@ -82,14 +82,14 @@ describe('GET /api/popularity', () => {
   it('categoryId 없이 호출하면 전역 랭킹', async () => {
     const res = await fetch(`${baseUrl}/api/popularity?window=7d`);
     expect(res.status).toBe(200);
-    const { posts } = await res.json();
+    const { posts } = (await res.json()) as any;
     expect(Array.isArray(posts)).toBe(true);
   });
 
   it('categoryId가 uuid 형식이 아니면 400', async () => {
     const res = await fetch(`${baseUrl}/api/popularity?categoryId=not-a-uuid`);
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'INVALID_INPUT' });
+    expect(await res.json() as any).toEqual({ error: 'INVALID_INPUT' });
   });
 
   it('Set-Cookie가 없다 — 공개 GET, CDN 캐싱 전제(불변식 1)', async () => {

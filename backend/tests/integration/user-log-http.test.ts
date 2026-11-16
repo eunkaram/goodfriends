@@ -87,7 +87,7 @@ describe('GET /api/profile/:username', () => {
   it('로그인 상태면 공개(public) 프로필을 볼 수 있다 — UserLogProfile 형태 그대로', async () => {
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body).toMatchObject({
       userId: alice,
       username: 'ulhttp_alice',
@@ -103,13 +103,13 @@ describe('GET /api/profile/:username', () => {
   it('비로그인은 공개(public) 프로필이어도 404 (§4.3, 웹과 동일 동작)', async () => {
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice`);
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'NOT_FOUND' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_FOUND' });
   });
 
   it('존재하지 않는 username은 404', async () => {
     const res = await fetch(`${baseUrl}/api/profile/no_such_user_xyz`, { headers: sessionCookieHeader(aliceToken) });
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'NOT_FOUND' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_FOUND' });
   });
 
   it('비공개(private) 프로필은 무관계 뷰어에게 404 — 본인은 200', async () => {
@@ -118,14 +118,14 @@ describe('GET /api/profile/:username', () => {
 
     const asSelf = await fetch(`${baseUrl}/api/profile/ulhttp_bob`, { headers: sessionCookieHeader(bobToken) });
     expect(asSelf.status).toBe(200);
-    expect((await asSelf.json()).visibility).toBe('private');
+    expect((await asSelf.json() as any).visibility).toBe('private');
   });
 
   // §26(모바일) — resolveSessionToken()이 쿠키 대신 Authorization: Bearer도 받는다.
   it('Authorization: Bearer 헤더로도 동일하게 동작', async () => {
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice`, { headers: { Authorization: `Bearer ${carolToken}` } });
     expect(res.status).toBe(200);
-    expect((await res.json()).username).toBe('ulhttp_alice');
+    expect((await res.json() as any).username).toBe('ulhttp_alice');
   });
 });
 
@@ -133,13 +133,13 @@ describe('GET /api/profile (내 프로필)', () => {
   it('세션 없이는 401', async () => {
     const res = await fetch(`${baseUrl}/api/profile`);
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: 'NOT_AUTHENTICATED' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_AUTHENTICATED' });
   });
 
   it('로그인 상태면 본인 프로필을 username 없이도 바로 받는다', async () => {
     const res = await fetch(`${baseUrl}/api/profile`, { headers: sessionCookieHeader(aliceToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.userId).toBe(alice);
     expect(body.username).toBe('ulhttp_alice');
   });
@@ -147,7 +147,7 @@ describe('GET /api/profile (내 프로필)', () => {
   it('비공개(private) 계정 본인도 /api/profile로 자기 프로필을 그대로 받는다', async () => {
     const res = await fetch(`${baseUrl}/api/profile`, { headers: sessionCookieHeader(bobToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.userId).toBe(bob);
     expect(body.visibility).toBe('private');
   });
@@ -156,7 +156,7 @@ describe('GET /api/profile (내 프로필)', () => {
   it('Authorization: Bearer 헤더로도 동일하게 동작', async () => {
     const res = await fetch(`${baseUrl}/api/profile`, { headers: { Authorization: `Bearer ${aliceToken}` } });
     expect(res.status).toBe(200);
-    expect((await res.json()).userId).toBe(alice);
+    expect((await res.json() as any).userId).toBe(alice);
   });
 });
 
@@ -174,7 +174,7 @@ describe('GET /api/profile/:username/posts', () => {
     );
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice/posts`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(Array.isArray(body.posts)).toBe(true);
     expect(body.posts.some((p: { id: string }) => p.id === post.rows[0].id)).toBe(true);
   });
@@ -182,19 +182,19 @@ describe('GET /api/profile/:username/posts', () => {
   it('비로그인은 404 (§4.3, 웹과 동일 동작)', async () => {
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice/posts`);
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'NOT_FOUND' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_FOUND' });
   });
 
   it('존재하지 않는 username은 404', async () => {
     const res = await fetch(`${baseUrl}/api/profile/no_such_user_xyz/posts`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'NOT_FOUND' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_FOUND' });
   });
 
   it('limit/offset이 /api/feed와 동일하게 적용된다', async () => {
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice/posts?limit=1&offset=0`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.posts.length).toBeLessThanOrEqual(1);
   });
 
@@ -216,7 +216,7 @@ describe('GET /api/profile/:username/replies', () => {
     ]);
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice/replies`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(Array.isArray(body.items)).toBe(true);
     const match = body.items.find((it: { post: { id: string } }) => it.post.id === post.rows[0].id);
     expect(match).toBeTruthy();
@@ -231,7 +231,7 @@ describe('GET /api/profile/:username/replies', () => {
   it('존재하지 않는 username은 404', async () => {
     const res = await fetch(`${baseUrl}/api/profile/no_such_user_xyz/replies`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'NOT_FOUND' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_FOUND' });
   });
 });
 
@@ -247,7 +247,7 @@ describe('GET /api/profile/:username/media', () => {
     );
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice/media`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.posts.some((p: { id: string }) => p.id === withImage.rows[0].id)).toBe(true);
     expect(body.posts.some((p: { id: string }) => p.id === textOnly.rows[0].id)).toBe(false);
   });
@@ -260,7 +260,7 @@ describe('GET /api/profile/:username/media', () => {
   it('존재하지 않는 username은 404', async () => {
     const res = await fetch(`${baseUrl}/api/profile/no_such_user_xyz/media`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'NOT_FOUND' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_FOUND' });
   });
 });
 
@@ -271,7 +271,7 @@ describe('GET /api/profile/:username/followers', () => {
 
     const res = await fetch(`${baseUrl}/api/profile/ulhttp_alice/followers`, { headers: sessionCookieHeader(bobToken) });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(Array.isArray(body.followers)).toBe(true);
     const carolEntry = body.followers.find((f: { id: string }) => f.id === carol);
     expect(carolEntry).toBeTruthy();
@@ -288,6 +288,6 @@ describe('GET /api/profile/:username/followers', () => {
   it('존재하지 않는 username은 404', async () => {
     const res = await fetch(`${baseUrl}/api/profile/no_such_user_xyz/followers`, { headers: sessionCookieHeader(carolToken) });
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'NOT_FOUND' });
+    expect(await res.json() as any).toEqual({ error: 'NOT_FOUND' });
   });
 });

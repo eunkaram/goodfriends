@@ -198,7 +198,7 @@ describe('PATCH /api/posts/:id/adoption — Q&A 채택', () => {
       body: JSON.stringify({ commentId: answerCommentId }),
     });
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe('INVALID_INPUT');
+    expect((await res.json() as any).error).toBe('INVALID_INPUT');
   });
 });
 

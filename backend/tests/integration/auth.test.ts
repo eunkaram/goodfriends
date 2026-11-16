@@ -131,7 +131,7 @@ describe('POST /api/auth/signup', () => {
     const cookie = getCookie(res, 'aic_session');
     expect(cookie).toBeTruthy();
     expect(cookie).toContain('HttpOnly');
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.userId).toBeTruthy();
   });
 
@@ -148,7 +148,7 @@ describe('POST /api/auth/signup', () => {
       })),
     });
     expect(res.status).toBe(201);
-    const { userId } = await res.json();
+    const { userId } = (await res.json()) as any;
     const row = await owner.query<{ birthdate: string | null; country: string | null }>(
       `SELECT birthdate, country FROM users WHERE id = $1`, [userId],
     );
@@ -191,7 +191,7 @@ describe('POST /api/auth/signup', () => {
     expect(res.status).toBe(201);
     const cookie = getCookie(res, 'aic_session')!;
     const cookieToken = cookie.split(';')[0].split('=')[1];
-    const { token } = await res.json();
+    const { token } = (await res.json()) as any;
     expect(token).toBe(cookieToken);
 
     // 그 토큰이 실제로 유효한 세션인지도 확인(진짜 값인지, 아무 문자열이 아닌지).
@@ -204,7 +204,7 @@ describe('POST /api/auth/signup', () => {
       method: 'POST',
       body: JSON.stringify(validSignupBody({ email: 'authtest_userlog@example.com' })),
     });
-    const { userId } = await res.json();
+    const { userId } = (await res.json()) as any;
     const row = await owner.query(`SELECT 1 FROM user_logs WHERE user_id = $1`, [userId]);
     expect(row.rowCount).toBe(1);
   });
@@ -226,7 +226,7 @@ describe('POST /api/auth/signup', () => {
       body: JSON.stringify(validSignupBody({ email: 'authtest_dup@example.com' })),
     });
     expect(res.status).toBe(409);
-    expect((await res.json()).error).toBe('EMAIL_TAKEN');
+    expect((await res.json() as any).error).toBe('EMAIL_TAKEN');
   });
 
   // 🔒 REGRESSION — username이 이메일 로컬파트를 그대로 쓰던 시절엔
@@ -239,7 +239,7 @@ describe('POST /api/auth/signup', () => {
       body: JSON.stringify(validSignupBody({ email: 'admin@example.com' })),
     });
     expect(res.status).toBe(201);
-    const { userId } = await res.json();
+    const { userId } = (await res.json()) as any;
     const row = await owner.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId]);
     expect(row.rows[0].username).not.toBe('admin');
 
@@ -255,7 +255,7 @@ describe('POST /api/auth/signup', () => {
       body: JSON.stringify(validSignupBody({ nickname: '관리자', email: 'authtest_reserved_nickname@example.com' })),
     });
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe('INVALID_INPUT');
+    expect((await res.json() as any).error).toBe('INVALID_INPUT');
   });
 
   it('🔒 필수 항목 누락은 400 (예: 닉네임 없음)', async () => {
@@ -264,7 +264,7 @@ describe('POST /api/auth/signup', () => {
       body: JSON.stringify(validSignupBody({ nickname: '', email: 'authtest_missing@example.com' })),
     });
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe('INVALID_INPUT');
+    expect((await res.json() as any).error).toBe('INVALID_INPUT');
   });
 
     });
@@ -294,7 +294,7 @@ describe('POST /api/auth/login', () => {
     });
     const cookie = getCookie(res, 'aic_session')!;
     const cookieToken = cookie.split(';')[0].split('=')[1];
-    const { token } = await res.json();
+    const { token } = (await res.json()) as any;
     expect(token).toBe(cookieToken);
 
     const sessionRes = await fetch(`${baseUrl}/api/auth/session`, { headers: { Authorization: `Bearer ${token}` } });
@@ -313,7 +313,7 @@ describe('POST /api/auth/login', () => {
     });
     expect(wrongPw.status).toBe(401);
     expect(noSuchUser.status).toBe(401);
-    expect((await wrongPw.json()).error).toBe((await noSuchUser.json()).error);
+    expect((await wrongPw.json() as any).error).toBe((await noSuchUser.json() as any).error);
   });
 
   // 🔒 REGRESSION (eng-review, 2026-08) — admin 밴 기능이 signInWithEmail에
@@ -329,7 +329,7 @@ describe('POST /api/auth/login', () => {
       body: JSON.stringify({ email, password: 'correct horse battery staple' }),
     });
     expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe('ACCOUNT_BANNED');
+    expect((await res.json() as any).error).toBe('ACCOUNT_BANNED');
     expect(getCookie(res, 'aic_session')).toBeNull();
   });
 });
@@ -344,8 +344,8 @@ describe('GET /api/auth/session · POST /api/auth/logout', () => {
 
     const sessionRes = await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } });
     expect(sessionRes.status).toBe(200);
-    const { userId } = await sessionRes.json();
-    expect(userId).toBe((await signupRes.json()).userId);
+    const { userId } = (await sessionRes.json()) as any;
+    expect(userId).toBe((await signupRes.json() as any).userId);
 
     await fetch(`${baseUrl}/api/auth/logout`, { method: 'POST', headers: { Cookie: cookie } });
 
@@ -368,8 +368,8 @@ describe('GET /api/auth/session · POST /api/auth/logout', () => {
 
     const sessionRes = await fetch(`${baseUrl}/api/auth/session`, { headers: { Authorization: `Bearer ${token}` } });
     expect(sessionRes.status).toBe(200);
-    const { userId } = await sessionRes.json();
-    expect(userId).toBe((await signupRes.json()).userId);
+    const { userId } = (await sessionRes.json()) as any;
+    expect(userId).toBe((await signupRes.json() as any).userId);
   });
 
   // §26(모바일) — API 레퍼런스 문서 작성 중 발견: 로그아웃이 쿠키만 지원했다.
@@ -403,7 +403,7 @@ describe('이메일 인증', () => {
 
     expect(emailMocks.sendVerificationEmail).toHaveBeenCalledWith('authtest_verify1@example.com', expect.any(String));
 
-    const session = await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json();
+    const session = (await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json()) as any;
     expect(session.emailVerified).toBe(false);
   });
 
@@ -418,7 +418,7 @@ describe('이메일 인증', () => {
     const first = await fetch(`${baseUrl}/api/auth/verify-email`, { method: 'POST', body: JSON.stringify({ token }) });
     expect(first.status).toBe(200);
 
-    const session = await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json();
+    const session = (await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json()) as any;
     expect(session.emailVerified).toBe(true);
 
     const second = await fetch(`${baseUrl}/api/auth/verify-email`, { method: 'POST', body: JSON.stringify({ token }) });
@@ -458,7 +458,7 @@ describe('이메일 인증', () => {
 describe('이메일 변경', () => {
   async function signUpAndCookie(email: string, password = 'correct horse battery staple') {
     const res = await fetch(`${baseUrl}/api/auth/signup`, { method: 'POST', body: JSON.stringify(validSignupBody({ email, password })) });
-    return { userId: (await res.json()).userId as string, cookie: getCookie(res, 'aic_session')!.split(';')[0] };
+    return { userId: (await res.json() as any).userId as string, cookie: getCookie(res, 'aic_session')!.split(';')[0] };
   }
 
   describe('GET /api/auth/email-available', () => {
@@ -472,22 +472,22 @@ describe('이메일 변경', () => {
       await signUpAndCookie('authtest_email_taken@example.com');
 
       const free = await fetch(`${baseUrl}/api/auth/email-available?email=authtest_email_never_used@example.com`, { headers: { Cookie: cookie } });
-      expect((await free.json()).available).toBe(true);
+      expect((await free.json() as any).available).toBe(true);
 
       const taken = await fetch(`${baseUrl}/api/auth/email-available?email=authtest_email_taken@example.com`, { headers: { Cookie: cookie } });
-      expect((await taken.json()).available).toBe(false);
+      expect((await taken.json() as any).available).toBe(false);
     });
 
     it('🔒 본인이 이미 쓰고 있는 이메일 그대로 확인하면 available:true — 자기 자신과 안 부딪힌다', async () => {
       const { cookie } = await signUpAndCookie('authtest_email_self_check@example.com');
       const res = await fetch(`${baseUrl}/api/auth/email-available?email=authtest_email_self_check@example.com`, { headers: { Cookie: cookie } });
-      expect((await res.json()).available).toBe(true);
+      expect((await res.json() as any).available).toBe(true);
     });
 
     it('형식이 잘못되면 false', async () => {
       const { cookie } = await signUpAndCookie('authtest_email_fmt_checker@example.com');
       const res = await fetch(`${baseUrl}/api/auth/email-available?email=not-an-email`, { headers: { Cookie: cookie } });
-      expect((await res.json()).available).toBe(false);
+      expect((await res.json() as any).available).toBe(false);
     });
   });
 
@@ -502,7 +502,7 @@ describe('이메일 변경', () => {
       // 가입 직후 인증까지 마쳐서 "재인증 필요해짐"이 실제로 리셋되는지 확인할 수 있게 한다.
       const token = emailMocks.sendVerificationEmail.mock.calls.at(-1)![1] as string;
       await fetch(`${baseUrl}/api/auth/verify-email`, { method: 'POST', body: JSON.stringify({ token }) });
-      const verifiedBefore = await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json();
+      const verifiedBefore = (await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json()) as any;
       expect(verifiedBefore.emailVerified).toBe(true);
 
       emailMocks.sendVerificationEmail.mockClear();
@@ -520,7 +520,7 @@ describe('이메일 변경', () => {
       // 🔒 보안 점검 발견(2026-08-22) — 예전 주소로도 변경 알림이 나가야 한다(계정 탈취 조기 발견용).
       expect(emailMocks.sendEmailChangedNotice).toHaveBeenCalledWith('authtest_email_before@example.com', 'authtest_email_after@example.com');
 
-      const sessionAfter = await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json();
+      const sessionAfter = (await (await fetch(`${baseUrl}/api/auth/session`, { headers: { Cookie: cookie } })).json()) as any;
       expect(sessionAfter.emailVerified).toBe(false);
 
       // 옛 이메일로는 더 이상 로그인이 안 되고, 새 이메일로는 그대로 되던 비밀번호로 로그인된다.
@@ -547,7 +547,7 @@ describe('이메일 변경', () => {
         body: JSON.stringify({ email: 'authtest_email_noauth_new@example.com' }),
       });
       expect(noPassword.status).toBe(401);
-      expect((await noPassword.json()).error).toBe('INVALID_CREDENTIAL');
+      expect((await noPassword.json() as any).error).toBe('INVALID_CREDENTIAL');
 
       const wrongPassword = await fetch(`${baseUrl}/api/auth/email`, {
         method: 'PATCH',
@@ -555,7 +555,7 @@ describe('이메일 변경', () => {
         body: JSON.stringify({ email: 'authtest_email_noauth_new@example.com', password: 'wrong password' }),
       });
       expect(wrongPassword.status).toBe(401);
-      expect((await wrongPassword.json()).error).toBe('INVALID_CREDENTIAL');
+      expect((await wrongPassword.json() as any).error).toBe('INVALID_CREDENTIAL');
 
       const row = await owner.query(`SELECT email FROM auth_credentials WHERE user_id = $1`, [userId]);
       expect(row.rows[0].email).toBe('authtest_email_noauth@example.com'); // 안 바뀌었다
@@ -590,7 +590,7 @@ describe('이메일 변경', () => {
         body: JSON.stringify({ email: 'authtest_email_owner@example.com', password: 'correct horse battery staple' }),
       });
       expect(res.status).toBe(409);
-      expect((await res.json()).error).toBe('EMAIL_TAKEN');
+      expect((await res.json() as any).error).toBe('EMAIL_TAKEN');
 
       const row = await owner.query(`SELECT email FROM auth_credentials WHERE user_id = $1`, [userId]);
       expect(row.rows[0].email).toBe('authtest_email_wants_it@example.com');
@@ -600,7 +600,7 @@ describe('이메일 변경', () => {
       const { cookie } = await signUpAndCookie('authtest_email_badfmt@example.com');
       const res = await fetch(`${baseUrl}/api/auth/email`, { method: 'PATCH', headers: { Cookie: cookie }, body: JSON.stringify({ email: 'not-an-email' }) });
       expect(res.status).toBe(400);
-      expect((await res.json()).error).toBe('INVALID_INPUT');
+      expect((await res.json() as any).error).toBe('INVALID_INPUT');
     });
 
     it('🔒 그대로 같은 이메일로 제출하면 성공하지만 재인증 상태를 건드리지 않는다(불필요한 인증메일 재발송 방지)', async () => {
@@ -818,7 +818,7 @@ describe('GET /api/auth/account-summary', () => {
 
     const res = await fetch(`${baseUrl}/api/auth/account-summary`, { headers: { Cookie: cookie } });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.email).toBe('authtest_summary_pw@example.com');
     expect(body.nickname).toBe('요약테스트');
     expect(body.hasPassword).toBe(true);
@@ -833,12 +833,12 @@ describe('GET /api/auth/account-summary', () => {
       body: JSON.stringify(validSignupBody({ email: 'authtest_summary_avatar@example.com', nickname: '아바타테스트' })),
     });
     const cookie = getCookie(signupRes, 'aic_session')!.split(';')[0];
-    const signupBody = await signupRes.json();
+    const signupBody = (await signupRes.json()) as any;
     await owner.query(`UPDATE users SET avatar_url = $1 WHERE id = $2`, ['https://example.com/avatar.png', signupBody.userId]);
 
     const res = await fetch(`${baseUrl}/api/auth/account-summary`, { headers: { Cookie: cookie } });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.avatarUrl).toBe('https://example.com/avatar.png');
   });
 
@@ -848,7 +848,7 @@ describe('GET /api/auth/account-summary', () => {
 
     const res = await fetch(`${baseUrl}/api/auth/account-summary`, { headers: { Cookie: cookie } });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.email).toBeNull();
     expect(body.hasPassword).toBe(false);
     expect(body.deleteConfirmationPhrase).toBe('탈퇴합니다');
@@ -885,7 +885,7 @@ describe('탈퇴', () => {
       method: 'POST',
       body: JSON.stringify(validSignupBody({ email: 'authtest_delete_ok@example.com', password: 'correct horse battery staple' })),
     });
-    const userId = (await signupRes.json()).userId;
+    const userId = (await signupRes.json() as any).userId;
     const cookie = getCookie(signupRes, 'aic_session')!.split(';')[0];
 
     const del = await fetch(`${baseUrl}/api/auth/delete-account`, {
@@ -915,7 +915,7 @@ describe('탈퇴', () => {
       method: 'POST',
       body: JSON.stringify(validSignupBody({ email: 'authtest_delete_multisession@example.com', password: 'correct horse battery staple' })),
     });
-    const userId = (await signupRes.json()).userId;
+    const userId = (await signupRes.json() as any).userId;
     const primaryCookie = getCookie(signupRes, 'aic_session')!.split(';')[0];
     const otherDeviceCookie = `aic_session=${(await createSession(userId)).token}`; // "다른 기기"에서 로그인했다고 가정
 
