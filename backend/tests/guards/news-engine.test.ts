@@ -126,6 +126,10 @@ describe('뉴스봇 사이클(neon 없는 검증 — fixture 주입)', () => {
     { url: 'https://example.test/blog/agent-sdk', title: 'Agent SDK deep dive', description: 'Deep dive.', publishedAt: new Date('2026-10-17T12:00:00Z') },
   ];
 
+  // 🔒 fixture의 publishedAt은 2026-10-15~17 고정 — 시계를 고정하지 않으면 maxAgeDays(30)가
+  // 지난 뒤 전부 "오래된 원문"으로 버려져 테스트가 날짜에 따라 깨진다.
+  const CYCLE_NOW = new Date('2026-10-18T00:00:00Z');
+
   const FEED_URLS = {
     one: 'https://example.test/feed/one',
     two: 'https://example.test/feed/two',
@@ -161,6 +165,7 @@ describe('뉴스봇 사이클(neon 없는 검증 — fixture 주입)', () => {
       spec: { maxPerCycle: 5, maxAgeDays: 30 },
       fetchFeedFn: fetcherFor({ [FEED_URLS.one]: feedOne, [FEED_URLS.two]: feedTwo }),
       summarizeFn: stubSummarizer,
+      now: CYCLE_NOW,
     });
     expect(result.failures).toBe(0);
     expect(result.recorded).toBe(2);
@@ -193,6 +198,7 @@ describe('뉴스봇 사이클(neon 없는 검증 — fixture 주입)', () => {
       spec: { maxPerCycle: 5, maxAgeDays: 30 },
       fetchFeedFn: fetcherFor({ [FEED_URLS.one]: feedOne, [FEED_URLS.two]: feedTwo }),
       summarizeFn: stubSummarizer,
+      now: CYCLE_NOW,
     });
     expect(result.recorded).toBe(0);
     expect(result.discarded).toBe(2); // UNIQUE + 'new' 큐가 비어 skip
@@ -205,6 +211,7 @@ describe('뉴스봇 사이클(neon 없는 검증 — fixture 주입)', () => {
       sources: [{ key: 'test:dead', url: 'https://dead.test/feed' }],
       fetchFeedFn: async () => ({ ok: false, status: 503, message: 'HTTP 503 for https://dead.test/feed' }),
       summarizeFn: stubSummarizer,
+      now: CYCLE_NOW,
     });
     expect(result.failures).toBe(1);
     expect(result.recorded).toBe(0);
@@ -253,6 +260,7 @@ describe('뉴스봇 사이클(neon 없는 검증 — fixture 주입)', () => {
       spec: { maxPerCycle: 3, maxAgeDays: 30 },
       fetchFeedFn: fetcherFor({ 'https://busy.test/feed': busy, 'https://calm.test/feed': calm, 'https://side.test/feed': side }),
       summarizeFn: stubSummarizer,
+      now: CYCLE_NOW,
     });
     expect(result.recorded).toBe(11);
     expect(result.published).toBe(3);
