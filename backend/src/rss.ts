@@ -145,7 +145,7 @@ export async function fetchFeed(url: string): Promise<FetchFeedResult> {
  * 내부 식별자로 news_articles.source_key에 적힌다. mock:true는 Parity —
  * 실서버에서는 fetchFeed를 그대로 쓰고, 테스트만 갈아끼운다. */
 export const NEWS_SOURCES = [
-  { key: 'techcrunch-ai', url: 'https://techcrunch.com/category/artificial-intelligence-2/feed/' },
+  { key: 'techcrunch-ai', url: 'https://techcrunch.com/category/artificial-intelligence/feed/' },
   { key: 'theverge-ai', url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml' },
   { key: 'mit-tr-ai', url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed' },
   { key: 'marktechpost', url: 'https://www.marktechpost.com/feed/' },
