@@ -22,8 +22,17 @@
 - 기존 스타일 유지. 새 의존성 추가는 계획 단계에서 Bryan 승인
 - Reafy에서 포크한 독립 프로젝트 — reafy 저장소 코드·DB와 섞지 않는다
 - 새 함수엔 테스트, 버그 수정엔 회귀 테스트. 기존 테스트를 깨는 커밋 금지
-- push는 Bryan 승인 (에이전트는 push 금지, 오케스트레이터도 커밋까지만). 자동 배포는 아직 없음 — VPS 배포는 `PLAN.md` M5
-- 인프라 설정(`backend/docker-compose.yml`, 추후 생길 `.github/`·배포 스크립트) 변경은 계획에 명시
+- push는 Bryan 승인 (에이전트는 push 금지, 오케스트레이터도 커밋까지만). push해도 자동 배포는 없다 (GitHub Actions 워크플로 없음)
+- 인프라 설정(`backend/docker-compose.yml`, `backend/deploy/`, 배포 스크립트) 변경은 계획에 명시
+
+## 배포 (수동, Bryan 승인 필요)
+- dev: 서버 계정(Mac Studio)에서 Bryan이 직접 처리 — 에이전트는 신경 쓰지 않는다
+- 운영: 오라클 `ubuntu@129.159.47.244` (Reafy와 같은 서버), 저장소 체크아웃 `/opt/goodfriends`
+  1. `cd /opt/goodfriends && git pull --ff-only`
+  2. backend 변경: (의존성 바뀌면 `cd backend && npm ci`) → (마이그레이션 있으면 `npm run db:migrate`) → `sudo systemctl restart goodfriends-backend` → `curl -sf http://localhost:3020/api/health`
+  3. frontend 변경: `cd frontend && (npm ci) && npm run build` → `sudo systemctl restart goodfriends-frontend` (:3021)
+  - 뉴스봇·DB 백업은 운영 cron이 `/opt/goodfriends/backend` 소스를 직접 실행 → pull만으로 반영
+  - 운영 `.env`·`.env.local`은 열지 않는다. Reafy 서비스(`/opt/reafy_*`, `reafy-*`)는 건드리지 않는다
 - 사용자에게 보이는 문구는 한국어
 
 ## 비밀값 — 모든 에이전트가 열지 않는다 (구 "QA에 보내면 안 되는 파일")
