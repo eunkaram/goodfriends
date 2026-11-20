@@ -90,7 +90,7 @@ export class LlmClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${provider.apiKey}`,
+          ...(provider.apiKey ? { Authorization: `Bearer ${provider.apiKey}` } : {}),
           ...provider.extraHeaders,
         },
         body: JSON.stringify(payload),

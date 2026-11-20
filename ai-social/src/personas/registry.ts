@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import type { AgentPersona } from '../types.js';
-import { DEFAULT_PERSONAS } from './defaults.js';
+import { createDefaultPersonas } from './defaults.js';
 import { openDatabase } from '../db/database.js';
 
 export class PersonaRegistry {
@@ -15,7 +15,7 @@ export class PersonaRegistry {
   private ensureSeeded(): void {
     const { count } = this.db.prepare(`SELECT COUNT(*) as count FROM personas`).get() as { count: number };
     if (count === 0) {
-      for (const persona of DEFAULT_PERSONAS) {
+      for (const persona of createDefaultPersonas()) {
         this.set(persona);
       }
     }

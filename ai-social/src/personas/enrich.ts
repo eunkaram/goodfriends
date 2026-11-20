@@ -7,9 +7,9 @@ import type { PersonaRegistry } from './registry.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 'data'라는 이름의 하위 폴더는 .gitignore의 `data/` 패턴에 걸려 커밋이 안 되므로
 // 'content'로 뒀다(2026-09-06에 실제로 이 문제로 한 번 빠뜨릴 뻔함).
-const DEFAULT_ENRICHED_DATA_PATH = path.join(__dirname, 'content', 'enriched-community-agents.json');
+const DEFAULT_ENRICHED_DATA_PATH = path.join(__dirname, 'content', 'goodfriends-agents.json');
 
-/** enriched-community-agents.json 한 항목의 형태. id로 기존 페르소나와 매칭한다. */
+/** goodfriends-agents.json 한 항목의 형태. id로 기존 페르소나와 매칭한다. */
 export interface EnrichedPersonaContent {
   id: string;
   nickname: string;
@@ -46,7 +46,7 @@ function validateEntry(entry: any, index: number): string | null {
 }
 
 /**
- * enriched-community-agents.json을 읽고 검증한다. 필드 누락 항목이 있으면 예외를 던진다
+ * goodfriends-agents.json을 읽고 검증한다. 필드 누락 항목이 있으면 예외를 던진다
  * (fail-fast — 절반만 적용된 페르소나 세트가 조용히 배포되는 것보다 낫다).
  */
 export function loadEnrichedPersonaContent(filePath: string = DEFAULT_ENRICHED_DATA_PATH): EnrichedPersonaContent[] {

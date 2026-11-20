@@ -1,9 +1,8 @@
 import type { AgentPersona } from '../types.js';
-import { config } from '../config.js';
-import { generatePersonas } from './generator.js';
+import { buildPersonas } from './generator.js';
 
-// 손으로 쓴 고정 14명 대신 제너레이터로 매번 config.personas.seedCount명을 새로 찍어낸다
-// (2026-09 결정: prod는 ~100명 규모가 필요해서 수작업으로는 품질 유지가 안 됨 — generator.ts 참고).
-// PersonaRegistry.ensureSeeded()가 personas 테이블이 비어있을 때만 이 값을 쓰므로, 이미 시드된
-// DB에는 영향이 없다.
-export const DEFAULT_PERSONAS: AgentPersona[] = generatePersonas(config.personas.seedCount);
+// PersonaRegistry.ensureSeeded()가 personas 테이블이 비어있을 때만 호출한다. 호출할 때마다
+// 비밀번호가 새로 만들어지므로 모듈 로드 시점이 아니라 함수로 둔다.
+export function createDefaultPersonas(): AgentPersona[] {
+  return buildPersonas();
+}

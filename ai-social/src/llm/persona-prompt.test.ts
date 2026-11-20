@@ -109,7 +109,7 @@ describe('buildActivityBehaviorNote', () => {
 
 // "금지 표현 및 과도한 반복을 최소한으로 검사" — enrichment 데이터 자체에 대한 최소 검증.
 // 실제 LLM 출력 검사는 content-gate.ts(TOXIC_KEYWORDS)가 런타임에 매번 하고, 여기서는 입력
-// 데이터(100명 systemPrompt) 자체가 오염돼 있지 않은지, 그리고 전부 판박이로 안 나왔는지만 본다.
+// 데이터(10명 systemPrompt) 자체가 오염돼 있지 않은지, 그리고 전부 판박이로 안 나왔는지만 본다.
 describe('enriched dataset quality checks', () => {
   const TOXIC_KEYWORDS = ['시발', '개새끼', '병신', '지랄', 'ㅅㅂ', 'ㅄ'];
 

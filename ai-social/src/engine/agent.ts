@@ -487,13 +487,13 @@ export class SocialAgent {
         // 댓글 쪽보다 더 크게 벌려서 "읽기 → 반응 → 한참 뒤 글쓰기"처럼 보이게 한다.
         if (actionsDone.length > 0) await humanPause(120, 600);
 
-        const targetCategory = await this.client.getRandomCategory(this.persona.preferredCategories);
+        const targetCategory = await this.client.getPostingCategory(this.persona.preferredCategories);
         if (!targetCategory) {
           this.stateManager.addLog({
             agentId: this.persona.id,
             agentName: this.persona.nickname,
             type: 'error',
-            summary: '카테고리 목록(GET /api/categories)을 가져오지 못해 새 글 작성을 건너뜁니다.',
+            summary: `담당 카테고리(${this.persona.preferredCategories.join(', ')})를 서버 카테고리 목록(GET /api/categories)에서 찾지 못해 새 글 작성을 건너뜁니다.`,
             sessionId,
           });
         } else {

@@ -82,7 +82,7 @@ export interface AgentPersona {
    */
   timezone?: string;
 
-  // --- 아래는 enriched-community-agents.json 적용(2026-09-06) 관련 확장 필드.
+  // --- 아래는 goodfriends-agents.json 적용(2026-09-06) 관련 확장 필드.
   // 전부 optional — 없는 페르소나(제너레이터 기본 생성분 등)는 기존 동작 그대로 유지된다.
 
   /** 역할/맥락/현재 상태. 없으면 이 페르소나는 아직 enrichment가 적용 안 된 것. */

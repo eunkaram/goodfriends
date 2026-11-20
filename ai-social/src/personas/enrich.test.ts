@@ -31,9 +31,9 @@ function baseFor(id: string): AgentPersona {
 }
 
 describe('loadEnrichedPersonaContent (실제 데이터 파일 기준)', () => {
-  it('loads exactly 100 entries', () => {
+  it('loads exactly 10 entries', () => {
     const entries = loadEnrichedPersonaContent();
-    expect(entries).toHaveLength(100);
+    expect(entries).toHaveLength(10);
   });
 
   it('has every required field non-empty on every entry', () => {
@@ -128,17 +128,17 @@ describe('applyEnrichment (병합 로직)', () => {
   });
 });
 
-describe('applyEnrichmentToRegistry (100명 로드 확인)', () => {
-  it('applies enrichment to all 100 registry personas matched by id, and skips ones not present', () => {
+describe('applyEnrichmentToRegistry (10명 로드 확인)', () => {
+  it('applies enrichment to all 10 registry personas matched by id, and skips ones not present', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-enrich-test-'));
     try {
-      const registry = new PersonaRegistry(tmpDir); // 비어있으면 defaults.ts로 100명 자동 시드됨
+      const registry = new PersonaRegistry(tmpDir); // 비어있으면 defaults.ts로 10명 자동 시드됨
       const before = registry.getAll();
-      expect(before).toHaveLength(100);
+      expect(before).toHaveLength(10);
 
       const result = applyEnrichmentToRegistry(registry);
 
-      expect(result.updated).toHaveLength(100);
+      expect(result.updated).toHaveLength(10);
       expect(result.missingInRegistry).toHaveLength(0);
 
       const after = registry.getAll();
@@ -163,7 +163,7 @@ describe('applyEnrichmentToRegistry (100명 로드 확인)', () => {
 
       const result = applyEnrichmentToRegistry(registry);
       expect(result.updated).toEqual([keep.id]);
-      expect(result.missingInRegistry.length).toBe(99);
+      expect(result.missingInRegistry.length).toBe(9);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

@@ -35,6 +35,13 @@ export function deriveUsername(email: string): string {
   );
 }
 
+/** 담당 slug에 해당하는 카테고리만 고른다(news 제외, 일치 없으면 null — 무작위 폴백 없음). */
+export function pickPostingCategory(categories: CommunityCategory[], preferredSlugs: string[]): CommunityCategory | null {
+  const preferred = categories.filter((c) => !NEWS_CATEGORY_SLUGS.has(c.slug) && preferredSlugs.includes(c.slug));
+  if (preferred.length === 0) return null;
+  return preferred[Math.floor(Math.random() * preferred.length)];
+}
+
 interface ApiResult {
   status: number;
   data: Record<string, any>;
@@ -480,6 +487,14 @@ export class GoodfriendsClient {
    * 글을 올릴 카테고리를 고른다. 선호 slug 중 서버에 있는 것을 우선하고, 없으면 News 전용을 뺀 전체에서
    * 무작위. 카테고리를 못 가져오면 null(호출부가 글쓰기를 건너뛴다).
    */
+  /**
+   * 신규 글을 올릴 카테고리. 페르소나가 담당 slug로 고정돼 있으므로 preferredSlugs와 일치하는 것만 반환한다
+   * (무작위 폴백 없음 — 담당이 아닌 곳에 쓰면 안 된다). 뉴스 카테고리는 항상 제외, 없으면 null.
+   */
+  public async getPostingCategory(preferredSlugs: string[]): Promise<CommunityCategory | null> {
+    return pickPostingCategory(await this.getCategories(), preferredSlugs);
+  }
+
   public async getRandomCategory(preferredSlugs?: string[]): Promise<CommunityCategory | null> {
     const all = (await this.getCategories()).filter((c) => !NEWS_CATEGORY_SLUGS.has(c.slug));
     if (all.length === 0) return null;

@@ -1,7 +1,10 @@
 /**
- * enriched-community-agents.json(src/personas/data/)을 기존 registry(data/goodfriends.db)에
+ * goodfriends-agents.json(src/personas/content/)을 기존 registry(data/goodfriends.db)에
  * 적용한다. id로 매칭해서 bio/tone/systemPrompt/persona/emotionalProfile/communityBehavior만
  * 덮어쓰고, email/password 등 계정 필드는 안 건드린다(enrich.ts의 applyEnrichment 참고).
+ *
+ * 주의: 말투·systemPrompt 같은 enriched 필드만 갱신한다. preferredCategories·활동 확률·간격·username은
+ * 건드리지 않는다(그런 값을 바꾸려면 DB를 새로 시드하거나 rename-personas.ts 참고).
  *
  * 사용법: npx tsx scripts/apply-enriched-personas.ts
  */

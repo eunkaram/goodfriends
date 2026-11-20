@@ -14,11 +14,13 @@
  */
 import path from 'node:path';
 import { PersonaRegistry } from '../src/personas/registry.js';
+import { deriveUsername } from '../src/client/goodfriends-client.js';
 
 const registry = new PersonaRegistry(path.resolve(process.cwd(), 'data'));
 const personas = registry.getAll();
 
-const derived = (email: string) => email.split('@')[0].replace(/\./g, '');
+// goodfriends 가입 시 서버가 쓰는 규칙(auth.ts uniqueUsernameFrom)과 같은 유도식을 쓴다.
+const derived = deriveUsername;
 const rows = personas.map((p) => ({
   email: p.email,
   username: p.username || derived(p.email),

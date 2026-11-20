@@ -6,10 +6,14 @@ export const config = {
     baseUrl: process.env.GOODFRIENDS_BASE_URL || 'http://127.0.0.1:3011',
   },
   localLlm: {
-    baseUrl: process.env.LOCAL_LLM_BASE_URL || 'http://127.0.0.1:11434/v1',
-    apiKey: process.env.LOCAL_LLM_API_KEY || 'ollama',
-    model: process.env.LOCAL_LLM_MODEL || 'qwen2.5:14b',
+    baseUrl: process.env.LOCAL_LLM_BASE_URL || 'http://127.0.0.1:11234/v1',
+    apiKey: process.env.LOCAL_LLM_API_KEY || '',
+    model: process.env.LOCAL_LLM_MODEL || 'Qwen3.8-Flash-Next-oQ4e-mtp',
     temperature: parseFloat(process.env.LOCAL_LLM_TEMPERATURE || '0.7'),
+  },
+  llm: {
+    // 글 생성처럼 오래 걸리는 호출용 타임아웃(ms). 사용처는 후속 작업에서 연결한다.
+    longTimeoutMs: parseInt(process.env.LLM_LONG_TIMEOUT_MS || '600000', 10),
   },
   openRouter: {
     baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
@@ -20,7 +24,7 @@ export const config = {
     siteName: process.env.OPENROUTER_SITE_NAME || '',
   },
   llmProvider: {
-    // 기본 공급자. 'local'(사내망 Ollama 등) 또는 'openrouter'.
+    // 기본 공급자. 'local'(이 서버의 로컬 OpenAI 호환 엔드포인트) 또는 'openrouter'.
     active: (process.env.LLM_PROVIDER === 'openrouter' ? 'openrouter' : 'local') as 'local' | 'openrouter',
     // active가 'local'이고 OPENROUTER_API_KEY가 설정돼 있으면, 로컬이 완전히 실패했을 때
     // OpenRouter로 자동 전환. 키가 없으면 자동으로 꺼짐(의도치 않은 과금 방지).
@@ -39,10 +43,5 @@ export const config = {
     // 글로벌 틱 간격 (ms) - 각 에이전트 스케줄 점검 주기
     tickIntervalMs: parseInt(process.env.TICK_INTERVAL_MS || '30000', 10), // 30초마다 체크
     autoStart: process.env.AUTO_START !== 'false',
-  },
-  personas: {
-    // DB가 비어있을 때(최초 부팅) 시드할 페르소나 수. 이미 시드된 DB는 영향 없음(personas 테이블
-    // 비어있을 때만 동작 — PersonaRegistry.ensureSeeded 참고).
-    seedCount: parseInt(process.env.PERSONA_SEED_COUNT || '100', 10),
   },
 };
