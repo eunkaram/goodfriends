@@ -46,7 +46,7 @@ export function backupDataDir(dataDir: string, now: Date = new Date()): string |
 }
 
 /**
- * 기존 JSON 파일들을 SQLite(data/reafy.db)로 옮긴다.
+ * 기존 JSON 파일들을 SQLite(data/goodfriends.db)로 옮긴다.
  * 멱등성: 같은 id는 ON CONFLICT/DO NOTHING으로 중복 없이 재실행 가능.
  */
 export function migrateJsonToSqlite(dataDir: string): MigrationSummary {

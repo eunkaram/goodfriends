@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { pickCommentsToReact, pickReplyTarget, MAX_COMMENT_REACTIONS_PER_POST } from './comment-rules.js';
-import type { AgentPersona, ReafyComment } from '../types.js';
+import type { AgentPersona, CommunityComment } from '../types.js';
 
 function makePersona(overrides: Partial<AgentPersona> = {}): AgentPersona {
   return {
@@ -27,7 +27,7 @@ function makePersona(overrides: Partial<AgentPersona> = {}): AgentPersona {
   };
 }
 
-function makeComment(overrides: Partial<ReafyComment> = {}): ReafyComment {
+function makeComment(overrides: Partial<CommunityComment> = {}): CommunityComment {
   return {
     id: 'c1',
     postId: 'p1',

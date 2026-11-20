@@ -1,4 +1,4 @@
-import type { AgentPersona, ReafyPost } from '../types.js';
+import type { AgentPersona, CommunityPost } from '../types.js';
 
 /** 세션당 다른 에이전트와의 상호작용(공감+댓글) 상한. 봇-링 탐지 신호 완화용 하드캡. */
 export const CROSS_AGENT_INTERACTION_CAP = 1;
@@ -7,12 +7,12 @@ export const CROSS_AGENT_INTERACTION_CAP = 1;
  * 본인이 작성한 글은 상호작용 대상에서 제외.
  * (기존 동작을 순수 함수로 추출 — REGRESSION 테스트 대상)
  */
-export function filterOwnPosts(posts: ReafyPost[], persona: AgentPersona): ReafyPost[] {
+export function filterOwnPosts(posts: CommunityPost[], persona: AgentPersona): CommunityPost[] {
   return posts.filter((post) => post.authorNickname !== persona.nickname);
 }
 
 /** 글 작성자가 우리 쪽 에이전트 스쿼드 소속인지 여부 (실사용자 vs 동료 봇 구분) */
-export function isFellowAgentPost(post: ReafyPost, agentNicknames: ReadonlySet<string>): boolean {
+export function isFellowAgentPost(post: CommunityPost, agentNicknames: ReadonlySet<string>): boolean {
   return agentNicknames.has(post.authorNickname);
 }
 
@@ -21,7 +21,7 @@ export function isFellowAgentPost(post: ReafyPost, agentNicknames: ReadonlySet<s
  * 동료 에이전트 글이고, 이미 이번 세션에서 크로스 에이전트 상호작용 상한에 도달했다면 false.
  */
 export function canInteractWithPost(
-  post: ReafyPost,
+  post: CommunityPost,
   agentNicknames: ReadonlySet<string>,
   crossAgentInteractionsSoFar: number
 ): boolean {

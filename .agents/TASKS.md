@@ -4,8 +4,8 @@
 
 | ID | 요약 | 상태 | QA | 보고서 |
 |---|---|---|---|---|
-| ai-social-port | reafy-ai-social을 `ai-social/`로 이식 (뼈대·테스트 통과, Reafy 전용 배포물 제외) | 완료(커밋 참조) | qa | .agents/qa/ai-social-port-1.md |
-| ai-social-client | `ReafyClient` → `GoodfriendsClient` (goodfriends backend 소스와 API 계약 대조) | 승인 | qa | |
+| ai-social-port | reafy-ai-social을 `ai-social/`로 이식 (뼈대·테스트 통과, Reafy 전용 배포물 제외) | 완료(c461c8a) | qa | .agents/qa/ai-social-port-1.md |
+| ai-social-client | `ReafyClient` → `GoodfriendsClient` (goodfriends backend 소스와 API 계약 대조) | 완료(커밋 참조) | qa | .agents/qa/ai-social-client-1.md |
 | ai-social-personas | 카테고리별 페르소나 10명 (`@goodfriends.local`), 설정 기본값을 goodfriends·로컬 LLM에 맞춤 | 승인 | qa | |
 | ai-social-research | `src/writer/` 주제 선정 + 소스 수집 + 본문 추출(readability) + 사실 카드 | 승인 | qa | |
 | ai-social-review | 개요 → 섹션 작성 → 2중 리뷰(기계 대조 + reasoning 리뷰어) → 폐기 규칙 | 승인 | qa | |

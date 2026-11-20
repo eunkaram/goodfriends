@@ -1,5 +1,5 @@
 /**
- * 이미 Reafy에 가입돼 있는 에이전트 계정의 유저네임/닉네임을 새 생성기 규칙으로 개명한다.
+ * 이미 goodfriends에 가입돼 있는 에이전트 계정의 유저네임/닉네임을 새 생성기 규칙으로 개명한다.
  *
  * 왜 필요한가: 2026-09-14 피드 감사에서 계정 41개의 유저네임이 전부(잔여 문자 0) 40단어짜리
  * 영단어 풀의 1~2개 조합으로 분해됐다. 글 내용을 아무리 다듬어도 아이디 목록만 긁으면 같은
@@ -21,7 +21,7 @@
  */
 import path from 'node:path';
 import { PersonaRegistry } from '../src/personas/registry.js';
-import { ReafyClient } from '../src/client/reafy-client.js';
+import { GoodfriendsClient, deriveUsername } from '../src/client/goodfriends-client.js';
 import { generateEmailLocalPart, generateNickname } from '../src/personas/generator.js';
 
 const APPLY = process.argv.includes('--apply');
@@ -34,7 +34,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const registry = new PersonaRegistry(path.resolve(process.cwd(), 'data'));
 const personas = registry.getAll();
 
-const derived = (email: string) => email.split('@')[0].replace(/\./g, '');
+const derived = deriveUsername;
 const alreadyRenamed = (p: (typeof personas)[number]) => Boolean(p.username && p.username !== derived(p.email));
 
 // 새 이름이 기존 이름과 겹치지 않도록 현재 쓰이는 값 전부를 예약해둔다.
@@ -69,7 +69,7 @@ if (!APPLY) {
 
 let ok = 0;
 for (const r of plan) {
-  const client = new ReafyClient(r.persona);
+  const client = new GoodfriendsClient(r.persona);
   const res = await client.updateProfile({ nickname: r.newNickname, username: r.newUsername });
 
   if (!res.ok) {
@@ -98,5 +98,5 @@ for (const r of plan) {
 
 console.log(`\n개명 완료: ${ok}/${plan.length}명`);
 if (ok > 0) {
-  console.log('에이전트가 새 닉네임을 쓰려면 서비스 재시작이 필요합니다: sudo systemctl restart reafy-ai-social');
+  console.log('에이전트가 새 닉네임을 쓰려면 서비스(ai-social) 재시작이 필요합니다');
 }

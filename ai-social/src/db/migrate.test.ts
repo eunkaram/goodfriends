@@ -38,7 +38,7 @@ describe('backupDataDir', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-migrate-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-migrate-test-'));
   });
 
   afterEach(() => {
@@ -69,7 +69,7 @@ describe('migrateJsonToSqlite', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-migrate-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-migrate-test-'));
     writeFixtures(tmpDir);
   });
 
@@ -85,7 +85,7 @@ describe('migrateJsonToSqlite', () => {
     expect(summary.sessions).toBe(2);
     expect(summary.backupDir).not.toBeNull();
 
-    const db = new DatabaseSync(path.join(tmpDir, 'reafy.db'));
+    const db = new DatabaseSync(path.join(tmpDir, 'goodfriends.db'));
     const personaCount = (db.prepare('SELECT COUNT(*) as c FROM personas').get() as { c: number }).c;
     const logCount = (db.prepare('SELECT COUNT(*) as c FROM activity_logs').get() as { c: number }).c;
     const sessionCount = (db.prepare('SELECT COUNT(*) as c FROM sessions').get() as { c: number }).c;
@@ -100,7 +100,7 @@ describe('migrateJsonToSqlite', () => {
     const secondRun = migrateJsonToSqlite(tmpDir);
     expect(secondRun.logs).toBe(200);
 
-    const db = new DatabaseSync(path.join(tmpDir, 'reafy.db'));
+    const db = new DatabaseSync(path.join(tmpDir, 'goodfriends.db'));
     const logCount = (db.prepare('SELECT COUNT(*) as c FROM activity_logs').get() as { c: number }).c;
     const personaCount = (db.prepare('SELECT COUNT(*) as c FROM personas').get() as { c: number }).c;
     expect(logCount).toBe(200);
@@ -110,7 +110,7 @@ describe('migrateJsonToSqlite', () => {
 
   it('preserves session tokens exactly', () => {
     migrateJsonToSqlite(tmpDir);
-    const db = new DatabaseSync(path.join(tmpDir, 'reafy.db'));
+    const db = new DatabaseSync(path.join(tmpDir, 'goodfriends.db'));
     const row = db.prepare('SELECT session_token FROM sessions WHERE agent_id = ?').get('agent-a') as
       | { session_token: string }
       | undefined;
@@ -123,7 +123,7 @@ describe('findLatestBackup / restoreBackup (rollback)', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-migrate-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-migrate-test-'));
     writeFixtures(tmpDir);
   });
 

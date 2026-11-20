@@ -6,8 +6,8 @@ import type { AgentPersona } from '../types.js';
  * 100명 규모에서 안 통해서(품질 유지 불가능) 이름/닉네임/관심사/말투/바이오를 여러 풀에서
  * 조합하는 방식으로 바꿨다.
  *
- * 이메일 로컬파트(=Reafy 유저네임의 원천, registry.ts 참고)에 "ai"라는 글자가 절대 안 들어가게
- * 만드는 게 핵심 요구사항이었다 — 예전 방식(`technova.ai@reafy.local` → 유저네임 `technovaai`)은
+ * 이메일 로컬파트(=goodfriends 유저네임의 원천, registry.ts 참고)에 "ai"라는 글자가 절대 안 들어가게
+ * 만드는 게 핵심 요구사항이었다 — 예전 방식(`technova.ai@goodfriends.local` → 유저네임 `technovaai`)은
  * AI라는 게 그대로 드러났었음. 단어 풀 자체를 "ai"가 안 들어간 것들로만 구성하고, 혹시 조합
  * 과정에서 우연히 생기더라도(예: "rain", "mountain") generateEmailLocalPart가 재시도하며 걸러낸다.
  */
@@ -79,7 +79,7 @@ interface CategoryFlavor {
   tones: string[];
 }
 
-// DEFAULT_CATEGORIES(reafy-client.ts)의 15개 slug와 1:1로 맞춘 톤/바이오 소스.
+// 원본(reafy-ai-social)의 카테고리 15개 slug 기준 톤/바이오 소스. goodfriends 카테고리 slug와는 아직 일치하지 않는다(후속 작업).
 const CATEGORY_FLAVOR: Record<string, CategoryFlavor> = {
   chat: {
     role: '일상을 담백하게 기록하는 동네 이웃',
@@ -353,11 +353,11 @@ const EMAIL_LOCAL_PATTERNS: (() => string)[] = [
   () => `${pick(EMAIL_WORDS)}${pick(EMAIL_SUFFIXES)}`, // 영단어+꼬리표: coldbrewzip
   () => `${pick(EMAIL_WORDS_KO)}${pick(EMAIL_WORDS)}`, // 로마자+영단어: baramoldfilm
 ];
-// 밑줄·점이 섞인 아이디도 자연스럽겠지만, Reafy의 username 유도 규칙(이메일 로컬파트에서 '.'만
-// 제거)이 다른 기호를 어떻게 다루는지 검증이 안 돼서 영소문자만 쓴다 — CLAUDE.md 참고.
+// 밑줄·점이 섞인 아이디도 자연스럽겠지만, goodfriends의 username 유도 규칙(auth.ts uniqueUsernameFrom:
+// 로컬파트를 소문자로 만들고 [a-z0-9_] 외 문자 제거, 20자)과 어긋나지 않게 영소문자만 쓴다.
 
 /**
- * "ai"가 최종 문자열에 절대 안 들어가게 재시도하며 만드는 이메일 로컬파트(=Reafy 유저네임).
+ * "ai"가 최종 문자열에 절대 안 들어가게 재시도하며 만드는 이메일 로컬파트(=goodfriends 유저네임).
  * 숫자 접미사 없음 — 숫자 붙은 아이디가 부자연스럽다는 피드백으로 뺐다.
  */
 export function generateEmailLocalPart(used: Set<string>): string {
@@ -444,7 +444,7 @@ export function generatePersonas(count: number): AgentPersona[] {
       id: `agent-${String(i + 1).padStart(3, '0')}`,
       name: generateName(),
       nickname,
-      email: `${emailLocal}@reafy.local`,
+      email: `${emailLocal}@goodfriends.local`,
       password: generatePassword(),
       birthdate: generateBirthdate(),
       country,

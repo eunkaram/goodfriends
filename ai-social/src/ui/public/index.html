@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reafy AI Social - Multi-Agent Dashboard</title>
+  <title>goodfriends AI Social - Multi-Agent Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -446,7 +446,7 @@
       <div class="logo-group">
         <div class="logo-badge">R</div>
         <div class="logo-title">
-          <h1>Reafy AI Social Engine</h1>
+          <h1>goodfriends AI Social Engine</h1>
           <p id="targetUrl">Target: Connecting...</p>
         </div>
       </div>
@@ -631,7 +631,7 @@
         const providerInfo = statusRes.config.llmProvider;
         const providerLabel = providerInfo.active === 'openrouter' ? 'OpenRouter' : 'Local';
         const fallbackLabel = providerInfo.fallbackAvailable ? ` (+ OpenRouter 폴백)` : '';
-        document.getElementById('targetUrl').textContent = `Target: ${statusRes.config.reafyUrl} | LLM: ${providerLabel}/${providerInfo.activeModel}${fallbackLabel}`;
+        document.getElementById('targetUrl').textContent = `Target: ${statusRes.config.goodfriendsUrl} | LLM: ${providerLabel}/${providerInfo.activeModel}${fallbackLabel}`;
 
         // Scheduler state
         isSchedulerRunning = statusRes.scheduler.running;

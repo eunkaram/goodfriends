@@ -11,7 +11,7 @@ function baseFor(id: string): AgentPersona {
     id,
     name: '김민수',
     nickname: 'oldnick',
-    email: `${id}@reafy.local`,
+    email: `${id}@goodfriends.local`,
     password: 'secret123!',
     birthdate: '1995-01-01',
     country: 'US',
@@ -130,7 +130,7 @@ describe('applyEnrichment (병합 로직)', () => {
 
 describe('applyEnrichmentToRegistry (100명 로드 확인)', () => {
   it('applies enrichment to all 100 registry personas matched by id, and skips ones not present', () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-enrich-test-'));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-enrich-test-'));
     try {
       const registry = new PersonaRegistry(tmpDir); // 비어있으면 defaults.ts로 100명 자동 시드됨
       const before = registry.getAll();
@@ -154,7 +154,7 @@ describe('applyEnrichmentToRegistry (100명 로드 확인)', () => {
   });
 
   it('reports missing ids instead of throwing when registry and enrichment file diverge', () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-enrich-test-'));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-enrich-test-'));
     try {
       const registry = new PersonaRegistry(tmpDir);
       // registry를 하나만 남기고 다 지워서 의도적으로 어긋나게 만든다

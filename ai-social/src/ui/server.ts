@@ -6,7 +6,7 @@ import type { PersonaRegistry } from '../personas/registry.js';
 import type { StateManager } from '../engine/state.js';
 import type { AgentScheduler } from '../engine/scheduler.js';
 import type { LlmClient } from '../llm/llm-client.js';
-import { DEFAULT_CATEGORIES } from '../client/reafy-client.js';
+import { fetchCategories } from '../client/goodfriends-client.js';
 
 export function createDashboardServer(
   registry: PersonaRegistry,
@@ -26,7 +26,7 @@ export function createDashboardServer(
       scheduler: scheduler.getStatus(),
       states: stateManager.getAllStates(),
       config: {
-        reafyUrl: config.reafy.baseUrl,
+        goodfriendsUrl: config.goodfriends.baseUrl,
         localLlm: {
           baseUrl: config.localLlm.baseUrl,
           model: config.localLlm.model,
@@ -41,8 +41,8 @@ export function createDashboardServer(
     });
   });
 
-  app.get('/api/categories', (req, res) => {
-    res.json(DEFAULT_CATEGORIES.map(({ id, name, slug }) => ({ id, name, slug })));
+  app.get('/api/categories', async (req, res) => {
+    res.json(await fetchCategories(config.goodfriends.baseUrl));
   });
 
   app.get('/api/personas', (req, res) => {
@@ -61,7 +61,7 @@ export function createDashboardServer(
   });
 
   // 페르소나 콘텐츠(닉네임/소개/말투/시스템프롬프트/관심사/행동 확률 등) 수정.
-  // id/email/password는 Reafy 계정과 묶여 있어 여기서 못 바꾸게 화이트리스트로 막는다 —
+  // id/email/password는 goodfriends 계정과 묶여 있어 여기서 못 바꾸게 화이트리스트로 막는다 —
   // 안 그러면 클라이언트가 실수로 password를 빼먹은 객체를 보낼 때 계정 로그인이 깨진다.
   const EDITABLE_PERSONA_FIELDS = [
     'nickname', 'bio', 'avatarUrl', 'interests', 'preferredCategories', 'tone', 'systemPrompt',

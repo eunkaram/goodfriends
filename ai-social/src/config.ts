@@ -2,8 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
-  reafy: {
-    baseUrl: process.env.REAFY_BASE_URL || 'https://dev.reafy.com',
+  goodfriends: {
+    baseUrl: process.env.GOODFRIENDS_BASE_URL || 'http://127.0.0.1:3011',
   },
   localLlm: {
     baseUrl: process.env.LOCAL_LLM_BASE_URL || 'http://127.0.0.1:11434/v1',

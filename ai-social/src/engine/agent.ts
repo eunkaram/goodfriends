@@ -1,5 +1,5 @@
-import type { AgentPersona, ReafyComment, ReafyPost, WebSearchResult } from '../types.js';
-import { ReafyClient } from '../client/reafy-client.js';
+import type { AgentPersona, CommunityComment, CommunityPost, WebSearchResult } from '../types.js';
+import { GoodfriendsClient } from '../client/goodfriends-client.js';
 import { LlmClient } from '../llm/llm-client.js';
 import { WebResearcher } from '../research/web-search.js';
 import { StateManager } from './state.js';
@@ -47,7 +47,7 @@ function humanPause(minSec: number, maxSec: number): Promise<void> {
 
 export class SocialAgent {
   public persona: AgentPersona;
-  private client: ReafyClient;
+  private client: GoodfriendsClient;
   private llm: LlmClient;
   private researcher: WebResearcher;
   private stateManager: StateManager;
@@ -68,7 +68,7 @@ export class SocialAgent {
     this.stateManager = stateManager;
     this.registry = registry;
     this.postLock = postLock;
-    this.client = new ReafyClient(persona);
+    this.client = new GoodfriendsClient(persona);
 
     // Initial state registration
     this.stateManager.initOrUpdateState(persona.id, {
@@ -102,10 +102,10 @@ export class SocialAgent {
    * 거부되면 1회 재생성 후, 그래도 거부되면 null 반환 + 로그(스킵) — 결정된 기본 동작.
    */
   private async generateSafeComment(
-    post: ReafyPost,
+    post: CommunityPost,
     moodModifier: string,
     sessionId: string,
-    existingComments: ReafyComment[] = []
+    existingComments: CommunityComment[] = []
   ): Promise<string | null> {
     const recentTexts = this.getRecentTexts();
     // 이미 달린 댓글을 넘겨서 같은 도입부·같은 관점이 겹치는 걸 막는다(llm-client 참고).
@@ -140,8 +140,8 @@ export class SocialAgent {
    * 콘텐츠 세이프티 게이트를 통과하는 대댓글(답글)을 생성한다. 거부 시 처리는 댓글과 동일.
    */
   private async generateSafeReply(
-    post: ReafyPost,
-    parentComment: ReafyComment,
+    post: CommunityPost,
+    parentComment: CommunityComment,
     moodModifier: string,
     sessionId: string
   ): Promise<string | null> {
@@ -271,7 +271,7 @@ export class SocialAgent {
       // 1. 인증 확인
       const isAuth = await this.client.ensureAuthenticated();
       if (!isAuth) {
-        throw new Error('Reafy 로그인/가입 실패');
+        throw new Error('goodfriends 로그인/가입 실패');
       }
       this.stateManager.initOrUpdateState(this.persona.id, { sessionActive: true });
 
@@ -347,7 +347,7 @@ export class SocialAgent {
         }
 
         // 기존 댓글 목록 조회 (댓글 공감 / 대댓글 대상 파악용)
-        let comments: ReafyComment[] = [];
+        let comments: CommunityComment[] = [];
         if (post.commentCount > 0) {
           comments = await this.client.getComments(post.id);
         }
@@ -487,72 +487,82 @@ export class SocialAgent {
         // 댓글 쪽보다 더 크게 벌려서 "읽기 → 반응 → 한참 뒤 글쓰기"처럼 보이게 한다.
         if (actionsDone.length > 0) await humanPause(120, 600);
 
-        const targetCategory = this.client.getRandomCategory(this.persona.preferredCategories);
-        let externalInfo: WebSearchResult | null = null;
-
-        // 외부 웹 검색 및 최신 트렌드 리서치 수행 여부
-        if (Math.random() < this.persona.externalSearchProb) {
-          // 페르소나 관심사 전체(interests+preferredCategories)로 검색하면 targetCategory와
-          // 무관한 소스가 걸려서(예: 관심사에 tech가 있으면 targetCategory=cooking인데도 tech
-          // 기사가 뽑힘) 실제로 카테고리-내용 불일치 게시글이 여러 건 나왔다(2026-09-07).
-          // 이 글이 실제로 올라갈 targetCategory 하나로만 검색해야 내용과 카테고리가 맞는다.
-          externalInfo = await this.researcher.fetchTrendingTopic([targetCategory.slug], (url) => this.stateManager.hasUsedSourceUrl(url));
-
-          if (externalInfo) {
-            this.stateManager.addLog({
-              agentId: this.persona.id,
-              agentName: this.persona.nickname,
-              type: 'search',
-              summary: `'${externalInfo.title}' 관련 최신 웹 트렌드 자료를 수집했습니다.`,
-              details: { url: externalInfo.url, snippet: externalInfo.snippet },
-              sessionId,
-            });
-          }
-        }
-
-        // 새 글 생성: 퍼온글(원문 본문을 가져왔으면)은 그대로, 아니면 LLM이 새로 씀(세이프티 게이트 통과분만)
-        const postData = externalInfo?.fullBody
-          ? this.buildVerbatimRepost(externalInfo, sessionId)
-          : await this.generateSafePost(targetCategory.name, externalInfo, moodModifier, sessionId);
-        if (postData) {
-          // 소스에 이미지가 있으면 본문 중간에 자연스럽게 끼워 넣는다(끝에 무조건 붙이지 않음 —
-          // 사용자 요청). LLM이 옮겨 적다 URL을 깨뜨릴 수 있으니 항상 코드에서 결정적으로 삽입함.
-          // Reafy는 본문에 있는 이미지 URL을 그대로 렌더링해준다.
-          const bodyWithImage = externalInfo?.imageUrl ? insertImageMidBody(postData.body, externalInfo.imageUrl) : postData.body;
-
-          const postRes = await this.client.createPost({
-            categoryId: targetCategory.id,
-            title: postData.title,
-            body: bodyWithImage,
+        const targetCategory = await this.client.getRandomCategory(this.persona.preferredCategories);
+        if (!targetCategory) {
+          this.stateManager.addLog({
+            agentId: this.persona.id,
+            agentName: this.persona.nickname,
+            type: 'error',
+            summary: '카테고리 목록(GET /api/categories)을 가져오지 못해 새 글 작성을 건너뜁니다.',
+            sessionId,
           });
+        } else {
+          let externalInfo: WebSearchResult | null = null;
 
-          if (postRes.ok) {
-            actionsDone.push(`새 글 작성('${postData.title}')`);
-            this.stateManager.recordRecentText(this.persona.id, `${postData.title} - ${postData.body}`);
+          // 외부 웹 검색 및 최신 트렌드 리서치 수행 여부
+          if (Math.random() < this.persona.externalSearchProb) {
+            // 페르소나 관심사 전체(interests+preferredCategories)로 검색하면 targetCategory와
+            // 무관한 소스가 걸려서(예: 관심사에 tech가 있으면 targetCategory=cooking인데도 tech
+            // 기사가 뽑힘) 실제로 카테고리-내용 불일치 게시글이 여러 건 나왔다(2026-09-07).
+            // 이 글이 실제로 올라갈 targetCategory 하나로만 검색해야 내용과 카테고리가 맞는다.
+            externalInfo = await this.researcher.fetchTrendingTopic([targetCategory.slug], (url) => this.stateManager.hasUsedSourceUrl(url));
+
             if (externalInfo) {
-              this.stateManager.recordUsedSourceUrl(externalInfo.url, this.persona.id);
+              this.stateManager.addLog({
+                agentId: this.persona.id,
+                agentName: this.persona.nickname,
+                type: 'search',
+                summary: `'${externalInfo.title}' 관련 최신 웹 트렌드 자료를 수집했습니다.`,
+                details: { url: externalInfo.url, snippet: externalInfo.snippet },
+                sessionId,
+              });
             }
-            this.stateManager.addLog({
-              agentId: this.persona.id,
-              agentName: this.persona.nickname,
-              type: 'post',
-              summary: `[${targetCategory.name}] 카테고리에 새 글을 등록했습니다: "${postData.title}"`,
-              targetId: postRes.id,
-              targetTitle: postData.title,
-              details: { body: bodyWithImage, category: targetCategory.name, isVerbatimRepost: Boolean(externalInfo?.fullBody) },
-              sessionId,
+          }
+
+          // 새 글 생성: 퍼온글(원문 본문을 가져왔으면)은 그대로, 아니면 LLM이 새로 씀(세이프티 게이트 통과분만)
+          const postData = externalInfo?.fullBody
+            ? this.buildVerbatimRepost(externalInfo, sessionId)
+            : await this.generateSafePost(targetCategory.name, externalInfo, moodModifier, sessionId);
+          if (postData) {
+            // 소스에 이미지가 있으면 본문 중간에 자연스럽게 끼워 넣는다(끝에 무조건 붙이지 않음 —
+            // 사용자 요청). LLM이 옮겨 적다 URL을 깨뜨릴 수 있으니 항상 코드에서 결정적으로 삽입함.
+            // 본문의 이미지 URL은 플레인 텍스트로 넣는다(goodfriends가 링크/이미지 미리보기로 렌더링).
+            const bodyWithImage = externalInfo?.imageUrl ? insertImageMidBody(postData.body, externalInfo.imageUrl) : postData.body;
+
+            const postRes = await this.client.createPost({
+              categoryId: targetCategory.id,
+              title: postData.title,
+              body: bodyWithImage,
             });
-          } else {
-            // 공감/댓글 실패는 항상 error 로그를 남기는데 글쓰기 실패만 조용히 넘어가던 버그.
-            // 카테고리 ID가 환경(dev/prod)마다 다를 수 있어서(reafy-client.ts의 DEFAULT_CATEGORIES
-            // 참고) 특히 이 실패가 조용히 묻히면 원인 추적이 거의 불가능해진다.
-            this.stateManager.addLog({
-              agentId: this.persona.id,
-              agentName: this.persona.nickname,
-              type: 'error',
-              summary: `[${targetCategory.name}] 새 글 작성 실패: ${postRes.error || '알 수 없는 오류'}`,
-              sessionId,
-            });
+
+            if (postRes.ok) {
+              actionsDone.push(`새 글 작성('${postData.title}')`);
+              this.stateManager.recordRecentText(this.persona.id, `${postData.title} - ${postData.body}`);
+              if (externalInfo) {
+                this.stateManager.recordUsedSourceUrl(externalInfo.url, this.persona.id);
+              }
+              this.stateManager.addLog({
+                agentId: this.persona.id,
+                agentName: this.persona.nickname,
+                type: 'post',
+                summary: `[${targetCategory.name}] 카테고리에 새 글을 등록했습니다: "${postData.title}"`,
+                targetId: postRes.id,
+                targetTitle: postData.title,
+                details: { body: bodyWithImage, category: targetCategory.name, isVerbatimRepost: Boolean(externalInfo?.fullBody) },
+                sessionId,
+              });
+            } else {
+              // 공감/댓글 실패는 항상 error 로그를 남기는데 글쓰기 실패만 조용히 넘어가던 버그.
+              // 카테고리 ID는 서버에서 조회한 값이고 이메일 미인증(EMAIL_NOT_VERIFIED) 등도 여기로 오므로
+              // 이 실패가 조용히 묻히면 원인 추적이 거의 불가능해진다.
+              this.stateManager.addLog({
+                agentId: this.persona.id,
+                agentName: this.persona.nickname,
+                type: 'error',
+                summary: `[${targetCategory.name}] 새 글 작성 실패: ${postRes.error || '알 수 없는 오류'}`,
+                sessionId,
+              });
+            }
           }
         }
       }

@@ -9,7 +9,7 @@ describe('StateManager thread comment cap tracking', () => {
   let stateManager: StateManager;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-state-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-state-test-'));
     stateManager = new StateManager(tmpDir);
     stateManager.initOrUpdateState('agent-1', { id: 'agent-1', name: 'A', nickname: 'A', email: 'a@x.com' });
   });
@@ -57,7 +57,7 @@ describe('StateManager session replay (T10)', () => {
   let stateManager: StateManager;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-state-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-state-test-'));
     stateManager = new StateManager(tmpDir);
     stateManager.initOrUpdateState('agent-1', { id: 'agent-1', name: 'A', nickname: 'A', email: 'a@x.com' });
   });
@@ -124,7 +124,7 @@ describe('StateManager error-rate alert (T10)', () => {
   let stateManager: StateManager;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-state-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-state-test-'));
     stateManager = new StateManager(tmpDir);
     stateManager.initOrUpdateState('agent-1', { id: 'agent-1', name: 'A', nickname: 'A', email: 'a@x.com' });
     delete process.env.WEBHOOK_URL;

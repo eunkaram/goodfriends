@@ -11,15 +11,15 @@ describe('openDatabase', () => {
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('creates the storage directory and a reafy.db file', () => {
-    tmpDir = path.join(os.tmpdir(), `reafy-db-test-${Date.now()}`);
+  it('creates the storage directory and a goodfriends.db file', () => {
+    tmpDir = path.join(os.tmpdir(), `goodfriends-db-test-${Date.now()}`);
     const db = openDatabase(tmpDir);
-    expect(fs.existsSync(path.join(tmpDir, 'reafy.db'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'goodfriends.db'))).toBe(true);
     db.close();
   });
 
   it('creates all expected tables (idempotent schema)', () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-db-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-db-test-'));
     const db = openDatabase(tmpDir);
     const tables = db
       .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
@@ -30,7 +30,7 @@ describe('openDatabase', () => {
   });
 
   it('enables WAL mode', () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-db-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-db-test-'));
     const db = openDatabase(tmpDir);
     const result = db.prepare('PRAGMA journal_mode').get() as { journal_mode: string };
     expect(result.journal_mode.toLowerCase()).toBe('wal');
@@ -38,7 +38,7 @@ describe('openDatabase', () => {
   });
 
   it('re-opening the same directory does not error (idempotent CREATE TABLE)', () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reafy-db-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'goodfriends-db-test-'));
     const db1 = openDatabase(tmpDir);
     db1.close();
     expect(() => {

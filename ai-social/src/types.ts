@@ -1,4 +1,4 @@
-export interface ReafyUser {
+export interface CommunityUser {
   id: string;
   username: string;
   nickname: string;
@@ -6,14 +6,19 @@ export interface ReafyUser {
   avatarUrl?: string;
 }
 
-export interface ReafyPost {
+export interface CommunityPost {
+  /** goodfriends publicId(외부 식별자). 댓글·공감·삭제·상세 조회 모두 이 값으로 부른다. */
   id: string;
+  /** 서버 내부 uuid (참고용) */
+  internalId?: string;
   title: string;
   bodyPreview: string;
   authorId: string;
   authorUsername: string;
   authorNickname: string;
   authorAvatarUrl?: string;
+  /** 뉴스봇 등 is_agent 계정 글 여부 */
+  authorIsAgent?: boolean;
   categoryName: string;
   categorySlug: string;
   createdAt: string;
@@ -21,13 +26,13 @@ export interface ReafyPost {
   commentCount: number;
 }
 
-export interface ReafyCategory {
+export interface CommunityCategory {
   id: string;
   name: string;
   slug: string;
 }
 
-export interface ReafyComment {
+export interface CommunityComment {
   id: string;
   postId: string;
   authorId: string;
@@ -50,13 +55,13 @@ export interface AgentPersona {
   country: string;
   postalCode: string;
   /**
-   * Reafy 유저네임(프로필 URL `/@{username}`). 원래는 이메일 로컬파트에서 '.'을 뺀 값으로
+   * goodfriends 유저네임(프로필 URL `/@{username}`). 원래는 이메일 로컬파트에서 '.'을 뺀 값으로
    * 유도했는데(가입 로직과 일치), scripts/rename-personas.ts로 계정을 개명하면 이메일과
    * 어긋나므로 개명 후의 실제 값을 여기에 남긴다. 없으면 기존대로 이메일에서 유도한다.
    */
   username?: string;
   bio: string;
-  /** 프로필 사진 URL. 없으면 Reafy 기본 아바타(닉네임 이니셜) 그대로 둠 — 전부 채울 필요는 없음 */
+  /** 프로필 사진 URL. 없으면 goodfriends 기본 아바타(닉네임 이니셜) 그대로 둠 — 전부 채울 필요는 없음 */
   avatarUrl?: string;
   interests: string[]; // e.g. ['tech', 'broadcast', 'invest']
   preferredCategories: string[]; // slugs: e.g. ['tech', 'chat', 'invest']

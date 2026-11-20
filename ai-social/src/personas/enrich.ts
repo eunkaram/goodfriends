@@ -76,10 +76,10 @@ export function loadEnrichedPersonaContent(filePath: string = DEFAULT_ENRICHED_D
 
 /**
  * 기존(운영 중인) 페르소나에 enrichment 콘텐츠를 덮어씌운다.
- * - email/password/country 등 계정과 묶인 운영 필드는 절대 안 건드림(이미 가입된 Reafy
+ * - email/password/country 등 계정과 묶인 운영 필드는 절대 안 건드림(이미 가입된 goodfriends
  *   계정과 어긋나면 로그인이 깨진다).
  * - nickname은 base(기존) 값을 그대로 유지한다 — enrichment 파일의 nickname은 매칭 참고용일
- *   뿐, 실제 가입된 Reafy 계정의 닉네임과 어긋날 수 있어서 신뢰하지 않는다(합리적 기본값 가정,
+ *   뿐, 실제 가입된 goodfriends 계정의 닉네임과 어긋날 수 있어서 신뢰하지 않는다(합리적 기본값 가정,
  *   결과 보고에 명시).
  * - 기존 bio/tone/systemPrompt는 잃어버리지 않게 legacy에 보존한다.
  */

@@ -51,10 +51,10 @@ describe('resolveProviders', () => {
   it('attaches optional OpenRouter ranking headers only when configured', () => {
     const withHeaders = resolveProviders(
       baseInput({
-        openRouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-or-x', model: 'm', siteUrl: 'https://example.com', siteName: 'Reafy' },
+        openRouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-or-x', model: 'm', siteUrl: 'https://example.com', siteName: 'goodfriends' },
       })
     );
-    expect(withHeaders.fallback?.extraHeaders).toEqual({ 'HTTP-Referer': 'https://example.com', 'X-Title': 'Reafy' });
+    expect(withHeaders.fallback?.extraHeaders).toEqual({ 'HTTP-Referer': 'https://example.com', 'X-Title': 'goodfriends' });
 
     const withoutHeaders = resolveProviders(
       baseInput({ openRouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-or-x', model: 'm' } })

@@ -57,4 +57,4 @@ for (const p of personas) {
 }
 
 console.log(`\n적용 완료: ${personas.length}명`);
-console.log('반영하려면 서비스 재시작: sudo systemctl restart reafy-ai-social');
+console.log('반영하려면 ai-social 서비스를 재시작하세요');

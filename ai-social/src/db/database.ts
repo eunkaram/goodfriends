@@ -57,7 +57,7 @@ function ensureColumn(db: DatabaseSync, table: string, column: string, definitio
 }
 
 /**
- * storageDir/reafy.db 커넥션을 연다. WAL 모드 + busy_timeout으로 여러 에이전트
+ * storageDir/goodfriends.db 커넥션을 연다. WAL 모드 + busy_timeout으로 여러 에이전트
  * 세션이 동시에 써도(SQLITE_BUSY) 짧게 대기 후 진행하도록 함(CEO 리뷰 Section 1 지적).
  * 클래스마다 자기 커넥션을 独立적으로 여는 구조 — 모듈 전역 싱글턴이 아니라서
  * 테스트에서 서로 다른 임시 디렉토리를 써도 생명주기가 꼬이지 않는다.
@@ -66,7 +66,7 @@ export function openDatabase(storageDir: string): DatabaseSync {
   if (!fs.existsSync(storageDir)) {
     fs.mkdirSync(storageDir, { recursive: true });
   }
-  const dbPath = path.join(storageDir, 'reafy.db');
+  const dbPath = path.join(storageDir, 'goodfriends.db');
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA busy_timeout = 5000');

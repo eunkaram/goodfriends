@@ -115,7 +115,7 @@ const MAX_BODY_WITH_MEDIA_LENGTH = 1500;
 /**
  * HTML 조각(article/게시글 본문 컨테이너 안쪽)을 텍스트/미디어 세그먼트로, 원래 등장 순서
  * 그대로 쪼갠다. 동영상(<video><source src>)도 이미지와 동일하게 media 취급 — 우리 쪽은
- * URL만 그 자리에 남기면 Reafy가 알아서 렌더링하거나 최소한 원문 순서는 보존됨(사용자 요청:
+ * URL만 그 자리에 남기면 goodfriends가 알아서 렌더링하거나 최소한 원문 순서는 보존됨(사용자 요청:
  * "이미지/미디어 위치를 그대로 보존하라"). 텍스트 구간 안의 <a href> 외부 링크도
  * preserveExternalLinks로 URL을 살려서 남긴다(2026-09-10, 아래 참고).
  */

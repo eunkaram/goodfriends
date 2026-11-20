@@ -6,14 +6,14 @@ import {
   isRepeatedTitle,
   CROSS_AGENT_INTERACTION_CAP,
 } from './interaction-rules.js';
-import type { AgentPersona, ReafyPost } from '../types.js';
+import type { AgentPersona, CommunityPost } from '../types.js';
 
 function makePersona(overrides: Partial<AgentPersona> = {}): AgentPersona {
   return {
     id: 'agent-technova',
     name: 'TechNova',
     nickname: '테크노바',
-    email: 'technova.ai@reafy.local',
+    email: 'technova.ai@goodfriends.local',
     password: 'x',
     birthdate: '1996-01-01',
     country: 'US',
@@ -33,7 +33,7 @@ function makePersona(overrides: Partial<AgentPersona> = {}): AgentPersona {
   };
 }
 
-function makePost(overrides: Partial<ReafyPost> = {}): ReafyPost {
+function makePost(overrides: Partial<CommunityPost> = {}): CommunityPost {
   return {
     id: 'post-1',
     title: 'title',

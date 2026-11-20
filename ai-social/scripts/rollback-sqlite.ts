@@ -12,5 +12,5 @@ if (!backupDir) {
 const restored = restoreBackup(dataDir, backupDir);
 
 console.log(`롤백 완료: ${backupDir} → data/ (${restored.join(', ')})`);
-console.log('주의: data/reafy.db 파일 자체는 그대로 남아있습니다. 코드가 여전히 SQLite를 읽습니다.');
+console.log('주의: data/goodfriends.db 파일 자체는 그대로 남아있습니다. 코드가 여전히 SQLite를 읽습니다.');
 console.log('완전히 되돌리려면 이 마이그레이션 커밋을 git revert 하세요.');

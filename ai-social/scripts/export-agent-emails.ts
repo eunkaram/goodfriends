@@ -1,9 +1,9 @@
 /**
  * 우리 에이전트 계정의 이메일/유저네임 목록을 내보낸다.
  *
- * 왜 필요한가: 에이전트 계정은 전부 `@reafy.local` 도메인으로 일반 회원가입 플로우를 타서
- * 만들어졌다(generator.ts). 즉 Reafy 서버 DB에서는 일반 유저와 구분되는 표식이 없다.
- * 그래서 "reafy.local 유저 정리" 같은 작업을 할 때 이 목록이 유일한 보존 기준이 된다.
+ * 왜 필요한가: 에이전트 계정은 전부 `@goodfriends.local` 도메인으로 일반 회원가입 플로우를 타서
+ * 만들어졌다(generator.ts). 즉 goodfriends 서버 DB에서는 일반 유저와 구분되는 표식이 없다.
+ * 그래서 "goodfriends.local 유저 정리" 같은 작업을 할 때 이 목록이 유일한 보존 기준이 된다.
  *
  * 사용법 (에이전트 서버의 배포 디렉터리에서):
  *   npx tsx scripts/export-agent-emails.ts            # 사람이 보기 좋은 표

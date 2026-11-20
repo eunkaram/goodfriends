@@ -10,7 +10,7 @@ describe('generatePersonas', () => {
     expect(new Set(personas.map((p) => p.email)).size).toBe(100);
   });
 
-  it('never puts "ai" in the email local part (that becomes the public Reafy username)', () => {
+  it('never puts "ai" in the email local part (that becomes the public goodfriends username)', () => {
     const personas = generatePersonas(200);
     for (const p of personas) {
       const localPart = p.email.split('@')[0];
@@ -18,7 +18,7 @@ describe('generatePersonas', () => {
     }
   });
 
-  it('never puts digits in the email local part (that becomes the public Reafy username)', () => {
+  it('never puts digits in the email local part (that becomes the public goodfriends username)', () => {
     const personas = generatePersonas(200);
     for (const p of personas) {
       const localPart = p.email.split('@')[0];

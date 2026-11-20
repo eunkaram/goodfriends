@@ -1,5 +1,5 @@
 /**
- * enriched-community-agents.json(src/personas/data/)을 기존 registry(data/reafy.db)에
+ * enriched-community-agents.json(src/personas/data/)을 기존 registry(data/goodfriends.db)에
  * 적용한다. id로 매칭해서 bio/tone/systemPrompt/persona/emotionalProfile/communityBehavior만
  * 덮어쓰고, email/password 등 계정 필드는 안 건드린다(enrich.ts의 applyEnrichment 참고).
  *

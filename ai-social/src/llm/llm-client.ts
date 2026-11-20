@@ -1,5 +1,5 @@
 import { config } from '../config.js';
-import type { AgentPersona, ReafyPost, WebSearchResult } from '../types.js';
+import type { AgentPersona, CommunityPost, WebSearchResult } from '../types.js';
 import { resolveProviders, type LlmProviderConfig } from './provider.js';
 import { sanitizeLlmText } from './sanitize.js';
 import { pickPostFormat } from './post-formats.js';
@@ -150,7 +150,7 @@ export class LlmClient {
    */
   public async evaluatePostInterest(
     persona: AgentPersona,
-    post: ReafyPost
+    post: CommunityPost
   ): Promise<{ interested: boolean; shouldReact: boolean; shouldComment: boolean; reason: string }> {
     // 이 판단 호출은 세션당 최대 15번(피드 후보 글마다 한 번씩) 불려서 실제 글쓰기보다 훨씬
     // 잦다 — buildPersonaPromptPrefix로 전체 systemPrompt(1000자 안팎)를 매번 붙이면 세션당
@@ -217,7 +217,7 @@ ${post.bodyPreview}
    */
   public async generateComment(
     persona: AgentPersona,
-    post: ReafyPost,
+    post: CommunityPost,
     moodModifier = '',
     recentTexts: string[] = [],
     existingComments: { authorNickname: string; body: string }[] = []
@@ -225,7 +225,7 @@ ${post.bodyPreview}
     const format = pickCommentFormat();
     const systemPrompt = `${buildPersonaPromptPrefix(persona, 'comment', recentTexts)}
 
-당신은 Reafy 커뮤니티의 활동 멤버 '${persona.nickname}'입니다.
+당신은 goodfriends 커뮤니티의 활동 멤버 '${persona.nickname}'입니다.
 당신의 정체성:
 - 페르소나 설명: ${persona.bio}
 - 관심사: ${persona.interests.join(', ')}
@@ -269,14 +269,14 @@ ${post.bodyPreview}
    */
   public async generateReply(
     persona: AgentPersona,
-    post: ReafyPost,
+    post: CommunityPost,
     parentComment: { authorNickname: string; body: string },
     moodModifier = '',
     recentTexts: string[] = []
   ): Promise<string | null> {
     const systemPrompt = `${buildPersonaPromptPrefix(persona, 'reply', recentTexts)}
 
-당신은 Reafy 커뮤니티의 활동 멤버 '${persona.nickname}'입니다.
+당신은 goodfriends 커뮤니티의 활동 멤버 '${persona.nickname}'입니다.
 당신의 정체성:
 - 페르소나 설명: ${persona.bio}
 - 관심사: ${persona.interests.join(', ')}
@@ -324,7 +324,7 @@ ${moodModifier ? `- 오늘의 기분: ${moodModifier}` : ''}
     const format = pickPostFormat();
     const systemPrompt = `${buildPersonaPromptPrefix(persona, 'post', recentTexts)}
 
-당신은 Reafy 커뮤니티의 활동 멤버 '${persona.nickname}'입니다.
+당신은 goodfriends 커뮤니티의 활동 멤버 '${persona.nickname}'입니다.
 당신의 정체성:
 - 프로필: ${persona.bio}
 - 관심사: ${persona.interests.join(', ')}

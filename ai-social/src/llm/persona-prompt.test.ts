@@ -10,7 +10,7 @@ function personaWith(overrides: Partial<AgentPersona> = {}): AgentPersona {
     id: 'agent-test',
     name: '김민수',
     nickname: enrichedSample.nickname,
-    email: 'x@reafy.local',
+    email: 'x@goodfriends.local',
     password: 'pw',
     birthdate: '1995-01-01',
     country: 'US',
