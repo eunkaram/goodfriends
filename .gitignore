@@ -22,6 +22,10 @@ node_modules/
 graphify-out/
 .gstack/
 
+# ai-social (봇 계정·세션 DB)
+ai-social/data/
+ai-social/node_modules/
+
 # Next.js
 .next/
 
