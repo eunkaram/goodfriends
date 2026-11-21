@@ -103,3 +103,83 @@ describe('LlmClient provider fallback', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('openrouter.test');
   });
 });
+
+describe('LlmClient chat options / headers', () => {
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    process.env.LLM_PROVIDER = '';
+    process.env.OPENROUTER_API_KEY = '';
+    process.env.LLM_FALLBACK_TO_OPENROUTER = '';
+    process.env.LOCAL_LLM_BASE_URL = 'http://local.test/v1';
+    process.env.LOCAL_LLM_MODEL = 'local-model';
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    global.fetch = originalFetch;
+    process.env = { ...originalEnv };
+  });
+
+  it('omits the Authorization header when the API key is empty', async () => {
+    process.env.LOCAL_LLM_API_KEY = '';
+    const fetchMock = vi.fn().mockResolvedValue(mockOkResponse('ok'));
+    global.fetch = fetchMock as any;
+
+    const client = await freshLlmClient();
+    await client.chat([{ role: 'user', content: 'hi' }]);
+
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers).not.toHaveProperty('Authorization');
+    expect(headers['Content-Type']).toBe('application/json');
+  });
+
+  it('sends the Authorization header when an API key is set', async () => {
+    process.env.LOCAL_LLM_API_KEY = 'k-test';
+    const fetchMock = vi.fn().mockResolvedValue(mockOkResponse('ok'));
+    global.fetch = fetchMock as any;
+
+    const client = await freshLlmClient();
+    await client.chat([{ role: 'user', content: 'hi' }]);
+
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer k-test');
+  });
+
+  it('passes maxTokens through to the payload', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(mockOkResponse('ok'));
+    global.fetch = fetchMock as any;
+
+    const client = await freshLlmClient();
+    await client.chat([{ role: 'user', content: 'hi' }], true, { maxTokens: 4096 });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.max_tokens).toBe(4096);
+    expect(body.response_format).toEqual({ type: 'json_object' });
+  });
+
+  it('honours options.timeoutMs (aborts after the given time, not the 30s default)', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockImplementation(
+      (_url: string, init: any) =>
+        new Promise((_resolve, reject) => {
+          init.signal.addEventListener('abort', () => {
+            const e: any = new Error('aborted');
+            e.name = 'AbortError';
+            reject(e);
+          });
+        })
+    );
+    global.fetch = fetchMock as any;
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const client = await freshLlmClient();
+    const p = client.chat([{ role: 'user', content: 'hi' }], false, { timeoutMs: 5000 });
+    const assertion = expect(p).rejects.toThrow('timed out after 5000ms');
+    await vi.advanceTimersByTimeAsync(5000); // 1st attempt aborts
+    await vi.advanceTimersByTimeAsync(1000); // retry delay
+    await vi.advanceTimersByTimeAsync(5000); // 2nd attempt aborts
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    errSpy.mockRestore();
+  });
+});

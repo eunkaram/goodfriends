@@ -11,6 +11,13 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatOptions {
+  /** 요청 타임아웃(ms). 생략하면 30초. 글 생성 같은 긴 호출은 config.llm.longTimeoutMs를 넘긴다. */
+  timeoutMs?: number;
+  /** 완성 토큰 상한. 생략하면 2048. */
+  maxTokens?: number;
+}
+
 const CHAT_TIMEOUT_MS = 30000;
 const CHAT_RETRY_DELAY_MS = 1000;
 
@@ -67,7 +74,13 @@ export class LlmClient {
     );
   }
 
-  private async chatOnce(messages: ChatMessage[], jsonMode: boolean, provider: LlmProviderConfig): Promise<string> {
+  private async chatOnce(
+    messages: ChatMessage[],
+    jsonMode: boolean,
+    provider: LlmProviderConfig,
+    options: ChatOptions = {}
+  ): Promise<string> {
+    const timeoutMs = options.timeoutMs ?? CHAT_TIMEOUT_MS;
     const payload: any = {
       model: provider.model,
       messages,
@@ -75,7 +88,7 @@ export class LlmClient {
       // 명시 안 하면 일부 OpenRouter 백엔드(예: gpt-oss-20b:free의 GMICloud)가 완성 토큰 상한을
       // 모델의 전체 컨텍스트 길이로 잡아버려서 "입력+출력이 컨텍스트 초과"로 항상 400이 남
       // (2026-09-06 prod에서 실제로 겪음). 우리 응답은 길어야 포스트 몇 문단이라 2048이면 충분.
-      max_tokens: 2048,
+      max_tokens: options.maxTokens ?? 2048,
     };
 
     if (jsonMode) {
@@ -83,7 +96,7 @@ export class LlmClient {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await fetch(`${provider.baseUrl.replace(/\/$/, '')}/chat/completions`, {
@@ -107,7 +120,7 @@ export class LlmClient {
       return content.trim();
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        throw new Error(`LLM request timed out after ${CHAT_TIMEOUT_MS}ms [${provider.name}]`);
+        throw new Error(`LLM request timed out after ${timeoutMs}ms [${provider.name}]`);
       }
       throw err;
     } finally {
@@ -121,14 +134,14 @@ export class LlmClient {
    * 호출부(evaluatePostInterest는 휴리스틱 폴백, generatePost/generateComment/generateReply는
    * 뻔한 대체 문구 대신 null을 반환해 이번 턴을 스킵)는 각자 실패 처리 방식을 가지고 있음.
    */
-  public async chat(messages: ChatMessage[], jsonMode = false): Promise<string> {
+  public async chat(messages: ChatMessage[], jsonMode = false, options: ChatOptions = {}): Promise<string> {
     try {
-      return await this.chatOnce(messages, jsonMode, this.primary);
+      return await this.chatOnce(messages, jsonMode, this.primary, options);
     } catch (firstErr: any) {
       console.error(`[LlmClient:${this.primary.name}] Chat completion failed (attempt 1):`, firstErr.message);
       await new Promise((resolve) => setTimeout(resolve, CHAT_RETRY_DELAY_MS));
       try {
-        return await this.chatOnce(messages, jsonMode, this.primary);
+        return await this.chatOnce(messages, jsonMode, this.primary, options);
       } catch (secondErr: any) {
         console.error(`[LlmClient:${this.primary.name}] Chat completion failed (attempt 2):`, secondErr.message);
 
@@ -136,7 +149,7 @@ export class LlmClient {
 
         console.warn(`[LlmClient] ${this.primary.name} 실패 → ${this.fallback.name}로 폴백 시도`);
         try {
-          return await this.chatOnce(messages, jsonMode, this.fallback);
+          return await this.chatOnce(messages, jsonMode, this.fallback, options);
         } catch (fallbackErr: any) {
           console.error(`[LlmClient:${this.fallback.name}] Fallback also failed:`, fallbackErr.message);
           throw fallbackErr;

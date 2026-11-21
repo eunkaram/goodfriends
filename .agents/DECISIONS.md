@@ -6,3 +6,5 @@
 2026-11-20 ai-social-client 1회차 PASS → 커밋 — 258 tests·typecheck 통과. QA 낮음 10건 중 #7(News slug 'ai-news')은 오판: 0054에서 slug가 'news'로 바뀜, backend NEWS_CATEGORY_SLUG='news'가 맞음. #6(봇 조회로 views 증가)은 사람처럼 보이는 목적상 수용. 나머지 낮음은 문서 갱신 때 TODO로
 2026-11-20 ai-social-client 메모 — 로그인·가입 IP당 시간당 5회 제한: 10명 최초 가입은 몇 시간에 걸쳐 분산되거나 RATE_LIMIT_EXEMPT_CIDRS 결정 필요(Bryan, 최종 보고에 포함)
 2026-11-20 ai-social-personas 1회차 PASS → 커밋 — 268 tests·typecheck 통과, 페르소나 10명 카테고리 1:1 확인. QA 낮음 7건: #5(longTimeoutMs 미사용)는 ai-social-review에서 소비, #4는 review 작업 LLM 테스트에 포함, 문서(#1·#2·#3) 정리는 docs 단계. Reafy 100명 JSON(미참조) 삭제는 Bryan 승인 사항이라 보류 — 최종 보고에서 질문
+2026-11-20 ai-social-research 1회차 PASS → 커밋 — 343 tests·typecheck 통과, 의존성 readability 0.6.0·linkedom 0.18.15 고정. 넘길 것: #5(claim이 quote에 뒷받침되는지)→ai-social-review, #1(recordTopicUsage 호출)·#2(파이프라인 전체 데드라인·시도 축소)·#6(fetchArticle robots 주입 강제)·#3(이력 조회 성능)·#7(chunk 가드)→ai-social-integrate
+2026-11-20 ai-social-research arXiv — export.arxiv.org robots.txt는 전체 Disallow지만 arXiv 공식 API 이용 약관(3초 간격)에 따라 사용 중. Bryan 확인 사항으로 최종 보고에 포함(빼려면 registry.ts의 arxiv 항목 제거)

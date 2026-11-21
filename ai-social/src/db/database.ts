@@ -46,6 +46,17 @@ CREATE TABLE IF NOT EXISTS used_source_urls (
   agent_id TEXT NOT NULL,
   used_at TEXT NOT NULL
 );
+
+-- writer(새 글쓰기 엔진)가 주제·원문으로 쓴 URL과 제목 이력. 제목 유사도 중복 제외에 쓰므로
+-- used_source_urls(URL만)와 별도로 title·category를 가진다.
+CREATE TABLE IF NOT EXISTS writer_topic_history (
+  url TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  agent_id TEXT,
+  used_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_writer_topic_history_cat ON writer_topic_history(category, used_at DESC);
 `;
 
 /** 이미 존재하는 테이블에 컬럼이 없으면 추가한다 (CREATE TABLE IF NOT EXISTS로는 기존 테이블에 컬럼이 안 생기므로). */
