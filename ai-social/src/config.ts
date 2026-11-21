@@ -52,10 +52,6 @@ export const config = {
     // OpenRouter로 자동 전환. 키가 없으면 자동으로 꺼짐(의도치 않은 과금 방지).
     fallbackToOpenRouter: process.env.LLM_FALLBACK_TO_OPENROUTER !== 'false',
   },
-  search: {
-    duckDuckGoEnabled: process.env.ENABLE_DUCKDUCKGO !== 'false',
-    customRssFeeds: (process.env.RSS_FEEDS || '').split(',').filter(Boolean),
-  },
   server: {
     // 대시보드는 인증이 없으므로 로컬 루프백에만 바인드 (환경변수로 열 수 없게 고정)
     host: '127.0.0.1',

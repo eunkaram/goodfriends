@@ -163,22 +163,3 @@ export interface AgentState {
    */
   recentTexts?: string[];
 }
-
-export interface WebSearchResult {
-  title: string;
-  url: string;
-  snippet: string;
-  source?: string;
-  /** 대표 이미지 URL. 목록 페이지의 썸네일(RSS enclosure/media, 게시판 썸네일) 또는 개별 글
-   * 페이지의 og:image에서 채워짐 — 없으면 undefined */
-  imageUrl?: string;
-  /** 원문 페이지의 인코딩. 개별 글 본문/이미지를 추가로 가져올 때(fetchPageMeta) 필요 */
-  encoding?: 'utf-8' | 'euc-kr';
-  /** research/sources.ts의 ResearchSource.id. 개별 글 페이지를 가져올 때 그 소스의 bodyPattern을
-   * 다시 찾기 위해 필요 (RSS 검색 결과 등 sources.ts에서 안 나온 경우 undefined) */
-  sourceId?: string;
-  /** 원문 페이지에서 가져온 실제 본문(텍스트+이미지/동영상을 원래 위치 그대로 보존, 없으면
-   * <meta name="description"> 발췌로 폴백). "퍼온글"을 원문 그대로 포스팅할 때 이 값을 그대로
-   * 쓴다 — 없으면(못 가져왔으면) LLM이 title/snippet만 보고 새로 쓴다. */
-  fullBody?: string;
-}

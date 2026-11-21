@@ -105,18 +105,6 @@ describe('StateManager session replay (T10)', () => {
     expect(all.some((l) => l.summary === 'a1')).toBe(true);
     expect(all.some((l) => l.summary === 'b1')).toBe(true);
   });
-
-  it('tracks used source URLs so a repost of the same external article can be detected ahead of time', () => {
-    const url = 'https://www.etnews.com/20260906000001';
-    expect(stateManager.hasUsedSourceUrl(url)).toBe(false);
-
-    stateManager.recordUsedSourceUrl(url, 'agent-1');
-    expect(stateManager.hasUsedSourceUrl(url)).toBe(true);
-
-    // 다른 에이전트가 같은 URL을 다시 기록하려 해도(동시성 등) 에러 없이 무시됨
-    expect(() => stateManager.recordUsedSourceUrl(url, 'agent-2')).not.toThrow();
-    expect(stateManager.hasUsedSourceUrl('https://www.etnews.com/never-posted')).toBe(false);
-  });
 });
 
 describe('StateManager error-rate alert (T10)', () => {

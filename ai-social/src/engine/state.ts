@@ -2,7 +2,6 @@ import type { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import type { AgentActivityLog, AgentState } from '../types.js';
 import { openDatabase } from '../db/database.js';
-import { normalizeUrl } from '../writer/history.js';
 import { shouldAlert, sendWebhookAlert, ERROR_RATE_WINDOW, ALERT_COOLDOWN_MS } from '../observability/error-rate-alert.js';
 
 const MAX_COMMENTED_POST_IDS = 300;
@@ -192,18 +191,5 @@ export class StateManager {
     }
     state.recentTexts = list;
     this.saveState(state);
-  }
-
-  /** 이 URL(외부 기사/게시글)을 이미 어떤 에이전트든 퍼온글로 썼는지 확인 — 중복 게시 방지용. */
-  public hasUsedSourceUrl(url: string): boolean {
-    const row = this.db.prepare(`SELECT 1 FROM used_source_urls WHERE url = ?`).get(url);
-    return Boolean(row);
-  }
-
-  /** 퍼온글로 실제 게시에 쓴 URL을 기록. 이미 있으면(동시성 등) 조용히 무시. */
-  public recordUsedSourceUrl(url: string, agentId: string): void {
-    this.db
-      .prepare(`INSERT OR IGNORE INTO used_source_urls (url, agent_id, used_at, norm_url) VALUES (?, ?, ?, ?)`)
-      .run(url, agentId, new Date().toISOString(), normalizeUrl(url));
   }
 }

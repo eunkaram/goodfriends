@@ -1,8 +1,7 @@
 import { config } from '../config.js';
-import type { AgentPersona, CommunityPost, WebSearchResult } from '../types.js';
+import type { AgentPersona, CommunityPost } from '../types.js';
 import { resolveProviders, type LlmProviderConfig } from './provider.js';
 import { sanitizeLlmText } from './sanitize.js';
-import { pickPostFormat } from './post-formats.js';
 import { pickCommentFormat } from './comment-formats.js';
 import { buildPersonaPromptPrefix } from './persona-prompt.js';
 import { extractChatContent } from './thinking.js';
@@ -29,7 +28,7 @@ const CHAT_TIMEOUT_MS = 30000;
 const CHAT_RETRY_DELAY_MS = 1000;
 
 /**
- * 원래 generatePost에만 있던 "AI 티 나는 문체" 금지 규칙. 2026-09-14 prod 피드 감사 결과
+ * 원래 글 생성 프롬프트에만 있던 "AI 티 나는 문체" 금지 규칙. 2026-09-14 prod 피드 감사 결과
  * 실제로 AI임을 들킨 결정적 증거는 전부 댓글 쪽이었는데(3줄 정형, 원글 재진술 도입부, 제안형
  * 마무리) 정작 댓글 프롬프트엔 이 규칙이 없었다 — 글/댓글 비대칭을 없애려고 상수로 뺐다.
  */
@@ -141,7 +140,7 @@ export class LlmClient {
   /**
    * 주 공급자에 타임아웃 적용 + 1회 재시도(백오프). 그래도 실패하고 폴백 공급자가
    * 설정돼 있으면 폴백으로 1회 시도. 전부 실패하면 마지막 에러를 던짐.
-   * 호출부(evaluatePostInterest는 휴리스틱 폴백, generatePost/generateComment/generateReply는
+   * 호출부(evaluatePostInterest는 휴리스틱 폴백, generateComment/generateReply는
    * 뻔한 대체 문구 대신 null을 반환해 이번 턴을 스킵)는 각자 실패 처리 방식을 가지고 있음.
    */
   public async chat(messages: ChatMessage[], jsonMode = false, options: ChatOptions = {}): Promise<string> {
@@ -330,80 +329,6 @@ ${moodModifier ? `- 오늘의 기분: ${moodModifier}` : ''}
       return sanitizeLlmText(reply).replace(/^["']|["']$/g, '').trim();
     } catch (err: any) {
       console.error(`[LlmClient] generateReply failed for ${persona.nickname}:`, err.message);
-      return null;
-    }
-  }
-
-  /**
-   * 새 게시글 생성 (자발적 아이디어 또는 외부 리서치 자료 기반)
-   */
-  public async generatePost(
-    persona: AgentPersona,
-    categoryName: string,
-    externalContent?: WebSearchResult | null,
-    moodModifier = '',
-    recentTexts: string[] = []
-  ): Promise<{ title: string; body: string } | null> {
-    const format = pickPostFormat();
-    const systemPrompt = `${buildPersonaPromptPrefix(persona, 'post', recentTexts)}
-
-당신은 goodfriends 커뮤니티의 활동 멤버 '${persona.nickname}'입니다.
-당신의 정체성:
-- 프로필: ${persona.bio}
-- 관심사: ${persona.interests.join(', ')}
-- 말투/스타일: ${persona.tone}
-${moodModifier ? `- 오늘의 기분: ${moodModifier}` : ''}
-
-작성 규칙:
-1. '${categoryName}' 카테고리에 어울리는 흥미롭고 유익한 새 글을 작성하세요. 개인적인 장면이나 관찰로 시작해서 의견 또는 질문을 남기세요.
-2. 이번 글의 형식: ${format.instruction} 매번 같은 형식(정보공유 + 마지막에 질문 던지기)으로 쓰지 말고, 이번엔 반드시 이 형식을 따르세요.
-3. 당신의 고유한 말투(${persona.tone})를 살려 진솔하고 매력적으로 쓰세요.
-4. 제목은 클릭하고 싶게 센스 있게 지으세요. 과장된 낚시성 제목은 피하세요.
-5. 본문은 줄바꿈으로 읽기 쉽게 구성하세요. 이모지·자모(ㅋㅋ, ㅠㅠ 등)는 위 페르소나의 글쓰기 버릇에 적힌 대로만 쓰세요. 안 쓰는 성격이면 하나도 쓰지 말고, 쓰는 성격이면 억지로 절제하지 마세요 — 전원이 똑같이 절제된 문체로 쓰면 그 자체가 부자연스럽습니다.
-6. 실제 커뮤니티 자유게시판 글은 대부분 짧습니다(조사해보니 5줄 넘는 글이 드묾) — 본문은 보통 2~5문장으로 쓰세요. 여러 문단에 걸쳐 정보를 나열하지 마세요. 형식이 짧은잡담형·캡션형이면 한두 문장으로 끝내도 충분합니다.
-7. "안녕하세요, ○○입니다!" 같은 자기소개형 인사말로 시작하지 마세요. 실제 커뮤니티 회원은 글마다 자기소개를 하지 않습니다 — 하고 싶은 얘기로 바로 들어가세요. "다들 좋은 시간 보내세요!" 같은 정형화된 인사로 끝맺지도 마세요.
-8. 글의 마지막 문장을 질문으로 끝내지 마세요("여러분은 어떻게 생각하세요?", "어떠세요?" 같은 마무리 금지) — 제목 자체가 질문형이고 본문이 그 질문을 처음 다루는 경우가 아니면 예외 없습니다. 실제 커뮤니티 글은 감상·체념·단정("~겠네요", "~인 듯", "~려나", "ㅉㅉ")으로 끝나거나, 문장을 다 맺지 않고 자연스럽게 트레일오프하며 끝나는 경우가 대부분입니다. 독자에게 답을 구하며 마무리하는 글은 거의 없다고 생각하고 쓰세요.
-9. "요즘 ~에 대해 생각이 많네요" 같은 막연하고 내용 없는 소감은 쓰지 마세요. 구체적인 사례, 숫자, 직접 겪은 상황, 뚜렷한 의견 중 적어도 하나는 반드시 담아서 무슨 얘기를 하는지 읽자마자 알 수 있게 쓰세요.
-10. ${ANTI_AI_STYLE_RULE} 또한 마지막 문장을 잠언처럼 정리하며 착지하지 마세요("결국 ~는 ~에서 시작되는 거다", "~가 아닐까 싶다" 류) — 실측해보니 모든 글이 이 패턴으로 끝나는 게 AI 티가 가장 크게 났습니다.
-11. 이 글로 무엇을 전달하려는 건지(정보 공유, 팁, 경험담, 의견, 질문 등) 스스로 분명히 하고, 그 목적과 핵심 내용이 읽는 사람에게 바로 전달되게 쓰세요.
-12. 외부 자료가 주어졌다면 내용을 요약만 하지 말고, 왜 흥미로운지·동의하는지 아닌지·자신의 경험에 비춰 어떤지 등 뚜렷한 개인 의견을 반드시 섞어 쓰세요. 남의 얘기를 전달만 하는 게 아니라 당신의 관점이 드러나야 합니다.
-13. 본문에 출처 URL이나 링크를 절대 붙여넣지 마세요. 링크를 공유하는 게 아니라 그 내용을 당신 말로 소화해서 전달하는 겁니다 — 필요하면 "어디서 봤는데" 정도로만 자연스럽게 언급하세요.
-14. 반드시 다음 JSON 형식으로만 출력하세요:
-{
-  "title": "게시글 제목",
-  "body": "게시글 본문 (줄바꿈 포함)"
-}`;
-
-    let userPrompt = `[카테고리]: ${categoryName}\n`;
-    if (externalContent) {
-      userPrompt += `[외부 리서치 자료]:
-- 제목: ${externalContent.title}
-- 내용: ${externalContent.snippet}
-
-위 최신 외부 자료의 내용을 당신 말로 소화해서, 당신의 관점과 의견을 담은 게시글을 작성해주세요. 링크는 주지 않았으니 본문에 링크를 지어내지도 마세요.`;
-    } else {
-      userPrompt += `당신의 관심 분야와 관련된 새로운 생각, 유용한 꿀팁, 일상 경험, 또는 커뮤니티 사람들과 나누고 싶은 질문을 주제로 게시글을 작성해주세요.`;
-    }
-
-    try {
-      const response = await this.chat(
-        [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        true
-      );
-
-      const cleanJson = response.replace(/^```json\s*|\s*```$/g, '').trim();
-      const parsed = JSON.parse(cleanJson);
-      const title = sanitizeLlmText(parsed.title || '');
-      const body = sanitizeLlmText(parsed.body || '');
-
-      // 제목/본문이 비면 진짜 콘텐츠가 아니라는 뜻 — 뻔한 대체 문구를 올리느니 이번 턴은 그냥 스킵한다.
-      if (!title || !body) return null;
-      return { title, body };
-    } catch (err: any) {
-      console.error(`[LlmClient] generatePost failed for ${persona.nickname}:`, err.message);
       return null;
     }
   }

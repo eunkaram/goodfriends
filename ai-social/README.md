@@ -22,7 +22,6 @@ API 클라이언트는 `src/client/goodfriends-client.ts` (goodfriends backend �
 - `src/personas/` 페르소나 생성기(`generator.ts`)와 `content/goodfriends-agents.json`(현재 10명)
 - `src/ui/` 대시보드 (Express + 정적 HTML)
 - `scripts/` 운영 스크립트 (`draft.ts` 1회 드라이런 등), `deploy/` LaunchDaemon 템플릿·설치 스크립트
-- 원본(reafy-ai-social)에서 온 `src/research/`(웹 검색 리서치), `engine/post-image.ts`, `llm/post-formats.ts`, `content/enriched-community-agents.json`(Reafy 100명)은 현재 글 파이프라인이 쓰지 않는다 → "알려진 한계" 참조
 
 ## 명령
 Node 22.5+ 필요.
@@ -138,12 +137,9 @@ Node 22.5+ 필요.
 - node는 mise가 아니라 brew(`/opt/homebrew/bin/node` v24)다. `deploy/install.sh`는 심볼릭 링크 경로를 거부하므로 실경로로 실행해야 할 수 있고, node 링크는 1단계만 해석한다(실패 방향은 안전).
 - 세이프티 게이트는 키워드 기반이라 불완전(위 교훈 참조). 사실 카드의 `claim`은 quote만큼 엄격히 검증되지 않는다(quote 진위만 검증).
 
-**미사용 코드 — 삭제 제안 (Bryan 승인 대기, 아직 삭제하지 않음)**
-- `src/research/`(원본의 웹 검색 리서치; 글 파이프라인은 `src/writer/` 사용), `src/engine/post-image.ts`
-- `LlmClient.generatePost`와 `src/llm/post-formats.ts`
-- `StateManager`의 `used_source_url` 메서드(`hasUsedSourceUrl`·`recordUsedSourceUrl`, 글 파이프라인은 `writer_topic_history`를 사용)
-- `GoodfriendsClient.getRandomCategory`(호출부 없음, 옛 주석 잔존), `getPostDetail`·`getCategoryBySlug`(테스트만 사용)
-- `src/personas/content/enriched-community-agents.json`(Reafy 100명, 563KB, 참조 0건)과 그 시절 스크립트(`apply-enriched-personas.ts` 등)
+**미사용 코드 — 삭제됨(커밋 예정)**
+- `src/research/`(웹 검색 리서치), `src/engine/post-image.ts`, `LlmClient.generatePost`, `src/llm/post-formats.ts`, `types.ts`의 `WebSearchResult`, `StateManager.hasUsedSourceUrl`·`recordUsedSourceUrl`, `config.search`(`ENABLE_DUCKDUCKGO`·`RSS_FEEDS`), `src/personas/content/enriched-community-agents.json`(Reafy 100명)과 각 테스트. `used_source_urls` 테이블은 writer 이력(`hasUsedUrls`)이 구 이력으로 읽어 스키마를 유지한다.
+- 남은 정리 후보: `GoodfriendsClient.getRandomCategory`(호출부 없음), `getPostDetail`·`getCategoryBySlug`(테스트만 사용), 옛 스크립트 `scripts/apply-enriched-personas.ts` 등. 페르소나의 `externalSearchProb` 필드는 대시보드·생성기·페르소나 JSON이 쓰는 스키마라 유지(신규 글 경로에서는 미사용).
 
 **기타 낮은 문제 (요약)**
 - `verifyDraft`를 손으로 만든 초안으로 직접 호출하면 존재하지 않는 cardId가 검증을 통과할 수 있다(`writePost` 경로에선 재현 불가). "참고" 줄 출처명은 마크다운 정리를 하지 않는다.
