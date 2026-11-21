@@ -7,7 +7,7 @@ import { composeDraft, ComposeError } from './compose.js';
 import { generateOutline, OutlineError, type Outline } from './outline.js';
 import type { ResearchBundle } from './types.js';
 import { verifyDraft, type ReviewReport } from './verify.js';
-import { buildCardRefs, renderBody, type WriterDeps } from './write-types.js';
+import { buildCardRefs, renderBody, type Draft, type WriterDeps } from './write-types.js';
 
 export interface WriteResult {
   status: 'passed' | 'discarded';
@@ -19,6 +19,8 @@ export interface WriteResult {
   /** discarded 사유 */
   reasons: string[];
   outline: Outline | null;
+  /** 검증을 거친 최종 초안(이미지 배치용). 개요·작성 실패 시 null. */
+  draft: Draft | null;
 }
 
 const EMPTY_REVIEW: ReviewReport = { invalidCards: [], sentences: [], fixes: [], rounds: 0 };
@@ -29,7 +31,7 @@ export async function writePost(
   deps: WriterDeps & { now?: Date }
 ): Promise<WriteResult> {
   const fail = (reason: string, outline: Outline | null): WriteResult => ({
-    status: 'discarded', title: outline?.title ?? '', body: '', usedSources: [], review: EMPTY_REVIEW, reasons: [reason], outline,
+    status: 'discarded', title: outline?.title ?? '', body: '', usedSources: [], review: EMPTY_REVIEW, reasons: [reason], outline, draft: null,
   });
 
   let outline: Outline;
@@ -59,5 +61,6 @@ export async function writePost(
     review: verified.review,
     reasons: verified.reasons,
     outline,
+    draft: verified.draft,
   };
 }

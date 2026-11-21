@@ -391,7 +391,7 @@ async function evaluate(draft: Draft, cards: Map<string, CardRef>, deps: WriterD
 export function finalGate(draft: Draft, cards: Map<string, CardRef>): string[] {
   const sentences = listSentences(draft).map((u) => u.sentence);
   const reasons: string[] = [];
-  const cited = sentences.filter((s) => s.cardIds.length > 0).length;
+  const cited = sentences.filter((s) => s.cardIds.some((id) => cards.has(id))).length;
   if (sentences.length === 0) return ['본문 문장이 없다'];
   if (cited / sentences.length < MIN_CITED_RATIO) {
     reasons.push(`근거 마커가 붙은 문장 비율 ${cited}/${sentences.length} < ${MIN_CITED_RATIO}`);
@@ -519,6 +519,11 @@ export async function verifyDraft(
   const review: ReviewReport = { invalidCards: [], sentences: [], fixes: [], rounds: 0 };
   let draft: Draft = JSON.parse(JSON.stringify(inputDraft));
   const discard = (reasons: string[]): VerifyResult => ({ status: 'discarded', draft, reasons, review });
+  // 존재하지 않는 카드 id(예: F9)는 근거로 인정하지 않는다: 문장·섹션에서 제거해 마커 없는 문장처럼 취급한다.
+  for (const sec of draft.sections) {
+    sec.factIds = sec.factIds.filter((id) => cards.has(id));
+    for (const para of sec.paragraphs) for (const s of para) s.cardIds = s.cardIds.filter((id) => cards.has(id));
+  }
   const gated = (d: Draft): VerifyResult => {
     const g = finalGate(d, cards);
     return g.length === 0 ? { status: 'passed', draft: d, reasons: [], review } : discard(g);

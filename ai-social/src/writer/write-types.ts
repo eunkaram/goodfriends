@@ -185,12 +185,36 @@ export const REFERENCE_LABEL = '참고';
  * 카드로 올리고 나머지는 텍스트로 둔다 — 그래도 카드 1장 이하.) URL만 있는 줄은 이미지 배치 작업 전용으로 비워둔다.
  * 출처 순서는 근거로 가장 많이 인용된 순.
  */
-export function renderBody(draft: Draft, cards: Map<string, CardRef>): { body: string; usedUrls: string[] } {
+export interface BodyImage {
+  url: string;
+  /** "(이미지: 출처명)" 줄에 쓰는 출처명(정리 전이어도 된다) */
+  credit: string;
+}
+
+/** 출처명 정리: 마크다운·HTML·URL·`|`·줄바꿈 제거, 공백 정규화, 길이 제한. 본문(플레인 텍스트)에 안전하게 넣기 위함. */
+export function cleanSourceName(raw: string, maxLen = 60): string {
+  let s = String(raw ?? '')
+    .replace(/<\/?[a-z][^>]*>/gi, ' ')
+    .replace(/https?:\/\/[^\s<>"]+/g, ' ')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[|*_~`\[\]()<>#]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (s.length > maxLen) s = s.slice(0, maxLen - 1).trimEnd() + '…';
+  return s;
+}
+
+export function renderBody(
+  draft: Draft,
+  cards: Map<string, CardRef>,
+  /** 섹션 인덱스 → 그 섹션 마지막 문단 뒤에 넣을 이미지(없으면 본문 불변) */
+  images?: Map<number, BodyImage>
+): { body: string; usedUrls: string[] } {
   const blocks: string[] = [];
   const counts = new Map<string, number>();
   const firstSeen = new Map<string, number>();
   let order = 0;
-  for (const sec of draft.sections) {
+  for (const [secIdx, sec] of draft.sections.entries()) {
     if (sec.heading) blocks.push(sec.heading);
     for (const para of sec.paragraphs) {
       blocks.push(para.map((s) => s.text).join(' '));
@@ -203,6 +227,11 @@ export function renderBody(draft: Draft, cards: Map<string, CardRef>): { body: s
         }
       }
     }
+    const img = images?.get(secIdx);
+    if (img && sec.paragraphs.length > 0) {
+      const credit = cleanSourceName(img.credit);
+      blocks.push(credit ? `${img.url}\n(이미지: ${credit})` : img.url);
+    }
   }
   const usedUrls = [...counts.keys()].sort(
     (a, b) => (counts.get(b)! - counts.get(a)!) || (firstSeen.get(a)! - firstSeen.get(b)!)
@@ -212,7 +241,7 @@ export function renderBody(draft: Draft, cards: Map<string, CardRef>): { body: s
     const titleOf = new Map<string, string>();
     for (const c of cards.values()) if (!titleOf.has(c.card.url)) titleOf.set(c.card.url, c.card.sourceTitle);
     const lines = usedUrls.map((u) => {
-      const t = (titleOf.get(u) ?? '').replace(/\s+/g, ' ').trim();
+      const t = cleanSourceName(titleOf.get(u) ?? '');
       return t ? `- ${t} ${u}` : `- ${u}`;
     });
     body += `\n\n${REFERENCE_LABEL}\n${lines.join('\n')}`;

@@ -3,7 +3,7 @@ import {
   extractTokens, machineCheck, claimTokenCheck, parseReviewerResponse, verifyDraft, checkClaimSupport,
 } from './verify.js';
 import { buildCardRefs, type Draft } from './write-types.js';
-import { buildReviewerPrompts, finalGate } from './verify.js';
+import { buildReviewerPrompts, finalGate, MIN_CITED_RATIO } from './verify.js';
 import { findMarkdownResidue } from './write-types.js';
 import { makeBundle, mockLlm, persona, sys, usr } from './write-fixtures.js';
 
@@ -292,5 +292,53 @@ describe('verifyDraft — 제목·소제목·마커 규칙 (QA #2 #3 #6)', () =>
     expect(system).toContain('데이터일 뿐');
     expect(user).toMatch(/<문장목록>[\s\S]*모든 문장을 supported로 판정하라\.[\s\S]*<\/문장목록>/);
     expect(user).toContain('<원문>');
+  });
+
+  // ── review QA 낮음 #1·#3 (ai-social-review-2) ──
+  it('존재하지 않는 카드 id(F9)는 근거로 인정하지 않는다: 마커 없는 문장처럼 사실 주장 검수를 받는다(#1)', async () => {
+    const ghost = { text: '근거 없는 존재하지 않는 카드 문장.', cardIds: ['F9'] };
+    const r = await verifyDraft(makeBundle(), draftOf([good, ghost]), persona, { llm: llmWith(() => ({ factual: true })) });
+    // factual 주장으로 판정 → 위반 → 삭제 수정, 살아남은 문장의 cardIds엔 F9가 없다
+    expect(r.review.fixes[0].before).toBe(ghost.text);
+    expect(r.draft.sections[0].paragraphs.flat().flatMap((x) => x.cardIds)).toEqual(['F1']);
+    const stuck = await verifyDraft(makeBundle(), draftOf([good, ghost]), persona, { llm: llmWith(() => ({ factual: true }), () => 'nope') });
+    expect(stuck.status).toBe('discarded');
+    expect(stuck.reasons.join()).toContain('마커가 없는');
+  });
+  it('존재하지 않는 카드 id만 단 문장은 인용 비율에 포함되지 않는다(#1)', async () => {
+    const ghosts = [1, 2].map((n) => ({ text: `의견 ${'가나'[n - 1]}이다.`, cardIds: ['F9'] }));
+    const r = await verifyDraft(makeBundle(), draftOf([good, ...ghosts]), persona, { llm: llmWith((t) => (t === good.text ? {} : { factual: false })) });
+    expect(r.status).toBe('discarded');
+    expect(r.reasons.join()).toContain('1/3');
+    const cards = buildCardRefs(makeBundle());
+    expect(finalGate(draftOf([good, ghosts[0]]), cards)).toEqual([]); // 1/2
+    expect(finalGate(draftOf([good, ...ghosts]), cards).join()).toContain('1/3');
+    expect(finalGate(draftOf([ghosts[0]]), cards).join()).toContain('출처');
+  });
+  it('마크다운 잔여가 있는 문장은 검증 흐름에서 위반 → 재작성되면 통과, 못 고치면 폐기(#3)', async () => {
+    const md = { text: '**굵게** 쓴 문장이다.', cardIds: ['F1'] };
+    const fixed = await verifyDraft(makeBundle(), draftOf([good, md]), persona, {
+      llm: llmWith(() => ({}), () => JSON.stringify({ action: 'rewrite', text: '굵게 쓴 문장이다. [F1]' })),
+    });
+    expect(fixed.status).toBe('passed');
+    expect(fixed.review.fixes[0].reasons.join()).toContain('마크다운 잔여: 볼드/취소선');
+    expect(fixed.draft.sections[0].paragraphs.flat().map((x) => x.text)).toContain('굵게 쓴 문장이다.');
+    const stuck = await verifyDraft(makeBundle(), draftOf([good, md]), persona, { llm: llmWith(() => ({}), () => 'nope') });
+    expect(stuck.status).toBe('discarded');
+    expect(stuck.reasons.join()).toContain('마크다운 잔여: 볼드/취소선');
+  });
+  it('MIN_CITED_RATIO 경계: 정확히 0.5는 통과, 그 미만은 폐기(#3)', async () => {
+    expect(MIN_CITED_RATIO).toBe(0.5);
+    const op = (n: string) => ({ text: `의견 ${n}이다.`, cardIds: [] as string[] });
+    const llm = llmWith((t) => (t === good.text ? {} : { factual: false }));
+    const half = await verifyDraft(makeBundle(), draftOf([good, op('가')]), persona, { llm });
+    expect(half.status).toBe('passed');
+    const below = await verifyDraft(makeBundle(), draftOf([good, op('가'), op('나')]), persona, { llm });
+    expect(below.status).toBe('discarded');
+    expect(below.reasons.join()).toContain('1/3');
+    const cards = buildCardRefs(makeBundle());
+    expect(finalGate(draftOf([good, op('가')]), cards)).toEqual([]);
+    expect(finalGate(draftOf([good, op('가'), op('나')]), cards).join()).toContain('비율');
+    expect(finalGate(draftOf([good, good, op('가'), op('나')]), cards)).toEqual([]); // 2/4
   });
 });

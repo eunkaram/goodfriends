@@ -15,6 +15,12 @@ export const config = {
     // 글 생성처럼 오래 걸리는 호출용 타임아웃(ms). 사용처는 후속 작업에서 연결한다.
     longTimeoutMs: parseInt(process.env.LLM_LONG_TIMEOUT_MS || '600000', 10),
   },
+  images: {
+    // 글당 이미지 최대 장수(섹션당은 항상 1장)
+    maxPerPost: Math.max(0, parseInt(process.env.IMAGE_MAX_PER_POST || '3', 10) || 0),
+    // goodfriends 독자 브라우저가 보내는 Referer(origin). 핫링크 차단 확인에 쓴다.
+    publicOrigin: process.env.GOODFRIENDS_PUBLIC_ORIGIN || 'https://goodfriends.co',
+  },
   openRouter: {
     baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
     apiKey: process.env.OPENROUTER_API_KEY || '',

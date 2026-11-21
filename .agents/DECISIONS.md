@@ -10,3 +10,4 @@
 2026-11-20 ai-social-research arXiv — export.arxiv.org robots.txt는 전체 Disallow지만 arXiv 공식 API 이용 약관(3초 간격)에 따라 사용 중. Bryan 확인 사항으로 최종 보고에 포함(빼려면 registry.ts의 arxiv 항목 제거)
 2026-11-20 ai-social-review 1회차 FAIL(보통 4: 비-reasoning 동작 변경·제목 미검수·마커 없는 본문 passed·출처 URL 단독 줄이 OG 카드 N개) → 2회차 결정: 출처는 '- 출처명 URL' 인라인 줄, URL 단독 줄은 이미지 배치 전용, passed는 마커 문장 비율 ≥0.5 + 출처 ≥1
 2026-11-20 ai-social-review 2회차 PASS → 커밋 — 410 tests·typecheck 통과. 낮음 3건(verifyDraft 직접 호출 시 미존재 cardId, 출처명 정리 안 함, 마크다운 위반 흐름·0.5 경계 테스트 없음)은 integrate에서 함께 처리. 실모델 폐기율은 드라이런으로 확인 필요(factual 필드 생략 시 폐기 증가 가능)
+2026-11-20 ai-social-images 1회차 PASS → 커밋 — 452 tests·typecheck 통과. 프로브: 로컬 vision은 base64 data URL만 받음(원격 URL 400). integrate로 넘김: #2 vision 전 다운스케일(새 의존성 없이 macOS sips로 긴 변 1024px, 실패 시 해당 이미지 건너뜀), #1 frontend import 테스트가 tsc 프로그램에 섞이는 문제(tsconfig에서 테스트 분리 또는 계약 테스트 별도), #3 validateImage 시작 호스트 검사. 이미지 저작권·hotlink 깨짐은 Bryan 확인 사항
