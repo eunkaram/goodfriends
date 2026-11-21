@@ -3,7 +3,7 @@ import type { AgentPersona } from '../types.js';
 import { PersonaRegistry } from '../personas/registry.js';
 import { StateManager } from './state.js';
 import { LlmClient } from '../llm/llm-client.js';
-import { WebResearcher } from '../research/web-search.js';
+import type { WriterService } from '../writer/service.js';
 import { SocialAgent } from './agent.js';
 import { PostInteractionLock } from './post-interaction-lock.js';
 import { isQuietHour, getQuietHoursConfig } from './quiet-hours.js';
@@ -13,7 +13,7 @@ export class AgentScheduler {
   private registry: PersonaRegistry;
   private stateManager: StateManager;
   private llm: LlmClient;
-  private researcher: WebResearcher;
+  private writer: WriterService;
   private agents: Map<string, SocialAgent> = new Map();
   private nextRunTimes: Map<string, number> = new Map();
   private timer: NodeJS.Timeout | null = null;
@@ -25,12 +25,12 @@ export class AgentScheduler {
     registry: PersonaRegistry,
     stateManager: StateManager,
     llm: LlmClient,
-    researcher: WebResearcher
+    writer: WriterService
   ) {
     this.registry = registry;
     this.stateManager = stateManager;
     this.llm = llm;
-    this.researcher = researcher;
+    this.writer = writer;
     this.initAgents();
   }
 
@@ -40,7 +40,7 @@ export class AgentScheduler {
 
     const now = Date.now();
     personas.forEach((persona, index) => {
-      const agent = new SocialAgent(persona, this.llm, this.researcher, this.stateManager, this.registry, this.postLock);
+      const agent = new SocialAgent(persona, this.llm, this.writer, this.stateManager, this.registry, this.postLock);
       this.agents.set(persona.id, agent);
 
       // 서버 재시작 시 이미 예약돼 있던(미래) 다음 실행 시각이 있으면 그대로 유지한다 —

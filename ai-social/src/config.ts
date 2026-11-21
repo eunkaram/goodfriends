@@ -1,7 +1,23 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+function intEnv(name: string, fallback: number, min = 1): number {
+  const n = parseInt(process.env[name] ?? '', 10);
+  return Number.isFinite(n) && n >= min ? n : fallback;
+}
+
 export const config = {
+  /**
+   * DRY_RUN(기본 true). true면 실서버에 아무 것도 쓰지 않는다: 로그인/가입·글·댓글·공감 호출을 전부 생략하고
+   * 글은 SQLite drafts에만 저장한다. 'false'로 명시했을 때만 실제 게시한다.
+   */
+  dryRun: process.env.DRY_RUN !== 'false',
+  writer: {
+    // 글 1편(주제 선정~이미지)의 전체 데드라인(ms). 초과하면 abort하고 discarded('deadline').
+    deadlineMs: intEnv('WRITER_DEADLINE_MS', 40 * 60 * 1000, 1000),
+    // 글 1편에서 허용하는 LLM(chat·vision) 호출 수 상한. 초과하면 abort하고 discarded('llm-limit').
+    maxLlmCalls: intEnv('WRITER_MAX_LLM_CALLS', 150),
+  },
   goodfriends: {
     baseUrl: process.env.GOODFRIENDS_BASE_URL || 'http://127.0.0.1:3011',
   },

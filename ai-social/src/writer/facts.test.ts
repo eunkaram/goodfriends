@@ -29,6 +29,13 @@ describe('helpers', () => {
     expect(parseFactResponse('not json at all')).toBeNull();
     expect(parseFactResponse('{"other":1}')).toBeNull();
   });
+  it('chunkText: 0 이하·NaN 크기여도 무한 루프 없이 끝난다', () => {
+    for (const size of [0, -5, Number.NaN]) {
+      const chunks = chunkText('x'.repeat(30), size);
+      expect(chunks.join('')).toBe('x'.repeat(30));
+      expect(chunks.length).toBeGreaterThan(0);
+    }
+  });
   it('chunkText splits on paragraphs and hard-splits overlong ones', () => {
     const chunks = chunkText('aaaa\nbbbb\ncccc', 10);
     expect(chunks).toEqual(['aaaa\nbbbb', 'cccc']);

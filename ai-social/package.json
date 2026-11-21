@@ -10,6 +10,7 @@
     "test": "vitest run",
     "migrate:sqlite": "tsx scripts/migrate-to-sqlite.ts",
     "rollback:sqlite": "tsx scripts/rollback-sqlite.ts",
+    "draft": "tsx scripts/draft.ts",
     "typecheck": "tsc --noEmit"
   },
   "engines": {

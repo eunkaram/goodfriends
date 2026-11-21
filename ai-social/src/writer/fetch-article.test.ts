@@ -81,33 +81,43 @@ function mkHttp(handler: (url: string) => Response | Promise<Response>) {
   return { http: new HttpClient({ fetchImpl, hostMinGapMs: {} }), fetchImpl };
 }
 
+function withRobots(http: HttpClient) {
+  return { http, robots: new RobotsChecker(http) };
+}
+
 describe('fetchArticle', () => {
   it('fetches, decodes and extracts', async () => {
     const { http } = mkHttp(() => new Response(HTML, { headers: { 'content-type': 'text/html; charset=utf-8' } }));
-    const r = await fetchArticle('https://news.test/section/post', { http });
+    const r = await fetchArticle('https://news.test/section/post', { http, robots: new RobotsChecker(http) });
     expect(r?.title).toBe('기사 제목');
   });
   it('returns null on HTTP error, non-HTML, network error, robots block', async () => {
-    expect(await fetchArticle('https://a.test/x', { http: mkHttp(() => new Response('', { status: 404 })).http })).toBeNull();
-    expect(await fetchArticle('https://a.test/x', { http: mkHttp(() => new Response('{}', { headers: { 'content-type': 'application/json' } })).http })).toBeNull();
+    expect(await fetchArticle('https://a.test/x', withRobots(mkHttp(() => new Response('', { status: 404 })).http))).toBeNull();
+    expect(await fetchArticle('https://a.test/x', withRobots(mkHttp(() => new Response('{}', { headers: { 'content-type': 'application/json' } })).http))).toBeNull();
     expect(
-      await fetchArticle('https://a.test/x', {
-        http: mkHttp(() => {
+      await fetchArticle('https://a.test/x', withRobots(
+        mkHttp(() => {
           throw new Error('ECONNRESET');
-        }).http,
-      })
+        }).http
+      ))
     ).toBeNull();
     const { http, fetchImpl } = mkHttp((u) => (u.endsWith('/robots.txt') ? new Response('User-agent: *\nDisallow: /\n') : new Response(HTML)));
     expect(await fetchArticle('https://a.test/x', { http, robots: new RobotsChecker(http) })).toBeNull();
     expect(fetchImpl).toHaveBeenCalledTimes(1); // robots only, page never fetched
   });
+  it('robots 없이 부르면(타입 우회) 페이지를 가져오지 않는다', async () => {
+    const { http, fetchImpl } = mkHttp(() => new Response(HTML, { headers: { 'content-type': 'text/html' } }));
+    // @ts-expect-error robots는 필수 — 타입 오류가 나야 한다
+    expect(await fetchArticle('https://a.test/x', { http })).toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
   it('rejects non-http URLs', async () => {
-    expect(await fetchArticle('file:///etc/passwd', { http: mkHttp(() => new Response('x')).http })).toBeNull();
+    expect(await fetchArticle('file:///etc/passwd', withRobots(mkHttp(() => new Response('x')).http))).toBeNull();
   });
   it('uses the candidate abstract for arXiv without any network call', async () => {
     const { http, fetchImpl } = mkHttp(() => new Response(''));
     const summary = 'This paper studies something important about language models. '.repeat(3);
-    const r = await fetchArticle('https://arxiv.org/abs/2611.26613', { http }, { title: 'T', summary, publishedAt: '2026-11-19T00:00:00.000Z' });
+    const r = await fetchArticle('https://arxiv.org/abs/2611.26613', { http, robots: new RobotsChecker(http) }, { title: 'T', summary, publishedAt: '2026-11-19T00:00:00.000Z' });
     expect(r?.text).toContain('studies something');
     expect(r?.siteName).toBe('arXiv');
     expect(fetchImpl).not.toHaveBeenCalled();
@@ -115,6 +125,6 @@ describe('fetchArticle', () => {
   it('fetches the arXiv abs page when no summary hint is given', async () => {
     const abs = `<html><head><meta name="citation_title" content="A Paper"></head><body><blockquote class="abstract">Abstract: ${'Deep text. '.repeat(10)}</blockquote></body></html>`;
     const { http } = mkHttp(() => new Response(abs, { headers: { 'content-type': 'text/html' } }));
-    expect((await fetchArticle('https://arxiv.org/abs/2611.1', { http }))?.title).toBe('A Paper');
+    expect((await fetchArticle('https://arxiv.org/abs/2611.1', { http, robots: new RobotsChecker(http) }))?.title).toBe('A Paper');
   });
 });

@@ -13,8 +13,8 @@ const MAX_IMAGES = 12;
 
 export interface FetchArticleDeps {
   http: HttpClient;
-  /** 생략하면 robots 확인 없이 가져온다(테스트용). 운영 경로는 항상 넘긴다. */
-  robots?: RobotsChecker;
+  /** 필수: robots.txt 확인 없이 임의 사이트를 가져오지 못하게 타입으로 강제한다(생략 불가). */
+  robots: RobotsChecker;
 }
 
 export interface FetchArticleHint {
@@ -178,7 +178,9 @@ export async function fetchArticle(url: string, deps: FetchArticleDeps, hint: Fe
       };
     }
 
-    if (deps.robots && !(await deps.robots.isAllowed(url))) return null;
+    // JS 호출·타입 우회로 robots가 빠져도 가져오지 않는다(fail-closed).
+    if (typeof deps.robots?.isAllowed !== 'function') return null;
+    if (!(await deps.robots.isAllowed(url))) return null;
 
     const res = await deps.http.request(url, { Accept: 'text/html,application/xhtml+xml' });
     if (!res.ok) return null;

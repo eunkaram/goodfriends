@@ -7,12 +7,14 @@ import type { StateManager } from '../engine/state.js';
 import type { AgentScheduler } from '../engine/scheduler.js';
 import type { LlmClient } from '../llm/llm-client.js';
 import { fetchCategories } from '../client/goodfriends-client.js';
+import type { DraftStore } from '../writer/drafts.js';
 
 export function createDashboardServer(
   registry: PersonaRegistry,
   stateManager: StateManager,
   scheduler: AgentScheduler,
-  llm: LlmClient
+  llm: LlmClient,
+  drafts?: DraftStore
 ) {
   const app = express();
   app.use(express.json());
@@ -26,6 +28,7 @@ export function createDashboardServer(
       scheduler: scheduler.getStatus(),
       states: stateManager.getAllStates(),
       config: {
+        dryRun: config.dryRun,
         goodfriendsUrl: config.goodfriends.baseUrl,
         localLlm: {
           baseUrl: config.localLlm.baseUrl,
@@ -39,6 +42,25 @@ export function createDashboardServer(
         },
       },
     });
+  });
+
+  // 글 초안(읽기 전용): 목록은 본문·사실 카드 없이, 상세는 전체. 대시보드는 127.0.0.1에만 바인드된다(config.server.host).
+  app.get('/api/drafts', (req, res) => {
+    if (!drafts) return res.json({ drafts: [] });
+    const limit = parseInt(String(req.query.limit || '50'), 10);
+    res.json({
+      drafts: drafts.list({
+        limit: Number.isFinite(limit) ? limit : 50,
+        status: req.query.status ? String(req.query.status) : undefined,
+        category: req.query.category ? String(req.query.category) : undefined,
+      }),
+    });
+  });
+
+  app.get('/api/drafts/:id', (req, res) => {
+    const draft = drafts?.get(req.params.id);
+    if (!draft) return res.status(404).json({ error: '초안을 찾을 수 없습니다' });
+    res.json(draft);
   });
 
   app.get('/api/categories', async (req, res) => {

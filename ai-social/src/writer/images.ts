@@ -6,12 +6,16 @@
  * 그중 URL 끝이 이미지 확장자(+선택적 ?쿼리)면 <img>, 아니면 OG 카드다. 확장자 없는 이미지 URL은 이미지로 판별되지 않는다
  * (서버 왕복 없이 확장자만 본다) → 그런 URL은 여기서 제외한다.
  */
+import { execFile as nodeExecFile } from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import { config } from '../config.js';
 import type { WriteResult } from './index.js';
 import type { ResearchBundle } from './types.js';
 import { WRITER_USER_AGENT, type FetchImpl } from './sources/http.js';
-import { buildCardRefs, cleanSourceName, parseJsonLoose, type BodyImage, type Draft } from './write-types.js';
-import { renderBody } from './write-types.js';
+import { buildCardRefs, cleanSourceName, parseJsonLoose, renderBody, type BodyImage, type Draft } from './write-types.js';
 
 // ── goodfriends 렌더 호환(frontend/lib/link-detect.ts 포팅) ────────────
 
@@ -311,6 +315,15 @@ export async function validateImage(url: string, deps: ImageFetchDeps = {}): Pro
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs);
   try {
+    // 0) 시작 URL도 리다이렉트 홉과 같은 기준(https·공개 호스트). 후보 수집을 거치지 않고 직접 불려도 사설망 요청이 나가지 않는다.
+    let start: URL;
+    try {
+      start = new URL(url);
+    } catch {
+      return { ok: false, reason: '잘못된 URL' };
+    }
+    if (start.protocol !== 'https:' || isPrivateHost(start.hostname)) return { ok: false, reason: '시작 URL이 안전하지 않음(https·공개 호스트만 허용)' };
+
     // 1) Referer 없이 전체 다운로드(vision 입력으로도 쓴다)
     const first = await fetchFollow(url, {}, fetchImpl, opts, controller.signal);
     checkHeaders(first.res, opts);
@@ -403,6 +416,53 @@ export function createLocalVision(
   };
 }
 
+// ── 3-1. vision 입력 다운스케일(macOS sips) ────────────────────────
+
+export const VISION_MAX_EDGE = 1024;
+
+export type ExecFileFn = (file: string, args: string[], opts: { timeout: number }) => Promise<unknown>;
+
+export interface DownscaleDeps {
+  /** child_process.execFile(promisify) 호환. 테스트에서 모킹한다. */
+  execFile?: ExecFileFn;
+  maxEdge?: number;
+  timeoutMs?: number;
+  /** 임시 디렉터리 루트(기본 os.tmpdir()) */
+  tmpRoot?: string;
+}
+
+export type DownscaleFn = (img: { bytes: Uint8Array; info: ImageInfo }) => Promise<{ bytes: Uint8Array; mime: 'image/jpeg' } | null>;
+
+const EXT_BY_MIME: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+
+/**
+ * vision 전에 긴 변 1024px JPEG로 줄인다(큰 원본을 그대로 base64로 보내면 로컬 모델 컨텍스트를 넘긴다).
+ * 새 의존성 없이 macOS `sips`를 execFile로 쓴다(셸 미경유, 인자 배열). 임시 파일은 os.tmpdir 하위 고유 디렉터리에만 만들고 항상 지운다.
+ * sips가 없거나 실패·시간 초과·출력이 JPEG가 아니면 null(= 호출부가 그 이미지를 건너뜀). 이미 작은 이미지는 확대하지 않는다.
+ */
+export async function downscaleWithSips(img: { bytes: Uint8Array; info: ImageInfo }, deps: DownscaleDeps = {}): Promise<{ bytes: Uint8Array; mime: 'image/jpeg' } | null> {
+  const exec: ExecFileFn = deps.execFile ?? ((file, args, o) => promisify(nodeExecFile)(file, args, o));
+  const maxEdge = deps.maxEdge ?? VISION_MAX_EDGE;
+  let dir: string | null = null;
+  try {
+    dir = await fs.mkdtemp(path.join(deps.tmpRoot ?? os.tmpdir(), 'gf-vision-'));
+    const input = path.join(dir, `in.${EXT_BY_MIME[img.info.mime] ?? 'img'}`);
+    const output = path.join(dir, 'out.jpg');
+    await fs.writeFile(input, img.bytes);
+    const args = ['-s', 'format', 'jpeg', '-s', 'formatOptions', '80'];
+    if (Math.max(img.info.width, img.info.height) > maxEdge) args.push('-Z', String(maxEdge));
+    args.push(input, '--out', output);
+    await exec('sips', args, { timeout: deps.timeoutMs ?? 20_000 });
+    const out = new Uint8Array(await fs.readFile(output));
+    if (out.length < 4 || out[0] !== 0xff || out[1] !== 0xd8) return null;
+    return { bytes: out, mime: 'image/jpeg' };
+  } catch {
+    return null;
+  } finally {
+    if (dir) await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 export interface VisionVerdict {
   relevant: boolean;
   caption: string;
@@ -468,6 +528,8 @@ export interface ImageRejection {
 export interface ImageDeps extends ImageFetchDeps {
   /** 없으면 이미지를 붙이지 않는다(검증 없는 이미지는 넣지 않는다). */
   vision?: VisionFn;
+  /** vision 입력 다운스케일. 기본 macOS sips. null을 돌려주면 그 이미지는 건너뛴다. */
+  downscale?: DownscaleFn;
   log?: (msg: string) => void;
 }
 
@@ -536,7 +598,12 @@ export async function attachImages(result: WriteResult, bundle: ResearchBundle, 
           if (!check.ok) rejections.push({ url: cand.url, reason: check.reason });
         }
         if (!check.ok || usedFinal.has(check.finalUrl)) continue;
-        const verdict = await judgeImage(deps.vision, sectionText(sec), { bytes: check.bytes, mime: check.info.mime }, opts.visionTimeoutMs);
+        const scaled = await (deps.downscale ?? downscaleWithSips)({ bytes: check.bytes, info: check.info });
+        if (!scaled) {
+          rejections.push({ url: cand.url, reason: 'vision 입력 다운스케일 실패(sips 없음·오류)' });
+          continue;
+        }
+        const verdict = await judgeImage(deps.vision, sectionText(sec), scaled, opts.visionTimeoutMs);
         if (!verdict) {
           rejections.push({ url: cand.url, reason: 'vision 판정 실패' });
           continue;

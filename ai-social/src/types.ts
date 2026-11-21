@@ -129,7 +129,8 @@ export interface AgentActivityLog {
   id: string;
   agentId: string;
   agentName: string;
-  type: 'post' | 'comment' | 'reaction' | 'search' | 'browse' | 'error';
+  /** 'dry-run': DRY_RUN에서 "원래라면 했을 쓰기"(공감·댓글·글 초안). 서버에는 아무 것도 쓰지 않았고 통계에도 안 잡힌다. */
+  type: 'post' | 'comment' | 'reaction' | 'search' | 'browse' | 'error' | 'dry-run';
   summary: string;
   targetId?: string;
   targetTitle?: string;

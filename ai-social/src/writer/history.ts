@@ -25,13 +25,49 @@ export function normalizeUrl(raw: string): string {
   }
 }
 
+const NORM_TABLES = ['writer_topic_history', 'used_source_urls'] as const;
+
+/**
+ * norm_url이 비어 있는 행(컬럼 추가 전 행, 또는 컬럼을 모르는 예전 코드가 넣은 행)을 채운다.
+ * norm_url 인덱스로 IS NULL을 찾으므로 채울 게 없으면 거의 공짜다.
+ */
+export function backfillNormUrls(db: DatabaseSync): void {
+  for (const table of NORM_TABLES) {
+    const rows = db.prepare(`SELECT url FROM ${table} WHERE norm_url IS NULL`).all() as { url: string }[];
+    if (rows.length === 0) continue;
+    const update = db.prepare(`UPDATE ${table} SET norm_url = ? WHERE url = ?`);
+    db.exec('BEGIN');
+    try {
+      for (const r of rows) update.run(normalizeUrl(r.url), r.url);
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+}
+
+const IN_CHUNK = 400;
+
+/** 주어진 URL들 중 이미 쓴 것의 "정규화 키" 집합. writer 이력 + 구 used_source_urls를 인덱스로 한 번에 조회한다. */
+export function hasUsedUrls(db: DatabaseSync, urls: string[]): Set<string> {
+  backfillNormUrls(db);
+  const keys = [...new Set(urls.map(normalizeUrl))];
+  const used = new Set<string>();
+  for (let i = 0; i < keys.length; i += IN_CHUNK) {
+    const chunk = keys.slice(i, i + IN_CHUNK);
+    const marks = chunk.map(() => '?').join(',');
+    for (const table of NORM_TABLES) {
+      const rows = db.prepare(`SELECT norm_url FROM ${table} WHERE norm_url IN (${marks})`).all(...chunk) as { norm_url: string }[];
+      for (const r of rows) used.add(r.norm_url);
+    }
+  }
+  return used;
+}
+
 /** 이미 쓴 URL인가: writer 이력 + 기존 used_source_urls(구 퍼온글 경로) 둘 다 본다. */
 export function hasUsedUrl(db: DatabaseSync, url: string): boolean {
-  const norm = normalizeUrl(url);
-  const rows = db.prepare(`SELECT url FROM writer_topic_history`).all() as { url: string }[];
-  if (rows.some((r) => normalizeUrl(r.url) === norm)) return true;
-  const legacy = db.prepare(`SELECT url FROM used_source_urls`).all() as { url: string }[];
-  return legacy.some((r) => normalizeUrl(r.url) === norm);
+  return hasUsedUrls(db, [url]).has(normalizeUrl(url));
 }
 
 export function recordTopicUsage(
@@ -40,9 +76,9 @@ export function recordTopicUsage(
   now: Date = new Date()
 ): void {
   db.prepare(
-    `INSERT INTO writer_topic_history (url, title, category, agent_id, used_at) VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO writer_topic_history (url, title, category, agent_id, used_at, norm_url) VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(url) DO NOTHING`
-  ).run(entry.url, entry.title, entry.category, entry.agentId ?? null, now.toISOString());
+  ).run(entry.url, entry.title, entry.category, entry.agentId ?? null, now.toISOString(), normalizeUrl(entry.url));
 }
 
 /** 최근 N일 이력(제목 유사도 비교용). category 생략 시 전체. */

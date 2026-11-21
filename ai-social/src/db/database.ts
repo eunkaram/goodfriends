@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { backfillNormUrls } from '../writer/history.js';
 
 /**
  * SQLite 스키마. personas/agent_states는 항상 전체 객체 단위로 읽고 쓰이므로
@@ -57,6 +58,25 @@ CREATE TABLE IF NOT EXISTS writer_topic_history (
   used_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_writer_topic_history_cat ON writer_topic_history(category, used_at DESC);
+
+-- writer 초안. DRY_RUN이면 게시 대신 여기에 저장하고(passed·discarded 모두), 실제 게시하면 published_post_id를 채운다.
+-- sources·facts·review·images·reasons는 JSON 문자열.
+CREATE TABLE IF NOT EXISTS drafts (
+  id TEXT PRIMARY KEY,
+  persona_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  status TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  sources TEXT NOT NULL,
+  facts TEXT NOT NULL,
+  review TEXT NOT NULL,
+  images TEXT NOT NULL,
+  reasons TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  published_post_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_drafts_created ON drafts(created_at DESC);
 `;
 
 /** 이미 존재하는 테이블에 컬럼이 없으면 추가한다 (CREATE TABLE IF NOT EXISTS로는 기존 테이블에 컬럼이 안 생기므로). */
@@ -85,5 +105,11 @@ export function openDatabase(storageDir: string): DatabaseSync {
   // T10: 세션 리플레이용 상관관계 컬럼 (T9 스키마에 없었으므로 마이그레이션 필요)
   ensureColumn(db, 'activity_logs', 'session_id', 'TEXT');
   db.exec('CREATE INDEX IF NOT EXISTS idx_activity_logs_session ON activity_logs(session_id)');
+  // 사용 URL 조회를 정규화 키 인덱스로(전 행 스캔 제거). 기존 행은 아래 backfill이 채운다.
+  ensureColumn(db, 'writer_topic_history', 'norm_url', 'TEXT');
+  ensureColumn(db, 'used_source_urls', 'norm_url', 'TEXT');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_writer_topic_history_norm ON writer_topic_history(norm_url)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_used_source_urls_norm ON used_source_urls(norm_url)');
+  backfillNormUrls(db);
   return db;
 }

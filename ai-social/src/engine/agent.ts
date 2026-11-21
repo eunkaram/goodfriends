@@ -1,16 +1,16 @@
-import type { AgentPersona, CommunityComment, CommunityPost, WebSearchResult } from '../types.js';
+import type { AgentPersona, CommunityCategory, CommunityComment, CommunityPost } from '../types.js';
+import { config } from '../config.js';
 import { GoodfriendsClient } from '../client/goodfriends-client.js';
 import { LlmClient } from '../llm/llm-client.js';
-import { WebResearcher } from '../research/web-search.js';
+import type { PublishMode, WriterService } from '../writer/service.js';
 import { StateManager } from './state.js';
 import type { PersonaRegistry } from '../personas/registry.js';
-import { filterOwnPosts, canInteractWithPost, isFellowAgentPost, isRepeatedTitle } from './interaction-rules.js';
+import { filterOwnPosts, canInteractWithPost, isFellowAgentPost } from './interaction-rules.js';
 import { pickCommentsToReact, pickReplyTarget } from './comment-rules.js';
 import { driftMood, moodToneModifier } from './mood.js';
 import type { PostInteractionLock } from './post-interaction-lock.js';
 import { checkContentSafety, type SafetyCheckResult } from '../safety/content-gate.js';
 import { hasEncodingCorruption } from '../llm/sanitize.js';
-import { insertImageMidBody } from './post-image.js';
 
 const MAX_COMMENTS_PER_SESSION = 2;
 
@@ -45,30 +45,49 @@ function humanPause(minSec: number, maxSec: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * 에이전트가 goodfriends에 대해 쓰는 메서드. DRY_RUN에서는 이 중 읽기 전용(getFeed·getComments·getPostingCategory)만
+ * 호출하고, 로그인(ensureAuthenticated)·쓰기(createPost·createComment·toggle*)는 절대 호출하지 않는다.
+ */
+export type AgentClient = Pick<
+  GoodfriendsClient,
+  'ensureAuthenticated' | 'getFeed' | 'getComments' | 'getPostingCategory' | 'createPost' | 'createComment' | 'toggleReaction' | 'toggleCommentReaction'
+>;
+
+export interface SocialAgentOptions {
+  /** 기본 config.dryRun(DRY_RUN 환경변수, 기본 true). */
+  dryRun?: boolean;
+  /** 테스트용 클라이언트 주입. 기본 GoodfriendsClient(persona). */
+  client?: AgentClient;
+}
+
 export class SocialAgent {
   public persona: AgentPersona;
-  private client: GoodfriendsClient;
+  private client: AgentClient;
   private llm: LlmClient;
-  private researcher: WebResearcher;
+  private writer: WriterService;
   private stateManager: StateManager;
   private registry: PersonaRegistry;
   private postLock: PostInteractionLock;
+  private dryRun: boolean;
 
   constructor(
     persona: AgentPersona,
     llm: LlmClient,
-    researcher: WebResearcher,
+    writer: WriterService,
     stateManager: StateManager,
     registry: PersonaRegistry,
-    postLock: PostInteractionLock
+    postLock: PostInteractionLock,
+    options: SocialAgentOptions = {}
   ) {
     this.persona = persona;
     this.llm = llm;
-    this.researcher = researcher;
+    this.writer = writer;
     this.stateManager = stateManager;
     this.registry = registry;
     this.postLock = postLock;
-    this.client = new GoodfriendsClient(persona);
+    this.dryRun = options.dryRun ?? config.dryRun;
+    this.client = options.client ?? new GoodfriendsClient(persona);
 
     // Initial state registration
     this.stateManager.initOrUpdateState(persona.id, {
@@ -172,91 +191,89 @@ export class SocialAgent {
     return body;
   }
 
-  /**
-   * 콘텐츠 세이프티 게이트를 통과하는 새 글을 생성한다. 거부 시 처리는 댓글과 동일.
-   */
-  private async generateSafePost(
-    categoryName: string,
-    externalContent: WebSearchResult | null,
-    moodModifier: string,
-    sessionId: string
-  ): Promise<{ title: string; body: string } | null> {
-    const recentTexts = this.getRecentTexts();
-    let postData = await this.llm.generatePost(this.persona, categoryName, externalContent, moodModifier, recentTexts);
-    if (!postData) {
-      // generatePost는 evaluatePostInterest와 달리 폴백이 없어서(글 내용을 랜덤으로 지어낼 수는
-      // 없으니) JSON 파싱 실패 등으로 한 번 null이 나오면 1회 재시도해본다.
-      postData = await this.llm.generatePost(this.persona, categoryName, externalContent, moodModifier, recentTexts);
-    }
-    if (!postData) {
-      // 예전엔 여기서 그냥 조용히 null 반환 — console.error로만 남고 대시보드엔 전혀 안 보여서
-      // "글을 아예 안 쓴다"는 게 실제로는 LLM 생성 실패였는지 확률상 안 뽑힌 건지 구분이 안 됐다.
-      this.stateManager.addLog({
-        agentId: this.persona.id,
-        agentName: this.persona.nickname,
-        type: 'error',
-        summary: `[${categoryName}] LLM이 새 글 생성에 실패함(재시도 포함) — 스킵`,
-        sessionId,
-      });
-      return null;
-    }
+  /** 사람처럼 보이게 하는 대기. DRY_RUN은 아무 것도 게시하지 않으므로 기다리지 않는다. */
+  private async pause(minSec: number, maxSec: number): Promise<void> {
+    if (!this.dryRun) await humanPause(minSec, maxSec);
+  }
 
-    // 같은 계정이 같은 제목의 글을 또 올리는 걸 코드에서 막는다(프롬프트 지시만으론 재발함).
-    if (isRepeatedTitle(postData.title, recentTexts)) {
-      this.stateManager.addLog({
-        agentId: this.persona.id,
-        agentName: this.persona.nickname,
-        type: 'error',
-        summary: `[${categoryName}] 최근 글과 제목이 거의 같아 재생성함: "${postData.title}"`,
-        sessionId,
-      });
-      const retry = await this.llm.generatePost(this.persona, categoryName, externalContent, moodModifier, recentTexts);
-      if (retry && !isRepeatedTitle(retry.title, recentTexts)) postData = retry;
-      else return null;
-    }
-
-    let check = this.evaluateGeneratedText(`${postData.title}\n${postData.body}`);
-
-    if (!check.safe) {
-      postData = await this.llm.generatePost(this.persona, categoryName, externalContent, moodModifier);
-      if (!postData) return null;
-      check = this.evaluateGeneratedText(`${postData.title}\n${postData.body}`);
-    }
-
-    if (!check.safe) {
-      this.stateManager.addLog({
-        agentId: this.persona.id,
-        agentName: this.persona.nickname,
-        type: 'error',
-        summary: `[${categoryName}] 새 글이 세이프티 게이트에 최종 차단됨 (${check.reason}) — 스킵`,
-        sessionId,
-      });
-      return null;
-    }
-
-    return postData;
+  /** DRY_RUN에서 "원래라면 했을 쓰기"를 활동 로그에만 남긴다(서버 호출 없음). */
+  private logDryRun(sessionId: string, summary: string, post: { id: string; title: string }, details: Record<string, any>): void {
+    this.stateManager.addLog({
+      agentId: this.persona.id,
+      agentName: this.persona.nickname,
+      type: 'dry-run',
+      summary: `[dry-run] ${summary}`,
+      targetId: post.id,
+      targetTitle: post.title,
+      details: { ...details, dryRun: true },
+      sessionId,
+    });
   }
 
   /**
-   * "퍼온글": LLM으로 다시 쓰지 않고 원문 제목/본문을 그대로 쓴다(사용자 요청 — 실제 커뮤니티의
-   * '펌글' 문화처럼 원문을 그대로 공유). 그래도 PII/독성/인코딩 문제는 걸러야 하지만, 원문이라
-   * 재생성은 불가능 — 세이프티 게이트에 막히면 그냥 이번 턴은 스킵한다.
+   * 새 글 1편: writer 파이프라인(리서치→작성→검증→이미지→최종 게이트)을 돌려 drafts에 저장한다.
+   * DRY_RUN이면 게시하지 않고, 아니면 passed만 createPost로 올린다. 반환: 게시/저장한 글 제목 또는 null.
    */
-  private buildVerbatimRepost(externalInfo: WebSearchResult, sessionId: string): { title: string; body: string } | null {
-    const title = externalInfo.title;
-    const body = externalInfo.fullBody!;
-    const check = this.evaluateGeneratedText(`${title}\n${body}`);
-    if (!check.safe) {
+  private async writeNewPost(targetCategory: CommunityCategory, sessionId: string): Promise<string | null> {
+    const mode: PublishMode = this.dryRun
+      ? { dryRun: true }
+      : { dryRun: false, publish: (post) => this.client.createPost({ categoryId: targetCategory.id, title: post.title, body: post.body }) };
+    const { draft, result, published } = await this.writer.produce(this.persona, targetCategory.slug, mode, {
+      recentTexts: this.getRecentTexts(),
+      feed: this.client,
+    });
+
+    if (result.status !== 'passed') {
       this.stateManager.addLog({
         agentId: this.persona.id,
         agentName: this.persona.nickname,
-        type: 'error',
-        summary: `퍼온글이 세이프티 게이트에 차단됨 (${check.reason}) — 스킵`,
+        type: 'search',
+        summary: `[${targetCategory.name}] 글 초안을 폐기했습니다(${result.reasons.join('; ') || '사유 없음'})`,
+        details: { draftId: draft.id, reasons: result.reasons, topic: result.topic },
         sessionId,
       });
       return null;
     }
-    return { title, body };
+
+    if (this.dryRun) {
+      this.stateManager.addLog({
+        agentId: this.persona.id,
+        agentName: this.persona.nickname,
+        type: 'dry-run',
+        summary: `[dry-run] [${targetCategory.name}] 글 초안을 저장했습니다(게시 안 함): "${result.title}"`,
+        targetTitle: result.title,
+        details: { body: result.body, category: targetCategory.name, draftId: draft.id, dryRun: true },
+        sessionId,
+      });
+      return result.title;
+    }
+
+    if (published?.ok) {
+      this.stateManager.recordRecentText(this.persona.id, `${result.title} - ${result.body}`);
+      this.stateManager.addLog({
+        agentId: this.persona.id,
+        agentName: this.persona.nickname,
+        type: 'post',
+        summary: `[${targetCategory.name}] 카테고리에 새 글을 등록했습니다: "${result.title}"`,
+        targetId: published.id,
+        targetTitle: result.title,
+        details: { body: result.body, category: targetCategory.name, draftId: draft.id },
+        sessionId,
+      });
+      return result.title;
+    }
+
+    // 공감/댓글 실패는 항상 error 로그를 남기는데 글쓰기 실패만 조용히 넘어가던 버그가 있었다.
+    // 카테고리 ID는 서버에서 조회한 값이고 이메일 미인증(EMAIL_NOT_VERIFIED) 등도 여기로 오므로 묻히면 원인 추적이 어렵다.
+    this.stateManager.addLog({
+      agentId: this.persona.id,
+      agentName: this.persona.nickname,
+      type: 'error',
+      summary: `[${targetCategory.name}] 새 글 작성 실패: ${published?.error || '알 수 없는 오류'}`,
+      details: { draftId: draft.id },
+      sessionId,
+    });
+    return null;
   }
 
   /**
@@ -268,10 +285,12 @@ export class SocialAgent {
     this.stateManager.initOrUpdateState(this.persona.id, { status: 'running' });
 
     try {
-      // 1. 인증 확인
-      const isAuth = await this.client.ensureAuthenticated();
-      if (!isAuth) {
-        throw new Error('goodfriends 로그인/가입 실패');
+      // 1. 인증 확인 — DRY_RUN은 가입·로그인을 하지 않는다(실서버에 쓰기 금지). 아래 조회는 읽기 전용 GET만.
+      if (!this.dryRun) {
+        const isAuth = await this.client.ensureAuthenticated();
+        if (!isAuth) {
+          throw new Error('goodfriends 로그인/가입 실패');
+        }
       }
       this.stateManager.initOrUpdateState(this.persona.id, { sessionActive: true });
 
@@ -319,8 +338,14 @@ export class SocialAgent {
 
         // 공감(하트) 액션
         if (evalResult.shouldReact && Math.random() < this.persona.reactionProb) {
-          const reactRes = await this.client.toggleReaction(post.id);
-          if (reactRes.ok) {
+          const reactRes = this.dryRun ? null : await this.client.toggleReaction(post.id);
+          if (!reactRes) {
+            reactedCount++;
+            interactedWithThisPost = true;
+            this.logDryRun(sessionId, `'${post.title}' 글에 공감(하트)을 남길 예정이었습니다.`, post, {
+              reason: evalResult.reason, targetType: 'post', targetBody: post.bodyPreview,
+            });
+          } else if (reactRes.ok) {
             reactedCount++;
             interactedWithThisPost = true;
             this.stateManager.addLog({
@@ -354,8 +379,14 @@ export class SocialAgent {
 
         // 댓글 공감(좋아요) — 본인 댓글·이미 공감한 댓글 제외, 최대 2개
         for (const targetComment of pickCommentsToReact(comments, this.persona)) {
-          const commentReactRes = await this.client.toggleCommentReaction(targetComment.id);
-          if (commentReactRes.ok) {
+          const commentReactRes = this.dryRun ? null : await this.client.toggleCommentReaction(targetComment.id);
+          if (!commentReactRes) {
+            commentReactedCount++;
+            interactedWithThisPost = true;
+            this.logDryRun(sessionId, `'${targetComment.authorNickname}'님의 댓글에 공감을 남길 예정이었습니다.`, { id: targetComment.id, title: post.title }, {
+              targetType: 'comment', targetBody: targetComment.body,
+            });
+          } else if (commentReactRes.ok) {
             commentReactedCount++;
             interactedWithThisPost = true;
             this.stateManager.addLog({
@@ -393,18 +424,27 @@ export class SocialAgent {
 
           // 글을 읽고 댓글을 쓰기까지 사람이 쓰는 시간. 없으면 "28초 만에 네 줄 댓글" /
           // "다른 계정과 0.19초 차 동시 댓글"이 그대로 찍힌다.
-          await humanPause(40, 240);
+          await this.pause(40, 240);
 
           if (replyTarget) {
             // 대댓글(답글)
             const replyBody = await this.generateSafeReply(post, replyTarget, moodModifier, sessionId);
             if (replyBody) {
-              const replyRes = await this.client.createComment({
-                postId: post.id,
-                body: replyBody,
-                parentCommentId: replyTarget.id,
-              });
-              if (replyRes.ok) {
+              const replyRes = this.dryRun
+                ? null
+                : await this.client.createComment({
+                    postId: post.id,
+                    body: replyBody,
+                    parentCommentId: replyTarget.id,
+                  });
+              if (!replyRes) {
+                // DRY_RUN: 로컬 상태(commentedPostIds·recentTexts)도 건드리지 않는다 — 실제로 쓰지 않았으므로.
+                commentedCount++;
+                interactedWithThisPost = true;
+                this.logDryRun(sessionId, `'${replyTarget.authorNickname}'님의 댓글에 답글을 남길 예정이었습니다: "${replyBody}"`, post, {
+                  comment: replyBody, parentCommentId: replyTarget.id, isReply: true,
+                });
+              } else if (replyRes.ok) {
                 commentedCount++;
                 interactedWithThisPost = true;
                 this.stateManager.recordCommentedPost(this.persona.id, post.id);
@@ -435,11 +475,19 @@ export class SocialAgent {
             // 글에 다는 일반 댓글
             const commentBody = await this.generateSafeComment(post, moodModifier, sessionId, comments);
             if (commentBody) {
-              const commentRes = await this.client.createComment({
-                postId: post.id,
-                body: commentBody,
-              });
-              if (commentRes.ok) {
+              const commentRes = this.dryRun
+                ? null
+                : await this.client.createComment({
+                    postId: post.id,
+                    body: commentBody,
+                  });
+              if (!commentRes) {
+                commentedCount++;
+                interactedWithThisPost = true;
+                this.logDryRun(sessionId, `'${post.title}' 글에 댓글을 남길 예정이었습니다: "${commentBody}"`, post, {
+                  comment: commentBody, reason: evalResult.reason,
+                });
+              } else if (commentRes.ok) {
                 commentedCount++;
                 interactedWithThisPost = true;
                 this.stateManager.recordCommentedPost(this.persona.id, post.id);
@@ -477,15 +525,16 @@ export class SocialAgent {
         }
       }
 
-      if (reactedCount > 0) actionsDone.push(`공감 ${reactedCount}건`);
-      if (commentReactedCount > 0) actionsDone.push(`댓글공감 ${commentReactedCount}건`);
-      if (commentedCount > 0) actionsDone.push(`댓글/답글 ${commentedCount}건`);
+      const dryTag = this.dryRun ? ' (dry-run)' : '';
+      if (reactedCount > 0) actionsDone.push(`공감 ${reactedCount}건${dryTag}`);
+      if (commentReactedCount > 0) actionsDone.push(`댓글공감 ${commentReactedCount}건${dryTag}`);
+      if (commentedCount > 0) actionsDone.push(`댓글/답글 ${commentedCount}건${dryTag}`);
 
-      // 4. 새 글 작성 (확률 기반)
+      // 4. 새 글 작성 (확률 기반) — writer 파이프라인(리서치→작성→검증→이미지). 글쓰기는 프로세스 전체에서 동시에 1개.
       if (Math.random() < this.persona.postProb) {
         // 댓글 단 직후 1.3~19.6초 만에 본인 글이 올라오는 게 세션 플로우 서명 그 자체였다.
         // 댓글 쪽보다 더 크게 벌려서 "읽기 → 반응 → 한참 뒤 글쓰기"처럼 보이게 한다.
-        if (actionsDone.length > 0) await humanPause(120, 600);
+        if (actionsDone.length > 0) await this.pause(120, 600);
 
         const targetCategory = await this.client.getPostingCategory(this.persona.preferredCategories);
         if (!targetCategory) {
@@ -497,73 +546,8 @@ export class SocialAgent {
             sessionId,
           });
         } else {
-          let externalInfo: WebSearchResult | null = null;
-
-          // 외부 웹 검색 및 최신 트렌드 리서치 수행 여부
-          if (Math.random() < this.persona.externalSearchProb) {
-            // 페르소나 관심사 전체(interests+preferredCategories)로 검색하면 targetCategory와
-            // 무관한 소스가 걸려서(예: 관심사에 tech가 있으면 targetCategory=cooking인데도 tech
-            // 기사가 뽑힘) 실제로 카테고리-내용 불일치 게시글이 여러 건 나왔다(2026-09-07).
-            // 이 글이 실제로 올라갈 targetCategory 하나로만 검색해야 내용과 카테고리가 맞는다.
-            externalInfo = await this.researcher.fetchTrendingTopic([targetCategory.slug], (url) => this.stateManager.hasUsedSourceUrl(url));
-
-            if (externalInfo) {
-              this.stateManager.addLog({
-                agentId: this.persona.id,
-                agentName: this.persona.nickname,
-                type: 'search',
-                summary: `'${externalInfo.title}' 관련 최신 웹 트렌드 자료를 수집했습니다.`,
-                details: { url: externalInfo.url, snippet: externalInfo.snippet },
-                sessionId,
-              });
-            }
-          }
-
-          // 새 글 생성: 퍼온글(원문 본문을 가져왔으면)은 그대로, 아니면 LLM이 새로 씀(세이프티 게이트 통과분만)
-          const postData = externalInfo?.fullBody
-            ? this.buildVerbatimRepost(externalInfo, sessionId)
-            : await this.generateSafePost(targetCategory.name, externalInfo, moodModifier, sessionId);
-          if (postData) {
-            // 소스에 이미지가 있으면 본문 중간에 자연스럽게 끼워 넣는다(끝에 무조건 붙이지 않음 —
-            // 사용자 요청). LLM이 옮겨 적다 URL을 깨뜨릴 수 있으니 항상 코드에서 결정적으로 삽입함.
-            // 본문의 이미지 URL은 플레인 텍스트로 넣는다(goodfriends가 링크/이미지 미리보기로 렌더링).
-            const bodyWithImage = externalInfo?.imageUrl ? insertImageMidBody(postData.body, externalInfo.imageUrl) : postData.body;
-
-            const postRes = await this.client.createPost({
-              categoryId: targetCategory.id,
-              title: postData.title,
-              body: bodyWithImage,
-            });
-
-            if (postRes.ok) {
-              actionsDone.push(`새 글 작성('${postData.title}')`);
-              this.stateManager.recordRecentText(this.persona.id, `${postData.title} - ${postData.body}`);
-              if (externalInfo) {
-                this.stateManager.recordUsedSourceUrl(externalInfo.url, this.persona.id);
-              }
-              this.stateManager.addLog({
-                agentId: this.persona.id,
-                agentName: this.persona.nickname,
-                type: 'post',
-                summary: `[${targetCategory.name}] 카테고리에 새 글을 등록했습니다: "${postData.title}"`,
-                targetId: postRes.id,
-                targetTitle: postData.title,
-                details: { body: bodyWithImage, category: targetCategory.name, isVerbatimRepost: Boolean(externalInfo?.fullBody) },
-                sessionId,
-              });
-            } else {
-              // 공감/댓글 실패는 항상 error 로그를 남기는데 글쓰기 실패만 조용히 넘어가던 버그.
-              // 카테고리 ID는 서버에서 조회한 값이고 이메일 미인증(EMAIL_NOT_VERIFIED) 등도 여기로 오므로
-              // 이 실패가 조용히 묻히면 원인 추적이 거의 불가능해진다.
-              this.stateManager.addLog({
-                agentId: this.persona.id,
-                agentName: this.persona.nickname,
-                type: 'error',
-                summary: `[${targetCategory.name}] 새 글 작성 실패: ${postRes.error || '알 수 없는 오류'}`,
-                sessionId,
-              });
-            }
-          }
+          const title = await this.writeNewPost(targetCategory, sessionId);
+          if (title) actionsDone.push(this.dryRun ? `새 글 초안 저장('${title}', dry-run)` : `새 글 작성('${title}')`);
         }
       }
 

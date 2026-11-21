@@ -20,3 +20,13 @@ describe('로컬 LLM 설정 기본값', () => {
     if (!process.env.LLM_LONG_TIMEOUT_MS) expect(config.llm.longTimeoutMs).toBe(600000);
   });
 });
+
+describe('드라이런·writer 한도 기본값', () => {
+  it('DRY_RUN은 기본 true(환경변수가 정확히 false일 때만 꺼진다)', () => {
+    if (process.env.DRY_RUN !== 'false') expect(config.dryRun).toBe(true);
+  });
+  it('writer 데드라인 기본 40분, LLM 호출 상한 기본 150', () => {
+    if (!process.env.WRITER_DEADLINE_MS) expect(config.writer.deadlineMs).toBe(40 * 60 * 1000);
+    if (!process.env.WRITER_MAX_LLM_CALLS) expect(config.writer.maxLlmCalls).toBe(150);
+  });
+});

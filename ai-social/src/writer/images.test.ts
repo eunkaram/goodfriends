@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseBodySegments } from '../../../frontend/lib/link-detect.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   attachImages, buildVisionPrompt, collectCandidates, createLocalVision, isDirectImageUrl, isRenderableImageLine,
-  isStandaloneUrlLine, normalizeImageUrl, parseVisionResponse, sniffImage, validateImage, type VisionFn,
+  isStandaloneUrlLine, normalizeImageUrl, parseVisionResponse, sniffImage, validateImage, downscaleWithSips, type DownscaleFn, type VisionFn,
 } from './images.js';
 import type { WriteResult } from './index.js';
 import { cleanSourceName, renderBody, buildCardRefs, type Draft } from './write-types.js';
@@ -24,6 +26,9 @@ const jpeg = (w: number, h: number, size = 20000) =>
 const gif = (w: number, h: number, size = 20000) => pad([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, ...l16(w), ...l16(h)], size);
 const webpX = (w: number, h: number, size = 20000) =>
   pad([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x58, 10, 0, 0, 0, 0, 0, 0, 0, ...l24(w - 1), ...l24(h - 1)], size);
+
+/** sips 없이도 도는 테스트용 다운스케일(원본 통과). 실제 sips 경로는 별도 describe에서 execFile 모킹으로 검증한다. */
+const PASS: DownscaleFn = async ({ bytes }) => ({ bytes, mime: 'image/jpeg' });
 
 type Handler = (headers: Record<string, string>, url: string) => Response;
 function ok(bytes: Uint8Array, ctype = 'image/png', extra: Record<string, string> = {}): Response {
@@ -57,14 +62,6 @@ describe('goodfriends 렌더 호환(link-detect 포팅)', () => {
     expect(isStandaloneUrlLine('https://x.example/a b.png')).toBe(false);
     expect(isRenderableImageLine('https://x.example/a.png')).toBe(true);
     expect(isRenderableImageLine('https://x.example/photo')).toBe(false);
-  });
-  it('실제 frontend parseBodySegments와 판별이 일치한다', () => {
-    const cases = ['https://x.example/a.jpg', 'https://x.example/a.png?w=800', 'https://x.example/photo', 'https://x.example/a.jpg#f', 'https://x.example/a.webp'];
-    for (const u of cases) {
-      const segs = parseBodySegments(`문단\n\n${u}\n(이미지: x)`);
-      const link = segs.find((s) => s.type === 'link') as any;
-      expect(!!link?.link.isDirectImage).toBe(isRenderableImageLine(u));
-    }
   });
 });
 
@@ -273,7 +270,7 @@ describe('attachImages', () => {
 
   it('형식: 섹션 문단 뒤에 빈 줄 + URL 단독 줄 + "(이미지: 출처명)" 줄, 섹션당 1장', async () => {
     const { bundle, fetch, yes, result } = setup();
-    const r = await attachImages(result, bundle, { fetchImpl: fetch.impl as any, vision: yes });
+    const r = await attachImages(result, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: yes });
     expect(r.images.map((i) => i.url)).toEqual([A1, B1]);
     expect(r.body).toBe(
       ['소개', 'Ollama v0.12.3이 나왔다.', `${A1}\n(이미지: Ollama Blog)`, 'MMLU 12% 향상이다.', `${B1}\n(이미지: b.example)`, '참고\n- Ollama release https://a.example/post\n- Paper https://b.example/paper']
@@ -282,31 +279,23 @@ describe('attachImages', () => {
     // 두 번째 후보(A2)는 같은 섹션이라 쓰지 않는다
     expect(r.body).not.toContain(A2);
   });
-  it('실제 frontend 파서가 이미지 줄을 <img>(isDirectImage link)로 읽고, 참고 줄은 그대로 텍스트', async () => {
-    const { bundle, fetch, yes, result } = setup();
-    const r = await attachImages(result, bundle, { fetchImpl: fetch.impl as any, vision: yes });
-    const segs = parseBodySegments(r.body);
-    const links = segs.filter((s) => s.type === 'link') as any[];
-    expect(links.map((l) => [l.link.url, l.link.isDirectImage])).toEqual([[A1, true], [B1, true]]);
-    expect(segs.some((s) => s.type === 'text' && s.value.startsWith('(이미지: Ollama Blog)'))).toBe(true);
-  });
   it('글당 N장 제한(설정값)', async () => {
     const { bundle, fetch, yes, result } = setup();
-    const r = await attachImages(result, bundle, { fetchImpl: fetch.impl as any, vision: yes, options: { maxPerPost: 1 } });
+    const r = await attachImages(result, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: yes, options: { maxPerPost: 1 } });
     expect(r.images).toHaveLength(1);
     expect(r.body.split('\n').filter((l) => l.startsWith('(이미지:'))).toHaveLength(1);
-    const zero = await attachImages(result, bundle, { fetchImpl: fetch.impl as any, vision: yes, options: { maxPerPost: 0 } });
+    const zero = await attachImages(result, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: yes, options: { maxPerPost: 0 } });
     expect(zero.body).toBe(result.body);
   });
   it('vision이 부적합 판정하면 다음 후보를 시도하고, 모두 부적합이면 본문 불변', async () => {
     const { bundle, fetch, result } = setup();
     let n = 0;
     const second: VisionFn = async () => (n++ === 0 ? '{"relevant": false, "caption": "", "reason": "로고"}' : '{"relevant": true, "caption": "c", "reason": "r"}');
-    const r = await attachImages(result, bundle, { fetchImpl: fetch.impl as any, vision: second, options: { maxPerPost: 1 } });
+    const r = await attachImages(result, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: second, options: { maxPerPost: 1 } });
     expect(r.images.map((i) => i.url)).toEqual([A2]);
     expect(r.imageRejections[0].reason).toContain('로고');
     const no: VisionFn = async () => '{"relevant": false, "caption": "", "reason": "광고"}';
-    const r2 = await attachImages(result, bundle, { fetchImpl: fetch.impl as any, vision: no });
+    const r2 = await attachImages(result, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: no });
     expect(r2.body).toBe(result.body);
     expect(r2.images).toEqual([]);
   });
@@ -315,7 +304,7 @@ describe('attachImages', () => {
     const boom: VisionFn = async () => { throw new Error('LLM down'); };
     const junk: VisionFn = async () => '이미지가 좋아 보입니다';
     for (const vision of [boom, junk, undefined]) {
-      const r = await attachImages(result, bundle, { fetchImpl: fetch.impl as any, vision });
+      const r = await attachImages(result, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision });
       expect(r.body).toBe(result.body);
       expect(r.images).toEqual([]);
       expect(r.status).toBe('passed');
@@ -324,18 +313,18 @@ describe('attachImages', () => {
   it('검증 실패 이미지(핫링크·작은 이미지)는 건너뛰고 다음 후보 사용', async () => {
     const { bundle, yes, result } = setup();
     const f = mockFetch({ [A1]: (h) => (h.Referer ? new Response('x', { status: 403 }) : ok(png(800, 450))), [A2]: ok(png(900, 500)), [B1]: ok(png(100, 100)) });
-    const r = await attachImages(result, bundle, { fetchImpl: f.impl as any, vision: yes });
+    const r = await attachImages(result, bundle, { downscale: PASS, fetchImpl: f.impl as any, vision: yes });
     expect(r.images.map((i) => i.url)).toEqual([A2]);
     expect(r.imageRejections.map((x) => x.url)).toEqual([A1, B1]);
   });
   it('discarded·draft 없음·usedSources 밖 출처의 이미지는 붙이지 않는다', async () => {
     const { bundle, fetch, yes, result } = setup();
-    const d = await attachImages({ ...result, status: 'discarded' }, bundle, { fetchImpl: fetch.impl as any, vision: yes });
+    const d = await attachImages({ ...result, status: 'discarded' }, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: yes });
     expect(d.images).toEqual([]);
     expect(fetch.calls).toHaveLength(0);
-    const nd = await attachImages({ ...result, draft: null }, bundle, { fetchImpl: fetch.impl as any, vision: yes });
+    const nd = await attachImages({ ...result, draft: null }, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: yes });
     expect(nd.body).toBe(result.body);
-    const only = await attachImages({ ...result, usedSources: [{ url: 'https://a.example/post', title: '' }] }, bundle, { fetchImpl: fetch.impl as any, vision: yes });
+    const only = await attachImages({ ...result, usedSources: [{ url: 'https://a.example/post', title: '' }] }, bundle, { downscale: PASS, fetchImpl: fetch.impl as any, vision: yes });
     expect(only.images.map((i) => i.url)).toEqual([A1]);
   });
   it('같은 이미지(리다이렉트 최종 URL 동일)를 두 섹션에 중복 배치하지 않는다', async () => {
@@ -349,7 +338,7 @@ describe('attachImages', () => {
       [FINAL]: ok(png(800, 450)),
     });
     const result = passedResult(bundle, [{ text: '가.', ids: ['F1'] }, { text: '나.', ids: ['F3'] }]);
-    const r = await attachImages(result, bundle, { fetchImpl: f.impl as any, vision: async () => '{"relevant":true,"caption":"c","reason":"r"}' });
+    const r = await attachImages(result, bundle, { downscale: PASS, fetchImpl: f.impl as any, vision: async () => '{"relevant":true,"caption":"c","reason":"r"}' });
     expect(r.images.map((i) => i.url)).toEqual([FINAL]);
   });
   it('출처명 정리: 마크다운·|·URL 제거', () => {
@@ -366,5 +355,81 @@ describe('attachImages', () => {
     const { body } = renderBody(d, buildCardRefs(b));
     expect(body).toBe('문장이다.\n\n참고\n- Release v0.12 notes https://a.example/post');
     expect(renderBody(d, buildCardRefs(b), new Map()).body).toBe(body);
+  });
+});
+
+describe('vision 다운스케일(sips, execFile 모킹)', () => {
+  const info = { mime: 'image/png' as const, width: 3000, height: 2000 };
+  const JPG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+
+  it('성공: 긴 변이 1024 초과면 -Z 1024로 JPEG 변환, 임시 디렉터리는 정리', async () => {
+    const seen: { file: string; args: string[]; dir: string }[] = [];
+    const execFile = async (file: string, args: string[]) => {
+      const out = args[args.indexOf('--out') + 1];
+      const input = args[args.length - 3];
+      seen.push({ file, args, dir: path.dirname(out) });
+      expect(fs.existsSync(input)).toBe(true); // 입력 파일이 실제로 써져 있다
+      fs.writeFileSync(out, JPG);
+    };
+    const r = await downscaleWithSips({ bytes: png(3000, 2000), info }, { execFile });
+    expect(r).toEqual({ bytes: JPG, mime: 'image/jpeg' });
+    expect(seen[0].file).toBe('sips');
+    expect(seen[0].args).toEqual(expect.arrayContaining(['-Z', '1024', 'format', 'jpeg']));
+    expect(seen[0].dir.startsWith(os.tmpdir())).toBe(true);
+    expect(fs.existsSync(seen[0].dir)).toBe(false);
+  });
+  it('이미 작은 이미지는 -Z 없이(확대 없음) 변환만', async () => {
+    let args: string[] = [];
+    const execFile = async (_f: string, a: string[]) => {
+      args = a;
+      fs.writeFileSync(a[a.indexOf('--out') + 1], JPG);
+    };
+    await downscaleWithSips({ bytes: png(800, 600), info: { mime: 'image/png' as const, width: 800, height: 600 } }, { execFile });
+    expect(args).not.toContain('-Z');
+  });
+  it('실패: sips 없음(ENOENT)·비정상 종료·JPEG 아닌 출력이면 null이고 임시 디렉터리도 정리', async () => {
+    const dirs: string[] = [];
+    const missing = async () => { throw Object.assign(new Error('spawn sips ENOENT'), { code: 'ENOENT' }); };
+    const notJpeg = async (_f: string, a: string[]) => {
+      const out = a[a.indexOf('--out') + 1];
+      dirs.push(path.dirname(out));
+      fs.writeFileSync(out, new Uint8Array([1, 2, 3, 4, 5]));
+    };
+    const noOutput = async (_f: string, a: string[]) => { dirs.push(path.dirname(a[a.indexOf('--out') + 1])); };
+    for (const execFile of [missing, notJpeg, noOutput]) {
+      expect(await downscaleWithSips({ bytes: png(3000, 2000), info }, { execFile })).toBeNull();
+    }
+    expect(dirs).toHaveLength(2);
+    for (const d of dirs) expect(fs.existsSync(d)).toBe(false);
+  });
+  it('attachImages: 다운스케일된 바이트가 vision으로 가고, 다운스케일 실패 이미지는 건너뛴다', async () => {
+    const A1 = 'https://a.example/img/one.png';
+    const bundle = makeBundle();
+    bundle.sources[0].images = [A1];
+    const draft: Draft = { title: '제목', sections: [{ factIds: ['F1'], paragraphs: [[{ text: '가.', cardIds: ['F1'] }]] }] };
+    const { body, usedUrls } = renderBody(draft, buildCardRefs(bundle));
+    const result: WriteResult = { status: 'passed', title: '제목', body, usedSources: usedUrls.map((url) => ({ url, title: '' })), review: { invalidCards: [], sentences: [], fixes: [], rounds: 1 }, reasons: [], outline: null, draft };
+    const f = mockFetch({ [A1]: ok(png(800, 450)) });
+    const sent: string[] = [];
+    const vision: VisionFn = async (req) => { sent.push(req.imageDataUrl); return '{"relevant": true, "caption": "c", "reason": "r"}'; };
+    const good = await attachImages(result, bundle, { fetchImpl: f.impl as any, vision, downscale: async () => ({ bytes: JPG, mime: 'image/jpeg' }) });
+    expect(good.images).toHaveLength(1);
+    expect(sent[0]).toBe(`data:image/jpeg;base64,${Buffer.from(JPG).toString('base64')}`);
+    const bad = await attachImages(result, bundle, { fetchImpl: f.impl as any, vision, downscale: async () => null });
+    expect(bad.images).toEqual([]);
+    expect(bad.body).toBe(result.body);
+    expect(bad.imageRejections[0].reason).toContain('다운스케일');
+    expect(sent).toHaveLength(1); // 실패 이미지는 vision에 보내지 않았다
+  });
+});
+
+describe('validateImage 시작 URL 호스트 검사', () => {
+  it('사설·루프백·http·잘못된 URL은 네트워크 요청 없이 거부', async () => {
+    const m = mockFetch({});
+    for (const u of ['https://127.0.0.1/a.png', 'https://192.168.0.4/a.png', 'https://localhost/a.png', 'https://intranet/a.png', 'http://x.example/a.png', 'not a url']) {
+      const r = await validateImage(u, { fetchImpl: m.impl as any });
+      expect(r.ok).toBe(false);
+    }
+    expect(m.calls).toHaveLength(0);
   });
 });

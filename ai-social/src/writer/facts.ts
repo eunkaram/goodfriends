@@ -42,6 +42,8 @@ export function normalizeWs(s: string): string {
 
 /** 문단 경계 우선으로 chunkChars 이하 조각으로 분할. 한 문단이 더 길면 글자 수로 자른다. */
 export function chunkText(text: string, chunkChars = 6000): string[] {
+  // 0 이하·NaN이면 아래 `i += chunkChars`가 제자리걸음(무한 루프)이 된다 → 하한을 둔다.
+  chunkChars = Number.isFinite(chunkChars) ? Math.max(1, Math.floor(chunkChars)) : 6000;
   const chunks: string[] = [];
   let cur = '';
   const push = () => {
@@ -125,7 +127,7 @@ function buildMessages(article: ArticleContent, chunk: string, idx: number, tota
 /** 원문 하나 → 검증된 사실 카드. LLM 오류·파싱 실패는 해당 청크만 건너뛴다(예외 없음). */
 export async function extractFactsFromArticle(article: ArticleContent, deps: Omit<FactsDeps, 'fetchArticle'>, opts: FactsOptions = {}): Promise<FactCard[]> {
   const maxFacts = opts.maxFactsPerSource ?? 6;
-  const chunks = chunkText(article.text, opts.chunkChars ?? 6000).slice(0, opts.maxChunks ?? 4);
+  const chunks = chunkText(article.text, Math.max(50, opts.chunkChars ?? 6000)).slice(0, opts.maxChunks ?? 4);
   const raw: { claim: string; quote: string }[] = [];
   for (let i = 0; i < chunks.length; i++) {
     try {

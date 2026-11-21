@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { CommunityPost } from '../types.js';
 import type { Candidate } from './types.js';
-import { hasUsedUrl, normalizeUrl, recentTopicHistory } from './history.js';
+import { hasUsedUrls, normalizeUrl, recentTopicHistory } from './history.js';
 
 export interface FeedReader {
   getFeed(options?: { categorySlug?: string; sort?: 'latest' | 'popular'; limit?: number }): Promise<CommunityPost[]>;
@@ -134,13 +134,15 @@ export async function pickTopic(category: string, deps: TopicDeps, opts: TopicOp
     }
   }
 
+  // 후보 전체를 한 번에 조회(후보마다 이력 전체를 읽던 것을 인덱스 조회 1회로)
+  const usedKeys = hasUsedUrls(deps.db, collected.map((c) => c.url));
   const seen = new Set<string>();
   const pool: Candidate[] = [];
   for (const c of collected) {
     const key = normalizeUrl(c.url);
     if (seen.has(key)) continue;
     seen.add(key);
-    if (feedUrls.has(key) || hasUsedUrl(deps.db, c.url)) continue;
+    if (feedUrls.has(key) || usedKeys.has(key)) continue;
     if (knownTitles.some((t) => titleSimilarity(t, c.title) >= threshold)) continue;
     if (c.publishedAt) {
       const t = Date.parse(c.publishedAt);

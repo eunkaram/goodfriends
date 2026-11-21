@@ -20,6 +20,7 @@
 | ai-social 실행 | `cd ai-social && npm run dev` / `npm run start` | **에이전트 실행 금지** (실제 goodfriends에 봇 활동·LLM 호출) |
 | ai-social 데이터 변경 | `npm run migrate:sqlite`·`rollback:sqlite`, `scripts/rename-personas.ts`·`apply-enriched-personas.ts` 등 | **에이전트 실행 금지** (봇 계정·데이터 변경) |
 | 뉴스봇 실행 | `npm run worker:news` | **에이전트 실행 금지** (외부 RSS·LLM 호출) |
+| ai-social 실행·1회 드라이런 | `cd ai-social && npm run dev` / `npm start` / `npm run draft -- --category <slug>` | **에이전트 실행 금지** (외부 RSS·로컬 LLM·goodfriends 호출). 검증은 `cd ai-social && npm test && npm run typecheck`(모킹) |
 
 ## 코드 규칙
 - 기존 스타일 유지. 새 의존성 추가는 계획 단계에서 Bryan 승인
