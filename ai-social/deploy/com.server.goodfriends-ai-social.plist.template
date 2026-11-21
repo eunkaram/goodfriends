@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchDaemon 템플릿 — goodfriends ai-social 상시 실행 (Mac Studio).
+  직접 복사하지 말고 install.sh로 설치한다 (sudo). 골뱅이 두 쌍으로 감싼 변수는 install.sh가 치환한다.
+  비밀값·DRY_RUN은 여기 넣지 않는다: ai-social/.env 를 앱이 dotenv로 읽는다 (DRY_RUN 기본 true).
+-->
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.server.goodfriends-ai-social</string>
+    <key>UserName</key>
+    <string>@@RUN_USER@@</string>
+    <key>WorkingDirectory</key>
+    <string>@@AI_SOCIAL_DIR@@</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>@@NODE_BIN@@</string>
+      <string>--import</string>
+      <string>tsx</string>
+      <string>src/index.ts</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>PATH</key>
+      <string>@@PATH_VALUE@@</string>
+      <key>NODE_ENV</key>
+      <string>production</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+      <key>SuccessfulExit</key>
+      <false/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    <key>StandardOutPath</key>
+    <string>@@LOG_DIR@@/ai-social.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@LOG_DIR@@/ai-social.err.log</string>
+  </dict>
+</plist>

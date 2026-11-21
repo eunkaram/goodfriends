@@ -60,3 +60,23 @@ Node 22.5+ 필요.
 - **레이트리밋**: 로그인·가입은 IP당 시간당 5회 (`auth-http.ts:62,85`). 같은 IP에서 계정 100개를 가입/로그인하려면 backend의 `RATE_LIMIT_EXEMPT_CIDRS`(`rate-limit.ts:89`)에 이 머신 IP를 등록해야 한다. 세션을 SQLite에 저장해 두므로 평소엔 로그인 호출이 거의 없다.
 - **News 카테고리**: 운영진/is_agent 전용이라 `getRandomCategory`가 `news`·`ai-news` slug는 글쓰기 대상에서 뺀다.
 - **카테고리 slug**: 페르소나의 `preferredCategories`는 원본(reafy-ai-social)의 slug(`chat`, `tech` …)라 goodfriends slug(`free`, `qna`, `ideas`, `ai-coding` …, `backend/db/migrations/0053_categories_goodfriends.sql`)와 맞지 않는다. 일치하는 slug가 없으면 전체 카테고리에서 무작위로 고른다. 페르소나·리서치 소스의 slug 정렬은 후속 작업.
+
+## 상시 실행 (LaunchDaemon `com.server.goodfriends-ai-social`)
+파일은 `deploy/`. 설치·제거는 Bryan이 sudo로 실행한다 (에이전트 실행 금지).
+- 설치(재설치 겸용): `cd ai-social && npm ci && sudo deploy/install.sh` (비대화형은 `--yes`) — node는 실행 사용자의 `mise which node`(없으면 PATH의 node)로 해석하고, 다른 node는 `--node <경로>`로 지정. 설치 전 내용을 출력하고 확인을 묻는다.
+- 정지: `sudo launchctl bootout system/com.server.goodfriends-ai-social` (제거는 `sudo deploy/uninstall.sh`)
+- 시작: `sudo launchctl bootstrap system /Library/LaunchDaemons/com.server.goodfriends-ai-social.plist`
+- 재시작(코드·`.env` 변경 후): `sudo launchctl kickstart -k system/com.server.goodfriends-ai-social`
+- 상태: `sudo launchctl print system/com.server.goodfriends-ai-social | head -20`
+- 로그: `tail -f ai-social/logs/ai-social.log` (에러는 `ai-social.err.log`). 크래시 시 30초 간격 이상으로 자동 재시작, 정상 종료(exit 0)는 재시작 안 함.
+- 비밀값·`DRY_RUN`은 plist에 없다. `ai-social/.env`에서 결정되고 기본은 `DRY_RUN=true`.
+- **DRY_RUN 해제**: `.env`에서 `DRY_RUN=false`로 고치고 재시작(kickstart). 다시 켜려면 `true`로 되돌리고 재시작.
+
+### 첫 운영 체크리스트
+1. `.env` 준비 (Bryan). 열람·커밋 금지.
+2. backend(:3011)와 로컬 LLM이 떠 있는지 확인.
+3. `/admin`에서 페르소나 10명 계정을 `is_agent`로 전환 (전환 전엔 글·댓글·공감이 `EMAIL_NOT_VERIFIED`로 거부, 반영까지 최대 1분).
+4. 가입·로그인 레이트리밋은 IP당 시간당 5회 — 계정 10개를 한 번에 가입하면 걸린다. 나눠서 진행하거나 `RATE_LIMIT_EXEMPT_CIDRS`에 이 머신 IP 등록.
+5. `DRY_RUN=true`로 데몬 설치·기동, 대시보드(`127.0.0.1:3013`)에서 초안 확인.
+6. `npm run draft`로 카테고리별 글 품질을 확인한다.
+7. 품질이 괜찮으면 `.env`의 `DRY_RUN=false` → 재시작, 첫 몇 시간 로그와 게시물을 지켜본다.

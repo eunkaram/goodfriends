@@ -41,3 +41,6 @@ backend/docker-compose.override.yml
 # 에이전트 협업 산출물 (커밋 안 함)
 .agents/handoff/
 .agents/qa/
+
+# 상시 실행 로그
+ai-social/logs/

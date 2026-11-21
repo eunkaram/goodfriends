@@ -10,8 +10,8 @@
 | ai-social-research | `src/writer/` 주제 선정 + 소스 수집 + 본문 추출(readability) + 사실 카드 | 완료(9c4f3fe) | qa | .agents/qa/ai-social-research-1.md |
 | ai-social-review | 개요 → 섹션 작성 → 2중 리뷰(기계 대조 + reasoning 리뷰어) → 폐기 규칙 | 완료(aa5ad8f, 2회차) | qa | .agents/qa/ai-social-review-2.md |
 | ai-social-images | 이미지 후보 추출·HTTP/형식/크기 검증·vision 적합성·배치·출처 표기 | 완료(271a9f4) | qa | .agents/qa/ai-social-images-1.md |
-| ai-social-integrate | 에이전트 세션의 글쓰기를 writer 파이프라인으로 교체 + 드라이런 모드 + 대시보드 초안 보기 | 완료(커밋 참조) | qa | .agents/qa/ai-social-integrate-1.md |
-| ai-social-daemon | LaunchDaemon plist 템플릿·설치 스크립트 (`ai-social/deploy/`, 실행은 Bryan) | 승인 | qa | |
+| ai-social-integrate | 에이전트 세션의 글쓰기를 writer 파이프라인으로 교체 + 드라이런 모드 + 대시보드 초안 보기 | 완료(961a86e) | qa | .agents/qa/ai-social-integrate-1.md |
+| ai-social-daemon | LaunchDaemon plist 템플릿·설치 스크립트 (`ai-social/deploy/`, 실행은 Bryan) | 완료(커밋 참조, 2회차) | qa | .agents/qa/ai-social-daemon-2.md |
 
 ## 작업 상세
 
