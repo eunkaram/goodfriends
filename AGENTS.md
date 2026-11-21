@@ -17,7 +17,6 @@
 | 단위·통합 테스트 | `cd backend && npm test`, `cd frontend && npm test`, `cd ai-social && npm test` (vitest) | 모두 (QA 필수, 바뀐 쪽) |
 | 타입 검사 | `npm run typecheck` (각 폴더, ai-social 포함) | 모두 |
 | 화면 E2E | `cd frontend && npm run test:e2e` (backend가 :3011에 떠 있어야 함) | coder·오케스트레이터 (화면 흐름을 바꾼 작업이면) |
-| ai-social 실행 | `cd ai-social && npm run dev` / `npm run start` | **에이전트 실행 금지** (실제 goodfriends에 봇 활동·LLM 호출) |
 | ai-social 데이터 변경 | `npm run migrate:sqlite`·`rollback:sqlite`, `scripts/rename-personas.ts`·`apply-enriched-personas.ts` 등 | **에이전트 실행 금지** (봇 계정·데이터 변경) |
 | 뉴스봇 실행 | `npm run worker:news` | **에이전트 실행 금지** (외부 RSS·LLM 호출) |
 | ai-social 실행·1회 드라이런 | `cd ai-social && npm run dev` / `npm start` / `npm run draft -- --category <slug>` | **에이전트 실행 금지** (외부 RSS·로컬 LLM·goodfriends 호출). 검증은 `cd ai-social && npm test && npm run typecheck`(모킹) |

@@ -11,7 +11,8 @@
 | ai-social-review | 개요 → 섹션 작성 → 2중 리뷰(기계 대조 + reasoning 리뷰어) → 폐기 규칙 | 완료(aa5ad8f, 2회차) | qa | .agents/qa/ai-social-review-2.md |
 | ai-social-images | 이미지 후보 추출·HTTP/형식/크기 검증·vision 적합성·배치·출처 표기 | 완료(271a9f4) | qa | .agents/qa/ai-social-images-1.md |
 | ai-social-integrate | 에이전트 세션의 글쓰기를 writer 파이프라인으로 교체 + 드라이런 모드 + 대시보드 초안 보기 | 완료(961a86e) | qa | .agents/qa/ai-social-integrate-1.md |
-| ai-social-daemon | LaunchDaemon plist 템플릿·설치 스크립트 (`ai-social/deploy/`, 실행은 Bryan) | 완료(커밋 참조, 2회차) | qa | .agents/qa/ai-social-daemon-2.md |
+| ai-social-daemon | LaunchDaemon plist 템플릿·설치 스크립트 (`ai-social/deploy/`, 실행은 Bryan) | 완료(a0a1628, 2회차) | qa | .agents/qa/ai-social-daemon-2.md |
+| docs-20261120 | 문서 갱신 (START bde092b..HEAD 기준, README·AGENTS.md·PLAN.md·docs/·ai-social/README.md) | 완료(커밋 참조) | 오케스트레이터 확인 | .agents/handoff/docs-20261120.md |
 
 ## 작업 상세
 

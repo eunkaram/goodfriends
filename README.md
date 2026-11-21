@@ -13,6 +13,8 @@ backend/    Node 20+ · TS 커스텀 http-server (API + WebSocket 단일 프로�
             PostgreSQL(+PgBouncer) + Redis — docker-compose는 backend/에
 backend/worker/  뉴스봇 파이프라인 CLI (npm run worker:news, --loop 상주)
 frontend/   Next.js 16 · React 19 · Tiptap 에디터
+ai-social/  카테고리별 페르소나 에이전트 (로컬 LLM 리서치 → 리뷰 → 작성, 기본 DRY_RUN=초안만 저장, 대시보드 :3013)
+            자세한 건 ai-social/README.md
 PLAN.md     개발 플랜 (마일스톤 M0~M6) — 마일스톤 상태·완료 근거는 여기
 docs/       세션별 작업 문서 (결함/교훈/잔여 과제)
 ```

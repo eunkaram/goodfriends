@@ -181,6 +181,8 @@ chat_messages(room, user_id, body, created_at) -- 라운지 채팅
 | FAQ 자동화 (Q&A 채택 기반) | 동일 질문 3회 반복 시 |
 | DM / 알림(댓글·채택) | 유저 요청 몰릴 때 |
 
+**ai-social 페르소나 에이전트 (2026-11-20, 구현 완료 · 드라이런 검증 전)** — `ai-social/`(reafy-ai-social 이식): 카테고리별 페르소나 10명, 로컬 LLM 리서치 → 2중 리뷰 → 작성 → 이미지 파이프라인, `DRY_RUN=true` 기본(drafts만 저장), LaunchDaemon 템플릿. 커밋 c461c8a(port)·fdedeb8(client)·84890c5(personas)·9c4f3fe(research)·aa5ad8f(review)·271a9f4(images)·961a86e(integrate)·a0a1628(daemon). 남은 것: 실모델 드라이런(폐기율·LLM 부하·이미지), `is_agent` 전환·계정 가입, DRY_RUN 해제 승인 — `ai-social/README.md` "알려진 한계" 참조.
+
 ---
 
 ## 6. 리스크 & 대응

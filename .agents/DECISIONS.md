@@ -14,3 +14,4 @@
 2026-11-20 ai-social-integrate 1회차 PASS → 커밋 — 499 tests(contract 포함)·typecheck 통과, tsc 프로그램에 frontend 파일 0건, DRY_RUN 쓰기 경로 전수 확인(QA). 낮음 6건: AGENTS.md 실행 금지 행 중복(#4)은 docs 단계에서 합침, 데드라인 40분·LLM 150회 기본값과 LLM 부하(#6)는 실측 드라이런 후 조정. 미사용 코드 삭제 제안(src/research/, post-image, generatePost·post-formats, StateManager used_source_url 메서드, Reafy 100명 JSON)은 Bryan 승인 사항
 2026-11-20 ai-social-daemon 1회차 FAIL(보통: root install -d가 logs 심볼릭 링크를 따라감) → 2회차 수정. node 경로는 brew 심볼릭 링크라 링크 자체는 허용, 실제 파일 소유자·쓰기 권한만 검사(오케스트레이터 승인). node는 mise가 아니라 brew(/opt/homebrew/bin/node v24) — install.sh가 mise→PATH 순으로 해석
 2026-11-20 ai-social-daemon 2회차 PASS → 커밋 — plutil·bash -n·심볼릭 링크 거부 재현 통과, 499 tests. sudo 경로(bootout/bootstrap)는 코드 리뷰로만 확인
+2026-11-20 docs-20261120 문서만 변경 확인(README·AGENTS·PLAN·ai-social/README), 설정 이름 config.ts와 대조 일치, 비밀값·새 내부 주소 없음 → 커밋. 서버 설정은 적용하지 않았으므로(데몬 미설치) install_summary 13절 기록 없음
