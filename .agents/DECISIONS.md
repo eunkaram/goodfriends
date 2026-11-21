@@ -8,3 +8,5 @@
 2026-11-20 ai-social-personas 1회차 PASS → 커밋 — 268 tests·typecheck 통과, 페르소나 10명 카테고리 1:1 확인. QA 낮음 7건: #5(longTimeoutMs 미사용)는 ai-social-review에서 소비, #4는 review 작업 LLM 테스트에 포함, 문서(#1·#2·#3) 정리는 docs 단계. Reafy 100명 JSON(미참조) 삭제는 Bryan 승인 사항이라 보류 — 최종 보고에서 질문
 2026-11-20 ai-social-research 1회차 PASS → 커밋 — 343 tests·typecheck 통과, 의존성 readability 0.6.0·linkedom 0.18.15 고정. 넘길 것: #5(claim이 quote에 뒷받침되는지)→ai-social-review, #1(recordTopicUsage 호출)·#2(파이프라인 전체 데드라인·시도 축소)·#6(fetchArticle robots 주입 강제)·#3(이력 조회 성능)·#7(chunk 가드)→ai-social-integrate
 2026-11-20 ai-social-research arXiv — export.arxiv.org robots.txt는 전체 Disallow지만 arXiv 공식 API 이용 약관(3초 간격)에 따라 사용 중. Bryan 확인 사항으로 최종 보고에 포함(빼려면 registry.ts의 arxiv 항목 제거)
+2026-11-20 ai-social-review 1회차 FAIL(보통 4: 비-reasoning 동작 변경·제목 미검수·마커 없는 본문 passed·출처 URL 단독 줄이 OG 카드 N개) → 2회차 결정: 출처는 '- 출처명 URL' 인라인 줄, URL 단독 줄은 이미지 배치 전용, passed는 마커 문장 비율 ≥0.5 + 출처 ≥1
+2026-11-20 ai-social-review 2회차 PASS → 커밋 — 410 tests·typecheck 통과. 낮음 3건(verifyDraft 직접 호출 시 미존재 cardId, 출처명 정리 안 함, 마크다운 위반 흐름·0.5 경계 테스트 없음)은 integrate에서 함께 처리. 실모델 폐기율은 드라이런으로 확인 필요(factual 필드 생략 시 폐기 증가 가능)

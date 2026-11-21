@@ -5,6 +5,7 @@ import { sanitizeLlmText } from './sanitize.js';
 import { pickPostFormat } from './post-formats.js';
 import { pickCommentFormat } from './comment-formats.js';
 import { buildPersonaPromptPrefix } from './persona-prompt.js';
+import { extractChatContent } from './thinking.js';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -16,6 +17,12 @@ export interface ChatOptions {
   timeoutMs?: number;
   /** 완성 토큰 상한. 생략하면 2048. */
   maxTokens?: number;
+  /**
+   * reasoning(thinking) 모드. 생략=서버 기본(off, 기존 동작 불변). true면 로컬 공급자에
+   * chat_template_kwargs.enable_thinking=true를 보내고, 응답의 <think>/reasoning_content는 버리며,
+   * thinking이 잘려 답이 비면 throw한다(thinking.ts 참고). max_tokens는 thinking 분량까지 넉넉히 줄 것.
+   */
+  reasoning?: boolean;
 }
 
 const CHAT_TIMEOUT_MS = 30000;
@@ -26,7 +33,7 @@ const CHAT_RETRY_DELAY_MS = 1000;
  * 실제로 AI임을 들킨 결정적 증거는 전부 댓글 쪽이었는데(3줄 정형, 원글 재진술 도입부, 제안형
  * 마무리) 정작 댓글 프롬프트엔 이 규칙이 없었다 — 글/댓글 비대칭을 없애려고 상수로 뺐다.
  */
-const ANTI_AI_STYLE_RULE =
+export const ANTI_AI_STYLE_RULE =
   'AI가 쓴 것처럼 보이는 상투적 패턴을 피하세요: "~를 통해", "~에 대해" 같은 번역투, "결론적으로", ' +
   '"시사하는 바가 크다", "~라고 할 수 있습니다" 같은 상투어, "첫째/둘째/셋째"나 번호·불릿 나열, ' +
   '"~것 같습니다/~일 수도 있습니다"를 문장마다 붙이는 헤징 남발, "것이다/점/수"로 어색하게 끝나는 ' +
@@ -91,6 +98,10 @@ export class LlmClient {
       max_tokens: options.maxTokens ?? 2048,
     };
 
+    if (options.reasoning !== undefined && provider.name === 'local') {
+      payload.chat_template_kwargs = { enable_thinking: options.reasoning };
+    }
+
     if (jsonMode) {
       payload.response_format = { type: 'json_object' };
     }
@@ -116,8 +127,7 @@ export class LlmClient {
       }
 
       const data = (await res.json()) as any;
-      const content = data.choices?.[0]?.message?.content || '';
-      return content.trim();
+      return extractChatContent(data.choices?.[0], options.reasoning === true);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         throw new Error(`LLM request timed out after ${timeoutMs}ms [${provider.name}]`);

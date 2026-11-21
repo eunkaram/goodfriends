@@ -7,8 +7,8 @@
 | ai-social-port | reafy-ai-social을 `ai-social/`로 이식 (뼈대·테스트 통과, Reafy 전용 배포물 제외) | 완료(c461c8a) | qa | .agents/qa/ai-social-port-1.md |
 | ai-social-client | `ReafyClient` → `GoodfriendsClient` (goodfriends backend 소스와 API 계약 대조) | 완료(fdedeb8) | qa | .agents/qa/ai-social-client-1.md |
 | ai-social-personas | 카테고리별 페르소나 10명 (`@goodfriends.local`), 설정 기본값을 goodfriends·로컬 LLM에 맞춤 | 완료(84890c5) | qa | .agents/qa/ai-social-personas-1.md |
-| ai-social-research | `src/writer/` 주제 선정 + 소스 수집 + 본문 추출(readability) + 사실 카드 | 완료(커밋 참조) | qa | .agents/qa/ai-social-research-1.md |
-| ai-social-review | 개요 → 섹션 작성 → 2중 리뷰(기계 대조 + reasoning 리뷰어) → 폐기 규칙 | 승인 | qa | |
+| ai-social-research | `src/writer/` 주제 선정 + 소스 수집 + 본문 추출(readability) + 사실 카드 | 완료(9c4f3fe) | qa | .agents/qa/ai-social-research-1.md |
+| ai-social-review | 개요 → 섹션 작성 → 2중 리뷰(기계 대조 + reasoning 리뷰어) → 폐기 규칙 | 완료(커밋 참조, 2회차) | qa | .agents/qa/ai-social-review-2.md |
 | ai-social-images | 이미지 후보 추출·HTTP/형식/크기 검증·vision 적합성·배치·출처 표기 | 승인 | qa | |
 | ai-social-integrate | 에이전트 세션의 글쓰기를 writer 파이프라인으로 교체 + 드라이런 모드 + 대시보드 초안 보기 | 승인 | qa | |
 | ai-social-daemon | LaunchDaemon plist 템플릿·설치 스크립트 (`ai-social/deploy/`, 실행은 Bryan) | 승인 | qa | |

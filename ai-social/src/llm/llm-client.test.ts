@@ -183,3 +183,50 @@ describe('LlmClient chat options / headers', () => {
     errSpy.mockRestore();
   });
 });
+
+describe('LlmClient reasoning option', () => {
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    process.env.LLM_PROVIDER = '';
+    process.env.OPENROUTER_API_KEY = '';
+    process.env.LLM_FALLBACK_TO_OPENROUTER = '';
+    process.env.LOCAL_LLM_BASE_URL = 'http://local.test/v1';
+    process.env.LOCAL_LLM_MODEL = 'local-model';
+  });
+  afterEach(() => {
+    global.fetch = originalFetch;
+    process.env = { ...originalEnv };
+  });
+
+  it('기본(옵션 없음)은 chat_template_kwargs를 보내지 않는다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(mockOkResponse('hi'));
+    global.fetch = fetchMock as any;
+    await (await freshLlmClient()).chat([{ role: 'user', content: 'x' }]);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).chat_template_kwargs).toBeUndefined();
+  });
+
+  it('reasoning:true면 enable_thinking=true를 보내고 reasoning_content는 버린다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '391', reasoning_content: 'steps' }, finish_reason: 'stop' }] }),
+    });
+    global.fetch = fetchMock as any;
+    const out = await (await freshLlmClient()).chat([{ role: 'user', content: 'x' }], false, { reasoning: true });
+    expect(out).toBe('391');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).chat_template_kwargs).toEqual({ enable_thinking: true });
+  });
+
+  it('reasoning:true에서 thinking 잘림(빈 content)은 실패 처리(재시도 후 throw)', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '', reasoning_content: 'cut' }, finish_reason: 'length' }] }),
+    });
+    global.fetch = fetchMock as any;
+    const p = (await freshLlmClient()).chat([{ role: 'user', content: 'x' }], false, { reasoning: true });
+    const assertion = expect(p).rejects.toThrow(/reasoning/);
+    await vi.runAllTimersAsync();
+    await assertion;
+    vi.useRealTimers();
+  });
+});
